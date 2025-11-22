@@ -22,126 +22,126 @@ export default function DashboardPage() {
             title: 'Forest Environment',
             type: 'scene',
             date: '2024-01-15',
-            preview: '/placeholder-scene.png'
+            preview: '/forest-environment.png'
         },
         {
             id: '2',
             title: 'Character Idle',
             type: 'sprite',
             date: '2024-01-14',
-            preview: '/placeholder-sprite.png'
+            preview: '/character-idle.png'
         },
         {
             id: '3',
             title: 'Dungeon Tileset',
             type: 'scene',
             date: '2024-01-12',
-            preview: '/placeholder-scene.png'
+            preview: '/dungeon-tileset.png'
         },
         {
             id: '4',
             title: 'Hero Sprite',
             type: 'sprite',
             date: '2024-01-10',
-            preview: '/placeholder-sprite.png'
+            preview: '/hero-sprite.png'
         },
         {
             id: '5',
             title: 'Town Square',
             type: 'scene',
             date: '2024-01-08',
-            preview: '/placeholder-scene.png'
+            preview: '/town-square.png'
         },
         {
             id: '6',
             title: 'Warrior Attack',
             type: 'sprite',
             date: '2024-01-07',
-            preview: '/placeholder-sprite.png'
+            preview: '/warrior-attack.png'
         },
         {
             id: '7',
             title: 'Castle Interior',
             type: 'scene',
             date: '2024-01-06',
-            preview: '/placeholder-scene.png'
+            preview: '/dungeon-tileset.png'
         },
         {
             id: '8',
             title: 'Enemy Slime',
             type: 'sprite',
             date: '2024-01-05',
-            preview: '/placeholder-sprite.png'
+            preview: '/character-idle.png'
         },
         {
             id: '9',
             title: 'Desert Background',
             type: 'scene',
             date: '2024-01-04',
-            preview: '/placeholder-scene.png'
+            preview: '/forest-environment.png'
         },
         {
             id: '10',
             title: 'NPC Merchant',
             type: 'sprite',
             date: '2024-01-03',
-            preview: '/placeholder-sprite.png'
+            preview: '/hero-sprite.png'
         },
         {
             id: '11',
             title: 'Cave System',
             type: 'scene',
             date: '2024-01-02',
-            preview: '/placeholder-scene.png'
+            preview: '/dungeon-tileset.png'
         },
         {
             id: '12',
             title: 'Collectible Coin',
             type: 'sprite',
             date: '2024-01-01',
-            preview: '/placeholder-sprite.png'
+            preview: '/warrior-attack.png'
         },
         {
             id: '13',
             title: 'Boss Arena',
             type: 'scene',
             date: '2023-12-31',
-            preview: '/placeholder-scene.png'
+            preview: '/town-square.png'
         },
         {
             id: '14',
             title: 'Dragon Boss',
             type: 'sprite',
             date: '2023-12-30',
-            preview: '/placeholder-sprite.png'
+            preview: '/warrior-attack.png'
         },
         {
             id: '15',
             title: 'Village Market',
             type: 'scene',
             date: '2023-12-29',
-            preview: '/placeholder-scene.png'
+            preview: '/town-square.png'
         },
         {
             id: '16',
             title: 'Mage Character',
             type: 'sprite',
             date: '2023-12-28',
-            preview: '/placeholder-sprite.png'
+            preview: '/hero-sprite.png'
         },
         {
             id: '17',
             title: 'Mountain Pass',
             type: 'scene',
             date: '2023-12-27',
-            preview: '/placeholder-scene.png'
+            preview: '/forest-environment.png'
         },
         {
             id: '18',
             title: 'Chest Animation',
             type: 'sprite',
             date: '2023-12-26',
-            preview: '/placeholder-sprite.png'
+            preview: '/character-idle.png'
         }
     ]);
 
@@ -152,6 +152,7 @@ export default function DashboardPage() {
     const [editTitle, setEditTitle] = useState('');
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     const [imageError, setImageError] = useState<Record<string, boolean>>({});
 
@@ -231,7 +232,12 @@ export default function DashboardPage() {
     };
 
     useEffect(() => {
-        const handleClickOutside = () => setActiveMenuId(null);
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest(`.${styles.menuDropdown}`) && !target.closest(`.${styles.cardMenuBtn}`)) {
+                setActiveMenuId(null);
+            }
+        };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
@@ -289,7 +295,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    <button className={styles.profileBtn}>
+                    <button type="button" className={styles.profileBtn}>
                         <div className={styles.avatar}>JD</div>
                     </button>
                 </div>
@@ -321,57 +327,86 @@ export default function DashboardPage() {
                         </div>
                     )}
 
-                    {/* Toolbar */}
-                    <div className={styles.toolbar}>
-                        <div className={styles.searchBox}>
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            <input
-                                type="text"
-                                placeholder="Search projects..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className={styles.searchInput}
-                            />
+                    {/* Section Header */}
+                    <div className={styles.sectionHeader}>
+                        <div className={styles.sectionTitleGroup}>
+                            <h2 className={styles.sectionTitle}>All Projects</h2>
+                            <span className={styles.projectCount}>
+                                {filteredAndSortedProjects.length}
+                            </span>
                         </div>
 
-                        <div className={styles.filterGroup}>
-                            <button
-                                className={`${styles.filterBtn} ${filterType === 'all' ? styles.filterBtnActive : ''}`}
-                                onClick={() => setFilterType('all')}
-                            >
-                                <span className="text-mono" style={{ fontSize: '11px' }}>ALL</span>
-                            </button>
-                            <button
-                                className={`${styles.filterBtn} ${filterType === 'scene' ? styles.filterBtnActive : ''}`}
-                                onClick={() => setFilterType('scene')}
-                            >
-                                <span className="text-mono" style={{ fontSize: '11px' }}>SCENES</span>
-                            </button>
-                            <button
-                                className={`${styles.filterBtn} ${filterType === 'sprite' ? styles.filterBtnActive : ''}`}
-                                onClick={() => setFilterType('sprite')}
-                            >
-                                <span className="text-mono" style={{ fontSize: '11px' }}>SPRITES</span>
-                            </button>
+                        <div className={styles.sectionControls}>
+                            {isSearchExpanded ? (
+                                <div className={styles.searchBox}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    <input
+                                        type="text"
+                                        placeholder="Search projects..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onBlur={() => {
+                                            if (!searchQuery) {
+                                                setIsSearchExpanded(false);
+                                            }
+                                        }}
+                                        className={styles.searchInput}
+                                        autoFocus
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSearchQuery('');
+                                                setIsSearchExpanded(false);
+                                            }}
+                                            className={styles.clearSearchBtn}
+                                            style={{ marginLeft: 'auto', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className={styles.searchIconBtn}
+                                    onClick={() => setIsSearchExpanded(true)}
+                                    title="Search projects"
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </button>
+                            )}
+
+                            <div className={styles.filterGroup}>
+                                <button
+                                    className={`${styles.filterBtn} ${filterType === 'all' ? styles.filterBtnActive : ''}`}
+                                    onClick={() => setFilterType('all')}
+                                >
+                                    <span className="text-mono" style={{ fontSize: '11px' }}>ALL</span>
+                                </button>
+                                <button
+                                    className={`${styles.filterBtn} ${filterType === 'scene' ? styles.filterBtnActive : ''}`}
+                                    onClick={() => setFilterType('scene')}
+                                >
+                                    <span className="text-mono" style={{ fontSize: '11px' }}>SCENES</span>
+                                </button>
+                                <button
+                                    className={`${styles.filterBtn} ${filterType === 'sprite' ? styles.filterBtnActive : ''}`}
+                                    onClick={() => setFilterType('sprite')}
+                                >
+                                    <span className="text-mono" style={{ fontSize: '11px' }}>SPRITES</span>
+                                </button>
+                            </div>
                         </div>
-
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value as SortOption)}
-                            className={styles.sortSelect}
-                        >
-                            <option value="date-desc">Recent</option>
-                            <option value="date-asc">Oldest</option>
-                            <option value="name-asc">A-Z</option>
-                            <option value="name-desc">Z-A</option>
-                        </select>
-
-                        <span className="text-mono" style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
-                            {filteredAndSortedProjects.length} OF {projects.length}
-                        </span>
                     </div>
 
                     <div className={styles.projectsGrid}>
@@ -420,12 +455,34 @@ export default function DashboardPage() {
                                             </h3>
                                         )}
                                         <button
+                                            type="button"
                                             className={styles.cardMenuBtn}
                                             onClick={(e) => toggleMenu(project.id, e)}
                                             aria-expanded={activeMenuId === project.id}
                                         >
                                             <MoreVertical size={16} />
                                         </button>
+                                        {/* Menu Dropdown */}
+                                        {activeMenuId === project.id && (
+                                            <div className={styles.menuDropdown} onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    type="button"
+                                                    className={styles.menuItem}
+                                                    onClick={() => startRename(project.id, project.title)}
+                                                >
+                                                    <Edit2 size={14} />
+                                                    Rename
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`${styles.menuItem} ${styles.menuItemDelete}`}
+                                                    onClick={() => handleDelete(project.id)}
+                                                >
+                                                    <Trash2 size={14} />
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className={styles.cardMeta}>
@@ -436,26 +493,6 @@ export default function DashboardPage() {
                                         <span>{new Date(project.date).toLocaleDateString()}</span>
                                     </div>
                                 </div>
-
-                                {/* Menu Dropdown */}
-                                {activeMenuId === project.id && (
-                                    <div className={styles.menuDropdown} onClick={(e) => e.stopPropagation()}>
-                                        <button
-                                            className={styles.menuItem}
-                                            onClick={() => startRename(project.id, project.title)}
-                                        >
-                                            <Edit2 size={14} />
-                                            Rename
-                                        </button>
-                                        <button
-                                            className={`${styles.menuItem} ${styles.menuItemDelete}`}
-                                            onClick={() => handleDelete(project.id)}
-                                        >
-                                            <Trash2 size={14} />
-                                            Delete
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         ))}
                     </div>

@@ -71,6 +71,14 @@
     transition: all 0.15s ease;
 }
 
+.profileBtn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    outline: none;
+}
+
 .avatar {
     width: 40px;
     height: 40px;
@@ -147,14 +155,49 @@
     align-items: center;
 }
 
-/* Toolbar */
-.toolbar {
+/* Section Header */
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-xl) var(--space-xl) var(--space-lg) var(--space-xl);
+    background-color: var(--color-bg-base);
+}
+
+.sectionTitleGroup {
     display: flex;
     align-items: center;
     gap: var(--space-md);
-    padding: var(--space-lg) var(--space-xl);
-    border-bottom: 1px solid var(--color-border);
-    background-color: var(--color-bg-base);
+}
+
+.sectionTitle {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-medium);
+    font-size: 20px;
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.projectCount {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 10px;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-element);
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: var(--font-weight-medium);
+}
+
+.sectionControls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
 }
 
 .searchBox {
@@ -191,6 +234,39 @@
 
 .searchInput::placeholder {
     color: var(--color-text-muted);
+}
+
+.searchIconBtn {
+    padding: 8px 12px;
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-element);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+}
+
+.searchIconBtn:hover {
+    background-color: var(--color-bg-surface);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--color-text-primary);
+}
+
+.clearSearchBtn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    outline: none;
+}
+
+.clearSearchBtn:hover {
+    color: var(--color-text-primary);
 }
 
 .filterGroup {
@@ -261,7 +337,7 @@
 }
 
 .projectsGrid {
-    padding: var(--space-xl);
+    padding: 0 var(--space-xl) var(--space-xl) var(--space-xl);
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--space-lg);
@@ -274,10 +350,10 @@
     border-radius: var(--radius-element);
     transition: all 0.2s ease;
     position: relative;
+    overflow: visible;
 }
 
 .projectCard:hover {
-    transform: translateY(-2px);
     border-color: var(--color-accent-subtle);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
@@ -294,11 +370,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.projectCard:hover .cardPreview img {
-    transform: scale(1.05);
 }
 
 .placeholderPreview {
@@ -380,12 +451,19 @@
     border-radius: 4px;
     opacity: 0;
     transition: all 0.15s ease;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 10;
 }
 
 .projectCard:hover .cardMenuBtn,
 .cardMenuBtn:focus,
+.cardMenuBtn:focus-visible,
 .cardMenuBtn[aria-expanded="true"] {
-    opacity: 1;
+    opacity: 1 !important;
 }
 
 .cardMenuBtn:hover {
@@ -397,12 +475,13 @@
     position: absolute;
     top: 100%;
     right: 0;
+    margin-top: 4px;
     background-color: var(--color-bg-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-element);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     padding: 4px;
-    z-index: 100;
+    z-index: 1000;
     min-width: 140px;
 }
 
@@ -412,6 +491,7 @@
     border: none;
     background: transparent;
     color: var(--color-text-primary);
+    font-family: var(--font-primary);
     font-size: 13px;
     text-align: left;
     cursor: pointer;
@@ -419,6 +499,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    outline: none;
 }
 
 .menuItem:hover {
@@ -454,12 +535,26 @@
 }
 
 @media (max-width: 968px) {
-    .toolbar {
-        flex-wrap: wrap;
+    .sectionHeader {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-md);
+    }
+
+    .sectionTitleGroup {
+        justify-content: space-between;
+    }
+
+    .sectionControls {
+        justify-content: flex-end;
     }
 
     .searchBox {
         width: 100%;
+        order: -1;
+    }
+
+    .searchIconBtn {
         order: -1;
     }
 }
@@ -486,8 +581,8 @@
         gap: 8px;
     }
 
-    .toolbar {
-        padding: var(--space-md) var(--space-lg);
+    .sectionHeader {
+        padding: var(--space-lg) var(--space-lg) var(--space-md) var(--space-lg);
     }
 
     .filterGroup {
@@ -524,16 +619,15 @@
         width: 100%;
     }
 
-    .toolbar {
-        flex-direction: column;
-        align-items: stretch;
+    .sectionHeader {
+        padding: var(--space-md) var(--space-md);
+    }
+
+    .sectionControls {
+        flex-wrap: wrap;
     }
 
     .filterGroup {
-        width: 100%;
-    }
-
-    .sortSelect {
         width: 100%;
     }
 
