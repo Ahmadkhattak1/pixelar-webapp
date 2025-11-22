@@ -162,17 +162,11 @@ export default function DashboardPage() {
     // Track scroll position
     React.useEffect(() => {
         const handleScroll = () => {
-            const scrollContainer = document.querySelector(`.${styles.projectsGrid}`);
-            if (scrollContainer) {
-                setIsScrolled(scrollContainer.scrollTop > 50);
-            }
+            setIsScrolled(window.scrollY > 50);
         };
 
-        const scrollContainer = document.querySelector(`.${styles.projectsGrid}`);
-        if (scrollContainer) {
-            scrollContainer.addEventListener('scroll', handleScroll);
-            return () => scrollContainer.removeEventListener('scroll', handleScroll);
-        }
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     // Filter, search, and sort logic

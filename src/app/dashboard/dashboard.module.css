@@ -81,6 +81,218 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: var(--font-weight-medium);
+    transition: all 0.15s ease;
+}
+
+.profileBtn:hover .avatar {
+    border-color: rgba(255, 255, 255, 0.3);
+    background-color: var(--color-bg-surface-hover);
+}
+
+/* Main Content */
+.main {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+/* Projects Section */
+.projectsSection {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-height: calc(100vh - 73px);
+}
+
+/* Sticky Pill */
+.stickyPill {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.pillContent {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: 12px 24px;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 100px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+}
+
+.pillActions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Toolbar */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-bg-base);
+}
+
+.searchBox {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 280px;
+}
+
+.searchBox svg {
+    position: absolute;
+    left: 12px;
+    color: var(--color-text-muted);
+    pointer-events: none;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-element);
+    color: var(--color-text-primary);
+    font-family: var(--font-primary);
+    font-size: 13px;
+    transition: all 0.15s ease;
+    outline: none;
+}
+
+.searchInput:focus {
+    background-color: var(--color-bg-surface);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.searchInput::placeholder {
+    color: var(--color-text-muted);
+}
+
+.filterGroup {
+    display: flex;
+    gap: 4px;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-element);
+    padding: 4px;
+}
+
+.filterBtn {
+    padding: 6px 16px;
+    background-color: transparent;
+    border: none;
+    border-radius: 2px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.filterBtn:hover {
+    color: var(--color-text-primary);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.filterBtnActive {
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
+}
+
+.sortSelect {
+    padding: 8px 12px;
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-element);
+    color: var(--color-text-primary);
+    font-family: var(--font-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    outline: none;
+}
+
+.sortSelect:hover {
+    background-color: var(--color-bg-surface);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.menuItemDelete {
+    color: var(--color-error);
+}
+
+.menuItemDelete:hover {
+    background-color: rgba(255, 69, 58, 0.1);
+}
+
+.editInput {
+    width: 100%;
+    padding: 4px 8px;
+    background-color: var(--color-bg-base);
+    border: 1px solid var(--color-accent);
+    border-radius: 4px;
+    color: var(--color-text-primary);
+    font-family: var(--font-primary);
+    font-size: 15px;
+    outline: none;
+}
+
+.projectsGrid {
+    padding: var(--space-xl);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-lg);
+    align-content: start;
+}
+
+.projectCard {
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-element);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.projectCard:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-accent-subtle);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.cardPreview {
+    height: 160px;
+    background-color: var(--color-bg-base);
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-element) var(--radius-element) 0 0;
+}
+
+.cardPreview img {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     transition: transform 0.3s ease;
 }
