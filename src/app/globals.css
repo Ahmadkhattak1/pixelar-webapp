@@ -1,0 +1,420 @@
+:root {
+  /* User Palette */
+  --color-bg-base: #27262B;
+  /* Deeper matte background */
+  --color-bg-surface: #3E3D43;
+  /* Refined matte surface */
+  --color-bg-surface-hover: #4A494F;
+  /* Lighter shade */
+  --color-bg-surface-subtle: #35343A;
+  /* Slightly darker surface for depth */
+
+  --color-accent: #FF715B;
+  /* User provided accent */
+  --color-accent-hover: #FF8674;
+  --color-accent-subtle: rgba(255, 113, 91, 0.15);
+  /* Low opacity accent */
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: rgba(255, 255, 255, 0.6);
+  --color-text-muted: rgba(255, 255, 255, 0.4);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-focus: rgba(255, 113, 91, 0.5);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 64px;
+
+  /* Typography */
+  --font-primary: var(--font-ubuntu), 'Ubuntu', sans-serif;
+  --font-mono: var(--font-mono), 'Courier New', monospace;
+
+  /* Font Sizes - Confident Scale */
+  --font-size-display-xl: 96px;
+  --font-size-display: 72px;
+  --font-size-h1: 56px;
+  --font-size-h2: 40px;
+  --font-size-h3: 28px;
+  --font-size-h4: 20px;
+  --font-size-body-lg: 18px;
+  --font-size-body: 16px;
+  --font-size-sm: 14px;
+  --font-size-xs: 12px;
+
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* Line Heights */
+  --line-height-tight: 1.1;
+  --line-height-snug: 1.3;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.7;
+
+  /* Letter Spacing */
+  --letter-spacing-tight: -0.04em;
+  --letter-spacing-snug: -0.02em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.02em;
+
+  /* Shapes */
+  --radius-container: 32px;
+  /* Hyper-rounded for containers */
+  --radius-element: 4px;
+  /* Sharp/Technical for interactions */
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+  position: relative;
+}
+
+/* Grain Texture - Subtle */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.008;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-snug);
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: var(--line-height-tight);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  letter-spacing: var(--letter-spacing-snug);
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+  letter-spacing: var(--letter-spacing-snug);
+}
+
+h4 {
+  font-size: var(--font-size-h4);
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+p {
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Utility / Design System Classes */
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+/* Studio Button - Technical & Sharp */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+  border: none;
+  outline: none;
+  text-transform: uppercase;
+}
+
+.btn-primary {
+  background-color: var(--color-accent);
+  color: #FFFFFF;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-white {
+  background-color: #FFFFFF;
+  color: #1F1F1F;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.btn-white:hover {
+  background-color: #F5F5F5;
+}
+
+.btn-white:active {
+  transform: scale(0.98);
+}
+
+/* Studio Card - Soft & Organic */
+.card {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  padding: var(--space-xl);
+}
+
+/* Studio Input - Technical */
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: var(--color-bg-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px var(--color-accent-subtle);
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Studio Badge - Technical */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-element);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.badge-accent {
+  background-color: var(--color-accent-subtle);
+  color: var(--color-accent);
+  border: 1px solid rgba(255, 113, 91, 0.2);
+}
+
+.badge-outline {
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+/* Grid Layouts */
+.grid-bento {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-lg);
+}
+
+.col-span-12 {
+  grid-column: span 12;
+}
+
+.col-span-8 {
+  grid-column: span 8;
+}
+
+.col-span-6 {
+  grid-column: span 6;
+}
+
+.col-span-4 {
+  grid-column: span 4;
+}
+
+@media (max-width: 768px) {
+
+  .col-span-8,
+  .col-span-6,
+  .col-span-4 {
+    grid-column: span 12;
+  }
+}
+
+/* Typography Utility Classes */
+
+/* Display Text */
+.text-display-xl {
+  font-size: var(--font-size-display-xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+}
+
+.text-display {
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+}
+
+/* Headings */
+.text-h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+}
+
+.text-h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-snug);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+}
+
+.text-h3 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-snug);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+}
+
+.text-h4 {
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+}
+
+/* Body Text */
+.text-body-lg {
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+  font-family: var(--font-primary);
+}
+
+.text-body {
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+  font-family: var(--font-primary);
+}
+
+.text-sm {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+  font-family: var(--font-primary);
+}
+
+/* Technical/Mono Text */
+.text-mono {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.text-mono-accent {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-body-lg);
+  color: var(--color-accent);
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+/* Weight Utilities */
+.font-light {
+  font-weight: var(--font-weight-light);
+}
+
+.font-regular {
+  font-weight: var(--font-weight-regular);
+}
+
+.font-medium {
+  font-weight: var(--font-weight-medium);
+}
+
+.font-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+/* Color Utilities */
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-accent {
+  color: var(--color-accent);
+}
