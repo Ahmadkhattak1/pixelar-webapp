@@ -411,7 +411,7 @@ export default function DashboardPage() {
 
                     <div className={styles.projectsGrid}>
                         {filteredAndSortedProjects.map((project) => (
-                            <div key={project.id} className={styles.projectCard}>
+                            <div key={project.id} className={`${styles.projectCard} ${project.type === 'scene' ? styles.projectCardScene : styles.projectCardSprite}`}>
                                 {/* Preview */}
                                 <div className={styles.cardPreview}>
                                     {!imageError[project.id] ? (
@@ -426,8 +426,8 @@ export default function DashboardPage() {
                                         </div>
                                     )}
                                     <div className={styles.cardOverlay}>
-                                        <button className="btn btn-primary" style={{ padding: '8px 16px' }}>
-                                            Open
+                                        <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '11px' }}>
+                                            OPEN
                                         </button>
                                     </div>
                                 </div>
@@ -486,7 +486,7 @@ export default function DashboardPage() {
                                     </div>
 
                                     <div className={styles.cardMeta}>
-                                        <span className={styles.cardType}>
+                                        <span className={`${styles.cardType} ${project.type === 'scene' ? styles.cardTypeScene : styles.cardTypeSprite}`}>
                                             {project.type}
                                         </span>
                                         <span>•</span>
