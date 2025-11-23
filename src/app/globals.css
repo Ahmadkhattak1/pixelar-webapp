@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+
 :root {
   /* User Palette */
   --color-bg-base: #27262B;
@@ -30,8 +32,8 @@
   --space-2xl: 64px;
 
   /* Typography */
-  --font-primary: var(--font-ubuntu), 'Ubuntu', sans-serif;
-  --font-mono: var(--font-mono), 'Courier New', monospace;
+  --font-primary: 'Ubuntu', sans-serif;
+  --font-mono: 'Courier New', monospace;
 
   /* Font Sizes - Confident Scale */
   --font-size-display-xl: 96px;
@@ -105,6 +107,7 @@ h3,
 h4,
 h5,
 h6 {
+  font-family: var(--font-primary);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   line-height: var(--line-height-snug);
