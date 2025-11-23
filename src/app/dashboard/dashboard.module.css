@@ -326,80 +326,73 @@
 
 .editInput {
     width: 100%;
-    padding: 6px 10px;
+    padding: 8px 12px;
     background-color: var(--color-bg-base);
     border: 1px solid var(--color-accent);
-    border-radius: 2px;
+    border-radius: 4px;
     color: var(--color-text-primary);
-    font-family: var(--font-mono);
-    font-size: 14px;
+    font-family: var(--font-primary);
+    font-size: 16px;
     font-weight: var(--font-weight-medium);
-    letter-spacing: -0.01em;
-    text-transform: uppercase;
+    letter-spacing: -0.02em;
     outline: none;
+    margin-bottom: 8px;
 }
 
 .projectsGrid {
     padding: 0 var(--space-xl) var(--space-xl) var(--space-xl);
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
     align-content: start;
 }
 
 .projectCard {
     background-color: var(--color-bg-surface);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: var(--radius-element);
-    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    overflow: visible;
+    overflow: hidden;
     cursor: pointer;
 }
 
-.projectCardScene {
-    border-left: 2px solid rgba(255, 113, 91, 0.3);
+.projectCard:hover {
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
-.projectCardScene:hover {
-    border-color: rgba(255, 113, 91, 0.4);
-    border-left-color: rgba(255, 113, 91, 0.7);
-    background-color: #45444A;
+.projectCardScene {
+    /* Removed left border accent */
 }
 
 .projectCardSprite {
-    border-left: 2px solid rgba(91, 192, 235, 0.3);
-}
-
-.projectCardSprite:hover {
-    border-color: rgba(91, 192, 235, 0.4);
-    border-left-color: rgba(91, 192, 235, 0.7);
-    background-color: #45444A;
+    /* Removed left border accent */
 }
 
 .cardPreview {
-    height: 200px;
-    background-color: #2E2D32;
+    height: 240px;
+    background: linear-gradient(135deg, #F5F5F7 0%, #E8E8EA 100%);
     position: relative;
     overflow: hidden;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius-element) var(--radius-element) 0 0;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .projectCardScene .cardPreview {
-    background-color: #2F2D30;
-    border-bottom-color: rgba(255, 113, 91, 0.1);
+    background: linear-gradient(135deg, #FFF5F3 0%, #FFE8E3 100%);
 }
 
 .projectCardSprite .cardPreview {
-    background-color: #2D2F32;
-    border-bottom-color: rgba(91, 192, 235, 0.1);
+    background: linear-gradient(135deg, #F0F8FF 0%, #E3F2FD 100%);
 }
 
 .cardPreview img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    padding: 24px;
 }
 
 .placeholderPreview {
@@ -408,21 +401,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.25);
+    color: rgba(0, 0, 0, 0.15);
 }
 
 .projectCardScene .placeholderPreview {
-    color: rgba(255, 113, 91, 0.3);
+    color: rgba(255, 113, 91, 0.25);
 }
 
 .projectCardSprite .placeholderPreview {
-    color: rgba(91, 192, 235, 0.3);
+    color: rgba(91, 192, 235, 0.25);
 }
+
+/* Removed favoriteBtn and typeBadge - no longer needed */
 
 .cardOverlay {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    inset: 0;
     background: transparent;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -439,38 +433,55 @@
 }
 
 .cardInfo {
-    padding: 20px;
+    padding: 24px;
     position: relative;
+    background-color: var(--color-bg-surface);
 }
 
-.cardHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-    position: relative;
-}
+/* Removed cardHeader - no longer needed */
 
 .cardTitle {
-    font-family: var(--font-mono);
+    font-family: var(--font-primary);
     font-weight: var(--font-weight-medium);
-    font-size: 14px;
+    font-size: 16px;
     color: var(--color-text-primary);
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    letter-spacing: -0.01em;
-    text-transform: uppercase;
+    letter-spacing: -0.02em;
 }
 
 .cardMeta {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 11px;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.cardPrice {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background-color: var(--color-accent-subtle);
+    border: 1px solid rgba(255, 113, 91, 0.3);
+    border-radius: 20px;
     font-family: var(--font-mono);
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-accent);
+}
+
+.cardPrice svg {
+    width: 14px;
+    height: 14px;
+}
+
+.cardDate {
+    font-family: var(--font-primary);
+    font-size: 13px;
+    color: var(--color-text-muted);
 }
 
 .cardType {
@@ -479,7 +490,7 @@
     font-size: 10px;
     font-weight: var(--font-weight-medium);
     padding: 4px 8px;
-    border-radius: 2px;
+    border-radius: 4px;
 }
 
 .cardTypeScene {
@@ -495,19 +506,21 @@
 }
 
 .cardMenuBtn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
     padding: 6px;
     background: transparent;
     border: none;
     color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: 4px;
     opacity: 0;
     transition: all 0.15s ease;
     outline: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
     z-index: 10;
 }
 

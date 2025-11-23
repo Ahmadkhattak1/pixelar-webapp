@@ -422,11 +422,12 @@ export default function DashboardPage() {
                                         />
                                     ) : (
                                         <div className={styles.placeholderPreview}>
-                                            {project.type === 'scene' ? <ImageIcon size={48} strokeWidth={1} /> : <Folder size={48} strokeWidth={1} />}
+                                            {project.type === 'scene' ? <ImageIcon size={64} strokeWidth={1.5} /> : <Folder size={64} strokeWidth={1.5} />}
                                         </div>
                                     )}
+
                                     <div className={styles.cardOverlay}>
-                                        <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '11px' }}>
+                                        <button className="btn btn-primary" style={{ padding: '10px 20px', fontSize: '12px' }}>
                                             OPEN
                                         </button>
                                     </div>
@@ -434,64 +435,71 @@ export default function DashboardPage() {
 
                                 {/* Info */}
                                 <div className={styles.cardInfo}>
-                                    <div className={styles.cardHeader}>
-                                        {editingId === project.id ? (
-                                            <input
-                                                type="text"
-                                                value={editTitle}
-                                                onChange={(e) => setEditTitle(e.target.value)}
-                                                onBlur={() => handleRename(project.id, editTitle)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') handleRename(project.id, editTitle);
-                                                    if (e.key === 'Escape') setEditingId(null);
-                                                }}
-                                                className={styles.editInput}
-                                                autoFocus
-                                                onClick={(e) => e.stopPropagation()}
-                                            />
-                                        ) : (
-                                            <h3 className={styles.cardTitle} title={project.title}>
-                                                {project.title}
-                                            </h3>
-                                        )}
-                                        <button
-                                            type="button"
-                                            className={styles.cardMenuBtn}
-                                            onClick={(e) => toggleMenu(project.id, e)}
-                                            aria-expanded={activeMenuId === project.id}
-                                        >
-                                            <MoreVertical size={16} />
-                                        </button>
-                                        {/* Menu Dropdown */}
-                                        {activeMenuId === project.id && (
-                                            <div className={styles.menuDropdown} onClick={(e) => e.stopPropagation()}>
-                                                <button
-                                                    type="button"
-                                                    className={styles.menuItem}
-                                                    onClick={() => startRename(project.id, project.title)}
-                                                >
-                                                    <Edit2 size={14} />
-                                                    Rename
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`${styles.menuItem} ${styles.menuItemDelete}`}
-                                                    onClick={() => handleDelete(project.id)}
-                                                >
-                                                    <Trash2 size={14} />
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
+                                    {editingId === project.id ? (
+                                        <input
+                                            type="text"
+                                            value={editTitle}
+                                            onChange={(e) => setEditTitle(e.target.value)}
+                                            onBlur={() => handleRename(project.id, editTitle)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleRename(project.id, editTitle);
+                                                if (e.key === 'Escape') setEditingId(null);
+                                            }}
+                                            className={styles.editInput}
+                                            autoFocus
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    ) : (
+                                        <h3 className={styles.cardTitle} title={project.title}>
+                                            {project.title}
+                                        </h3>
+                                    )}
 
                                     <div className={styles.cardMeta}>
-                                        <span className={`${styles.cardType} ${project.type === 'scene' ? styles.cardTypeScene : styles.cardTypeSprite}`}>
+                                        <div className={styles.cardPrice}>
+                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
                                             {project.type}
+                                        </div>
+                                        <span className={styles.cardDate}>
+                                            {new Date(project.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
-                                        <span>•</span>
-                                        <span>{new Date(project.date).toLocaleDateString()}</span>
                                     </div>
+
+                                    {/* Menu Button - Moved to absolute position */}
+                                    <button
+                                        type="button"
+                                        className={styles.cardMenuBtn}
+                                        onClick={(e) => toggleMenu(project.id, e)}
+                                        aria-expanded={activeMenuId === project.id}
+                                    >
+                                        <MoreVertical size={16} />
+                                    </button>
+
+                                    {/* Menu Dropdown */}
+                                    {activeMenuId === project.id && (
+                                        <div className={styles.menuDropdown} onClick={(e) => e.stopPropagation()}>
+                                            <button
+                                                type="button"
+                                                className={styles.menuItem}
+                                                onClick={() => startRename(project.id, project.title)}
+                                            >
+                                                <Edit2 size={14} />
+                                                Rename
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`${styles.menuItem} ${styles.menuItemDelete}`}
+                                                onClick={() => handleDelete(project.id)}
+                                            >
+                                                <Trash2 size={14} />
+                                                Delete
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}

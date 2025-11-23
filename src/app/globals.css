@@ -22,6 +22,7 @@
   --color-text-muted: rgba(255, 255, 255, 0.4);
   --color-border: rgba(255, 255, 255, 0.1);
   --color-border-focus: rgba(255, 113, 91, 0.5);
+  --color-error: #FF453A;
 
   /* Spacing */
   --space-xs: 4px;
