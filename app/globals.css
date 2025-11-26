@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FAFAFA;
+  }
+}
+
+@layer utilities {
+  .grid-pattern {
+    background-image:
+      linear-gradient(to right, #E5E7EB 1px, transparent 1px),
+      linear-gradient(to bottom, #E5E7EB 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+}

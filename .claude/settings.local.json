@@ -1,12 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx create-next-app:*)",
-      "Bash(npm install:*)",
-      "WebFetch(domain:reactbits.dev)",
-      "Bash(find:*)",
-      "Bash(npm run dev:*)",
-      "Bash(git restore:*)"
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --no-src-dir --import-alias \"@/*\")",
+      "Bash(npx shadcn@latest add button input card)",
+      "Bash(npm run build:*)",
+      "Bash(if exist .next rmdir /s /q .next)",
+      "Bash(npx shadcn@latest add:*)"
     ],
     "deny": [],
     "ask": []

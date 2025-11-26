@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixelar - Scene Preview</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            accent: '#FF715B',
+                            accentHover: '#FF4F33',
+                            surface: '#FFFFFF',
+                            canvas: '#F4F4F0',
+                            border: '#18181B',
+                            text: '#18181B',
+                            textMuted: '#71717A'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Space Grotesk', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'hard': '4px 4px 0px 0px #18181B',
+                        'hard-sm': '2px 2px 0px 0px #18181B',
+                        'hard-hover': '6px 6px 0px 0px #18181B',
+                        'hard-active': '0px 0px 0px 0px #18181B',
+                    },
+                    borderWidth: {
+                        '3': '3px',
+                    },
+                    backgroundImage: {
+                        'sprite-grid': `linear-gradient(45deg, #f1f1f1 25%, transparent 25%),
+                                        linear-gradient(-45deg, #f1f1f1 25%, transparent 25%),
+                                        linear-gradient(45deg, transparent 75%, #f1f1f1 75%),
+                                        linear-gradient(-45deg, transparent 75%, #f1f1f1 75%)`
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #F4F4F0;
+            background-image: radial-gradient(#D4D4D8 2px, transparent 2px);
+            background-size: 24px 24px;
+        }
+
+        .btn-press {
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-press:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px 0px #18181B;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #F4F4F0;
+            border-left: 2px solid #18181B;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #18181B;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #FF715B;
+        }
+
+        .sprite-bg {
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+    </style>
+</head>
+
+<body class="text-brand-text font-sans antialiased min-h-screen flex flex-col relative">
+
+    <header class="bg-white border-b-3 border-brand-border sticky top-0 z-50">
+        <div class="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <a href="projects.html"
+                    class="flex items-center gap-2 font-mono text-xs font-bold hover:text-brand-accent transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    DASHBOARD
+                </a>
+                <div class="h-6 w-0.5 bg-brand-border/20"></div>
+                <div class="flex items-center gap-2 font-mono text-sm">
+                    <span class="text-brand-textMuted">ASSETS /</span>
+                    <span class="font-bold uppercase">NEON_DISTRICT_BG</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Credits Counter -->
+                <div class="hidden md:flex flex-col items-end mr-4">
+                    <div class="flex items-center gap-2 font-mono text-xs font-bold text-brand-textMuted">
+                        <i data-lucide="zap" class="w-3 h-3 text-brand-accent"></i>
+                        CREDITS: 450
+                    </div>
+                    <div class="w-32 h-2 border border-brand-border bg-brand-canvas mt-1">
+                        <div class="h-full bg-brand-accent w-3/4"></div>
+                    </div>
+                </div>
+
+                <!-- User Badge -->
+                <div class="flex items-center gap-3 pl-6 border-l-2 border-brand-border">
+                    <div class="text-right hidden md:block">
+                        <div class="font-bold text-sm leading-none">Alex.Design</div>
+                        <div class="font-mono text-[10px] text-brand-accent bg-brand-border/5 px-1 inline-block mt-1">
+                            PLAN: PRO_TIER</div>
+                    </div>
+                    <div class="relative cursor-pointer group">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User"
+                            class="w-10 h-10 border-2 border-brand-border bg-brand-canvas transition-transform group-hover:translate-x-[2px] group-hover:translate-y-[2px]">
+                        <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-brand-border">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-[1400px] mx-auto w-full p-6 md:p-8 grid lg:grid-cols-12 gap-8">
+
+        <section class="lg:col-span-8 flex flex-col gap-6">
+
+            <div class="bg-white border-3 border-brand-border shadow-hard flex flex-col h-[600px] relative">
+
+                <div class="h-12 border-b-2 border-brand-border bg-white flex justify-between items-center px-4">
+                    <div class="flex gap-4">
+                        <div class="flex items-center gap-2 font-mono text-[10px] font-bold text-brand-textMuted">
+                            <i data-lucide="monitor" class="w-3 h-3"></i>
+                            VIEWPORT_01
+                        </div>
+                        <div class="w-[1px] h-4 bg-brand-border/20"></div>
+                        <div class="font-mono text-[10px] font-bold">1920x1080px</div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button
+                            class="p-1.5 hover:bg-brand-canvas rounded-sm border border-transparent hover:border-brand-border transition-all"
+                            title="Zoom Out">
+                            <i data-lucide="minus" class="w-3 h-3"></i>
+                        </button>
+                        <span class="font-mono text-xs font-bold w-12 text-center">100%</span>
+                        <button
+                            class="p-1.5 hover:bg-brand-canvas rounded-sm border border-transparent hover:border-brand-border transition-all"
+                            title="Zoom In">
+                            <i data-lucide="plus" class="w-3 h-3"></i>
+                        </button>
+                        <div class="w-[1px] h-4 bg-brand-border/20 mx-1"></div>
+                        <button
+                            class="p-1.5 hover:bg-brand-canvas rounded-sm border border-transparent hover:border-brand-border transition-all"
+                            title="Toggle Grid">
+                            <i data-lucide="grid" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div
+                    class="flex-1 bg-sprite-grid sprite-bg relative overflow-hidden flex items-center justify-center cursor-move group">
+                    <img src="https://cdnb.artstation.com/p/assets/images/images/051/898/687/original/arthur-vista-city-background.gif?1658421868"
+                        class="w-full h-full object-contain rendering-pixelated" style="image-rendering: pixelated;">
+
+                    <div class="absolute inset-0 bg-brand-text/10 flex items-center justify-center pointer-events-none">
+                        <div class="bg-white border-2 border-brand-border p-2 font-mono text-xs font-bold shadow-hard-sm">
+                            READ_ONLY PREVIEW
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-8 bg-brand-canvas border-t-2 border-brand-border flex items-center justify-between px-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        <span class="font-mono text-[10px] font-bold uppercase text-brand-textMuted">Sync: Active</span>
+                    </div>
+                    <div class="font-mono text-[10px] font-bold text-brand-textMuted">
+                        RENDER_ENGINE: V2.1
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white border-2 border-brand-border p-6 shadow-hard-sm">
+                <h3 class="font-mono text-xs font-bold uppercase text-brand-textMuted mb-2">/// DESCRIPTION</h3>
+                <p class="font-sans text-brand-text leading-relaxed">
+                    Cyberpunk cityscape background for the Neon District level. Features animated neon signs and
+                    parallax-ready layers for dynamic scrolling effects.
+                </p>
+            </div>
+
+        </section>
+
+        <section class="lg:col-span-4 flex flex-col gap-6">
+
+            <div class="bg-white border-2 border-brand-border shadow-hard p-5">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h1 class="font-bold text-2xl leading-none mb-1">Neon_District</h1>
+                        <span class="font-mono text-xs text-brand-textMuted">ID: 7421-SC</span>
+                    </div>
+                    <button class="text-brand-textMuted hover:text-brand-accent transition-colors">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex justify-between border-b border-dashed border-gray-200 pb-2">
+                        <span class="font-mono text-xs font-bold text-brand-textMuted">CREATED</span>
+                        <span class="font-mono text-xs font-bold">Mar 15, 2024</span>
+                    </div>
+                    <div class="flex justify-between border-b border-dashed border-gray-200 pb-2">
+                        <span class="font-mono text-xs font-bold text-brand-textMuted">TYPE</span>
+                        <span class="font-mono text-xs font-bold uppercase bg-brand-canvas px-1">SCENE_COMPOSITION</span>
+                    </div>
+                    <div class="flex justify-between border-b border-dashed border-gray-200 pb-2">
+                        <span class="font-mono text-xs font-bold text-brand-textMuted">DIMENSIONS</span>
+                        <span class="font-mono text-xs font-bold">1920x1080</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white border-2 border-brand-border shadow-hard flex flex-col">
+                <div class="p-3 border-b-2 border-brand-border bg-brand-canvas flex justify-between items-center">
+                    <h3 class="font-mono text-xs font-bold uppercase">/// SCENE_CONTROLS</h3>
+                    <span class="bg-green-600 text-white text-[10px] px-1.5 py-0.5 font-mono font-bold">EDITABLE</span>
+                </div>
+
+                <div class="p-5 flex flex-col gap-4">
+                    <p class="font-mono text-xs text-brand-textMuted">
+                        This is a composite scene. Animations cannot be applied to the full scene directly. Edit the
+                        composition or export individual layers.
+                    </p>
+
+                    <button
+                        class="btn-press w-full py-4 bg-brand-accent text-white border-2 border-brand-border shadow-hard hover:bg-brand-accentHover font-mono text-sm font-bold uppercase flex items-center justify-center gap-2">
+                        <i data-lucide="pen-tool" class="w-5 h-5"></i>
+                        Open Scene Editor
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-brand-text text-white border-2 border-brand-border shadow-hard p-5">
+                <h3 class="font-mono text-xs font-bold uppercase text-brand-accent mb-4 flex items-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    EXPORT_TERMINAL
+                </h3>
+
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="font-mono text-[10px] font-bold text-gray-400 block mb-1">FORMAT</label>
+                        <select
+                            class="w-full bg-brand-border text-white border border-gray-600 px-2 py-1 font-mono text-xs outline-none focus:border-brand-accent">
+                            <option>PNG (Atlas)</option>
+                            <option>GIF (Animated)</option>
+                            <option>JSON (Data)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-mono text-[10px] font-bold text-gray-400 block mb-1">SCALE</label>
+                        <select
+                            class="w-full bg-brand-border text-white border border-gray-600 px-2 py-1 font-mono text-xs outline-none focus:border-brand-accent">
+                            <option>1x (Original)</option>
+                            <option>2x</option>
+                            <option>4x</option>
+                            <option>8x</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button
+                    class="btn-press w-full py-3 bg-white text-brand-text border-2 border-transparent font-mono text-xs font-bold uppercase hover:bg-brand-accent hover:text-white transition-all">
+                    DOWNLOAD_ASSET
+                </button>
+            </div>
+
+            <div class="border-2 border-red-100 bg-red-50 p-3 flex justify-between items-center">
+                <span class="font-mono text-xs font-bold text-red-400">ZONE: DANGER</span>
+                <button class="text-xs font-bold font-mono text-red-600 hover:text-red-800 underline">DELETE
+                    PROJECT</button>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script>
+        // Init Icons
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
