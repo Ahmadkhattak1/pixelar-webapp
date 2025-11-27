@@ -6,7 +6,8 @@
       "Bash(npm run build:*)",
       "Bash(if exist .next rmdir /s /q .next)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

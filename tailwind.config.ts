@@ -10,40 +10,44 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        background: "#09090b", // Zinc 950 - Deep Matte Black
+        surface: "#18181b", // Zinc 900 - Panel Background
+        "surface-highlight": "#27272a", // Zinc 800 - Hover/Active
+        border: "#27272a", // Zinc 800
         primary: {
-          DEFAULT: '#6366F1',
-          hover: '#4F46E5',
-          light: '#EEF2FF',
+          DEFAULT: "#8b5cf6", // Violet 500 - Sharp Accent
+          hover: "#7c3aed", // Violet 600
+          foreground: "#ffffff",
         },
         secondary: {
-          DEFAULT: '#14B8A6',
-          hover: '#0F766E',
-          light: '#F0FDFA',
+          DEFAULT: "#10b981", // Emerald 500 - Success/Secondary
+          foreground: "#ffffff",
         },
-        background: '#FAFAFA',
-        surface: '#FFFFFF',
-        border: '#E5E7EB',
-        muted: '#F3F4F6',
         text: {
-          DEFAULT: '#111827',
-          muted: '#6B7280',
-          light: '#9CA3AF',
+          DEFAULT: "#fafafa", // Zinc 50
+          muted: "#a1a1aa", // Zinc 400
+          dim: "#52525b", // Zinc 600
+        },
+        accent: {
+          pink: "#ec4899",
+          cyan: "#06b6d4",
+          orange: "#f97316",
         }
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        mono: ["var(--font-jetbrains-mono)", "monospace"], // Technical font
       },
-      fontSize: {
-        xs: ['0.8125rem', { lineHeight: '1.5' }],
-        sm: ['0.875rem', { lineHeight: '1.5' }],
-        base: ['1rem', { lineHeight: '1.6' }],
-        lg: ['1.125rem', { lineHeight: '1.6' }],
-        xl: ['1.25rem', { lineHeight: '1.5' }],
-        '2xl': ['1.5rem', { lineHeight: '1.4' }],
-        '3xl': ['1.875rem', { lineHeight: '1.3' }],
-        '4xl': ['2.25rem', { lineHeight: '1.2' }],
-        '5xl': ['3rem', { lineHeight: '1.1' }],
-        '6xl': ['3.75rem', { lineHeight: '1' }],
+      backgroundImage: {
+        "studio-gradient": "linear-gradient(to bottom right, #18181b, #09090b)",
+      },
+      boxShadow: {
+        "studio": "0 0 0 1px rgba(255,255,255,0.05), 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.15)",
+        "studio-hover": "0 0 0 1px rgba(255,255,255,0.1), 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -2px rgba(0,0,0,0.2)",
+        "glow": "0 0 20px -5px var(--tw-shadow-color)",
+      },
+      animation: {
+        "pulse-slow": "pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
     },
   },
