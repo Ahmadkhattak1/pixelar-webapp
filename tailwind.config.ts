@@ -10,29 +10,50 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#09090b", // Zinc 950 - Deep Matte Black
-        surface: "#18181b", // Zinc 900 - Panel Background
-        "surface-highlight": "#27272a", // Zinc 800 - Hover/Active
-        border: "#27272a", // Zinc 800
+        background: "#0d1117", // Darker background
+        surface: "#13192a", // Surface - Deeper blue-gray
+        "surface-highlight": "#1a2537", // Surface Highlight
+        border: "#243447", // Border - Refined
         primary: {
-          DEFAULT: "#8b5cf6", // Violet 500 - Sharp Accent
-          hover: "#7c3aed", // Violet 600
-          foreground: "#ffffff",
+          DEFAULT: "#40F99B", // Neon Cyan-Green
+          50: "#f0fffa",
+          100: "#d0fff5",
+          200: "#a8ffdb",
+          300: "#7dffb3",
+          400: "#40F99B", // Base
+          500: "#2dd97d",
+          600: "#1fb366",
+          700: "#158c4e",
+          800: "#0d6639",
+          900: "#054021",
+          foreground: "#0d1117", // Dark text on bright button
         },
         secondary: {
-          DEFAULT: "#10b981", // Emerald 500 - Success/Secondary
+          DEFAULT: "#61707D", // Muted Blue-Gray
+          50: "#f5f6f8",
+          100: "#e8ecf1",
+          200: "#cbd4e0",
+          300: "#a1aec2",
+          400: "#7a89a0",
+          500: "#61707D", // Base
+          600: "#505d6d",
+          700: "#3d4a5a",
+          800: "#2b3647",
+          900: "#1a2332",
           foreground: "#ffffff",
         },
-        text: {
-          DEFAULT: "#fafafa", // Zinc 50
-          muted: "#a1a1aa", // Zinc 400
-          dim: "#52525b", // Zinc 600
-        },
         accent: {
-          pink: "#ec4899",
-          cyan: "#06b6d4",
-          orange: "#f97316",
-        }
+          coral: "#FF7A7A", // Softer coral
+          orange: "#FFB84D", // Warm orange
+          cyan: "#4DD9FF", // Softer cyan
+          pink: "#FF66CC", // Vibrant pink
+          yellow: "#FFE066", // Mellow yellow
+        },
+        text: {
+          DEFAULT: "#f0f4f8", // Soft white
+          muted: "#8a9aaa", // Mid gray
+          dim: "#5a6a7a", // Dimmer gray
+        },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],

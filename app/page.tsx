@@ -42,8 +42,8 @@ export default function Home() {
         </div>
 
         <div className="pt-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-sm text-text-muted">
-            <div className="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm text-primary">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
             Demo pages available
           </div>
         </div>

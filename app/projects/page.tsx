@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Search, Plus, Upload, Image as ImageIcon, Map, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus, Upload, Image as ImageIcon, Map, Pencil, Trash2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -92,30 +92,56 @@ export default function ProjectsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b bg-surface sticky top-0 z-50 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Image
-            src="/logo.svg"
-            alt="Pixelar"
-            width={120}
-            height={40}
-            priority
-          />
+      <header className="border-b border-primary/15 bg-surface/50 backdrop-blur-md px-6 py-3 z-50">
+        <div className="flex items-center justify-between gap-6">
+          {/* Left Section */}
+          <div className="flex items-center gap-4 flex-1">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logo.svg"
+                alt="Pixelar"
+                width={100}
+                height={32}
+                priority
+              />
+            </div>
+            <div className="h-5 w-[1px] bg-primary/20" />
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-sm font-semibold text-text">Projects</h2>
+              <p className="text-xs text-text-muted">Manage your assets</p>
+            </div>
+          </div>
 
+          {/* Right Section */}
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-light text-primary text-sm font-medium">
-              <span>450 credits</span>
+            <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface-highlight border border-primary/15">
+              <div className="flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                <span className="text-xs font-mono font-semibold text-text">450</span>
+              </div>
+              <div className="w-[1px] h-4 bg-primary/20" />
+              <span className="text-xs text-text-muted">Credits</span>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden md:block">
-                <div className="text-sm font-medium">Alex Design</div>
-                <div className="text-xs text-text-muted">Pro Plan</div>
+            <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15">
+              <div className="text-right">
+                <div className="text-xs font-medium text-text">Alex Design</div>
+                <div className="text-[10px] text-text-muted">Pro Plan</div>
               </div>
+              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+                <img
+                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                  alt="User"
+                  className="w-full h-full rounded-[3px] bg-black"
+                />
+              </div>
+            </div>
+
+            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] sm:hidden">
               <img
                 src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
                 alt="User"
-                className="w-9 h-9 rounded-full border-2 border-border"
+                className="w-full h-full rounded-[5px] bg-black"
               />
             </div>
           </div>
@@ -161,12 +187,12 @@ export default function ProjectsPage() {
             />
           </div>
 
-          <div className="flex gap-2 p-1 bg-muted rounded-lg w-fit">
+          <div className="flex gap-2 p-1 bg-surface-highlight rounded-lg w-fit">
             <Button
               onClick={() => setCurrentFilter("all")}
               variant="ghost"
               size="sm"
-              className={currentFilter === "all" ? "bg-surface shadow-sm" : ""}
+              className={currentFilter === "all" ? "bg-surface shadow-sm text-primary" : ""}
             >
               All
             </Button>
@@ -174,7 +200,7 @@ export default function ProjectsPage() {
               onClick={() => setCurrentFilter("sprite")}
               variant="ghost"
               size="sm"
-              className={currentFilter === "sprite" ? "bg-surface shadow-sm" : ""}
+              className={currentFilter === "sprite" ? "bg-surface shadow-sm text-primary" : ""}
             >
               Sprites
             </Button>
@@ -182,7 +208,7 @@ export default function ProjectsPage() {
               onClick={() => setCurrentFilter("scene")}
               variant="ghost"
               size="sm"
-              className={currentFilter === "scene" ? "bg-surface shadow-sm" : ""}
+              className={currentFilter === "scene" ? "bg-surface shadow-sm text-primary" : ""}
             >
               Scenes
             </Button>
@@ -192,8 +218,8 @@ export default function ProjectsPage() {
         {filteredProjects.length === 0 ? (
           <Card className="py-16">
             <CardContent className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <ImageIcon className="w-8 h-8 text-text-muted" />
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <ImageIcon className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-2">No projects found</h3>
               <p className="text-sm text-text-muted mb-4">
@@ -208,17 +234,17 @@ export default function ProjectsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <Card
-              className="group cursor-pointer border-dashed hover:border-primary hover:bg-primary-light/50 transition-all"
+              className="group cursor-pointer border-dashed hover:border-primary hover:bg-primary/10 transition-all"
               onClick={() => setIsNewProjectOpen(true)}
             >
               <CardContent className="p-6 flex flex-col items-center justify-center text-center min-h-[220px]">
-                <div className="w-12 h-12 rounded-xl bg-muted group-hover:bg-primary-light flex items-center justify-center mb-3 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-surface-highlight group-hover:bg-primary/20 flex items-center justify-center mb-3 transition-colors">
                   <Plus className="w-6 h-6 text-text-muted group-hover:text-primary transition-colors" />
                 </div>
                 <h3 className="font-medium text-text-muted group-hover:text-primary transition-colors">
                   New Project
                 </h3>
-                <p className="text-xs text-text-light mt-1">Create a sprite or scene</p>
+                <p className="text-xs text-text-muted mt-1">Create a sprite or scene</p>
               </CardContent>
             </Card>
 
@@ -272,10 +298,10 @@ export default function ProjectsPage() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-muted text-xs font-medium capitalize">
+                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium capitalize">
                       {project.type}
                     </span>
-                    <span className="text-xs text-text-light">#{project.id}</span>
+                    <span className="text-xs text-text-muted">#{project.id}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -298,11 +324,10 @@ export default function ProjectsPage() {
               <Label>Project Type</Label>
               <div className="grid grid-cols-2 gap-3">
                 <Card
-                  className={`cursor-pointer transition-all ${
-                    selectedType === "sprite"
-                      ? "border-primary bg-primary-light"
+                  className={`cursor-pointer transition-all ${selectedType === "sprite"
+                      ? "border-primary bg-primary/10"
                       : "hover:border-primary/50"
-                  }`}
+                    }`}
                   onClick={() => setSelectedType("sprite")}
                 >
                   <CardContent className="p-4 flex flex-col items-center text-center">
@@ -313,11 +338,10 @@ export default function ProjectsPage() {
                 </Card>
 
                 <Card
-                  className={`cursor-pointer transition-all ${
-                    selectedType === "scene"
-                      ? "border-primary bg-primary-light"
+                  className={`cursor-pointer transition-all ${selectedType === "scene"
+                      ? "border-primary bg-primary/10"
                       : "hover:border-primary/50"
-                  }`}
+                    }`}
                   onClick={() => setSelectedType("scene")}
                 >
                   <CardContent className="p-4 flex flex-col items-center text-center">

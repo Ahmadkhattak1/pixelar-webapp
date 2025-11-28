@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   Upload,
@@ -10,24 +11,16 @@ import {
   Check,
   Sparkles,
   Wand2,
-  CheckCircle,
   Grid3x3,
-  Palette,
-  RotateCw,
-  Film,
   ZoomIn,
   Maximize,
   Settings,
   Layers,
-  Image as ImageIcon,
   Download,
-  Share2,
-  MousePointer2,
-  Move,
-  Undo2,
-  Redo2,
   Command,
   Eye,
+  Plus,
+  FolderPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -37,6 +30,9 @@ type Viewpoint = "front" | "back" | "side" | "top_down" | "isometric";
 type Style = "2d_flat" | "pixel_art";
 
 export default function GenerateSpritePage() {
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get("projectId"); // Detect if user came from a project
+
   const [prompt, setPrompt] = useState("");
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [colors, setColors] = useState<string[]>([]);
@@ -125,49 +121,74 @@ export default function GenerateSpritePage() {
 
   const handleCreateProject = () => {
     if (selectedPreview !== null) {
-      window.location.href = "/projects";
+      // Navigate back to project preview if coming from a project, otherwise go to projects list
+      if (projectId) {
+        window.location.href = `/scenes/preview?projectId=${projectId}`;
+      } else {
+        window.location.href = "/projects";
+      }
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-text font-sans selection:bg-primary/30 overflow-hidden">
-      {/* Header - Minimal Studio Bar */}
-      <header className="h-14 border-b border-white/5 bg-surface/50 backdrop-blur-md flex items-center justify-between px-4 z-50">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/projects"
-            className="flex items-center justify-center w-8 h-8 hover:bg-white/5 rounded-md transition-colors text-text-muted hover:text-text"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Link>
-          <div className="h-4 w-[1px] bg-white/10" />
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="font-mono font-bold text-xs text-white">Px</span>
+      {/* Header - Studio Bar */}
+      <header className="border-b border-primary/15 bg-surface/50 backdrop-blur-md px-4 py-3 z-50">
+        <div className="flex items-center justify-between gap-6">
+          {/* Left Section - Navigation & Title */}
+          <div className="flex items-center gap-4">
+            <Link
+              href={projectId ? `/scenes/preview?projectId=${projectId}` : "/projects"}
+              className="flex items-center justify-center w-8 h-8 hover:bg-surface-highlight rounded-md transition-colors text-text-muted hover:text-primary"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Link>
+            <div className="h-5 w-[1px] bg-primary/20" />
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                <span className="font-mono font-bold text-xs text-primary-foreground">Px</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-medium text-sm tracking-tight text-text">
+                  Untitled Sprite
+                </span>
+                <span className="text-[10px] text-text-muted">Draft</span>
+              </div>
             </div>
-            <span className="font-medium text-sm tracking-tight text-white/90">
-              Untitled Sprite
-            </span>
-            <span className="text-xs text-text-muted bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
-              Draft
-            </span>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-white/5 border border-white/5">
-            <Zap className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-            <span className="text-xs font-mono text-text-muted">450</span>
-          </div>
-          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-md hover:bg-white/5 text-text-muted">
-            <Settings className="w-4 h-4" />
-          </Button>
-          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px]">
-            <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-              alt="User"
-              className="w-full h-full rounded-[5px] bg-black"
-            />
+          {/* Right Section - Credits & Profile */}
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface-highlight border border-primary/15">
+              <div className="flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                <span className="text-xs font-mono font-semibold text-text">450</span>
+              </div>
+              <div className="w-[1px] h-4 bg-primary/20" />
+              <span className="text-xs text-text-muted">Credits</span>
+            </div>
+
+            <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15">
+              <div className="text-right">
+                <div className="text-xs font-medium text-text">Alex Design</div>
+                <div className="text-[10px] text-text-muted">Pro Plan</div>
+              </div>
+              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+                <img
+                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                  alt="User"
+                  className="w-full h-full rounded-[3px] bg-black"
+                />
+              </div>
+            </div>
+
+            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] md:hidden">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                alt="User"
+                className="w-full h-full rounded-[5px] bg-black"
+              />
+            </div>
           </div>
         </div>
       </header>
@@ -176,28 +197,8 @@ export default function GenerateSpritePage() {
         {/* Left Panel - Tool Palette */}
         <div
           style={{ width: `${sidebarWidth}px` }}
-          className="bg-surface border-r border-white/5 flex flex-col overflow-hidden transition-none relative z-10"
+          className="bg-surface border-r border-primary/15 flex flex-col overflow-hidden transition-none relative z-10"
         >
-          {/* Toolbar Header */}
-          <div className="h-10 border-b border-white/5 flex items-center px-4 gap-2 bg-surface-highlight/10">
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-white/5 text-text-muted hover:text-primary">
-                <MousePointer2 className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-white/5 text-text-muted hover:text-primary">
-                <Move className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-            <div className="h-3 w-[1px] bg-white/10 mx-1" />
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-white/5 text-text-muted hover:text-primary">
-                <Undo2 className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-white/5 text-text-muted hover:text-primary">
-                <Redo2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          </div>
 
           {/* Scroll Area */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -222,14 +223,14 @@ export default function GenerateSpritePage() {
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       placeholder="Describe your sprite..."
-                      className="w-full h-32 p-3 text-xs bg-black/20 border border-white/10 rounded-lg resize-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-text-dim/50 font-medium leading-relaxed"
+                      className="w-full h-32 p-3 text-xs bg-surface-highlight/50 border border-primary/25 rounded-lg resize-none focus:border-primary/60 focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-text-muted font-medium leading-relaxed"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label className="text-xs text-text-dim">Reference</Label>
                     {referenceImage ? (
-                      <div className="relative w-full h-24 rounded-lg border border-white/10 overflow-hidden group bg-black/40">
+                      <div className="relative w-full h-24 rounded-lg border border-primary/20 overflow-hidden group bg-surface-highlight/30">
                         <img
                           src={referenceImage}
                           alt="Reference"
@@ -237,15 +238,15 @@ export default function GenerateSpritePage() {
                         />
                         <button
                           onClick={() => setReferenceImage(null)}
-                          className="absolute top-1 right-1 p-1 bg-black/80 hover:bg-red-500/80 text-white rounded opacity-0 group-hover:opacity-100 transition-all"
+                          className="absolute top-1 right-1 p-1 bg-black/80 hover:bg-accent-coral/80 text-white rounded opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <X className="w-3 h-3" />
                         </button>
                       </div>
                     ) : (
-                      <label className="flex items-center justify-center gap-2 w-full h-10 border border-dashed border-white/10 rounded-lg cursor-pointer hover:bg-white/5 hover:border-white/20 transition-all group">
+                      <label className="flex items-center justify-center gap-2 w-full h-10 border border-dashed border-primary/20 rounded-lg cursor-pointer hover:bg-surface-highlight hover:border-primary/30 transition-all group">
                         <Upload className="w-3.5 h-3.5 text-text-muted group-hover:text-primary transition-colors" />
-                        <span className="text-xs text-text-muted group-hover:text-text transition-colors">Upload Image</span>
+                        <span className="text-xs text-text-muted group-hover:text-primary transition-colors">Upload Image</span>
                         <input
                           type="file"
                           onChange={handleReferenceImageUpload}
@@ -258,7 +259,7 @@ export default function GenerateSpritePage() {
                 </div>
               </div>
 
-              <div className="h-[1px] bg-white/5" />
+              <div className="h-[1px] bg-primary/10" />
 
               {/* Section: Properties */}
               <div className="space-y-5">
@@ -278,8 +279,8 @@ export default function GenerateSpritePage() {
                           key={value}
                           onClick={() => setStyle(value as Style)}
                           className={`flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-xs font-medium transition-all border ${style === value
-                            ? "bg-primary/10 border-primary/30 text-primary shadow-[0_0_10px_rgba(139,92,246,0.1)]"
-                            : "bg-transparent border-white/5 text-text-muted hover:bg-white/5 hover:border-white/10 hover:text-text"
+                            ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
+                            : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
                             }`}
                         >
                           <Icon className="w-3.5 h-3.5" />
@@ -295,7 +296,7 @@ export default function GenerateSpritePage() {
                       <select
                         value={viewpoint}
                         onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
-                        className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-white/5"
+                        className="w-full px-3 py-2 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-surface-highlight hover:border-primary/30"
                       >
                         <option value="front">Front View</option>
                         <option value="back">Back View</option>
@@ -317,12 +318,12 @@ export default function GenerateSpritePage() {
                     {colors.map((color, index) => (
                       <div key={index} className="group relative">
                         <div
-                          className="w-8 h-8 rounded-lg border border-white/10 cursor-pointer hover:scale-105 transition-transform shadow-sm"
+                          className="w-8 h-8 rounded-lg border border-primary/30 cursor-pointer hover:scale-105 hover:border-primary/50 transition-all shadow-sm"
                           style={{ backgroundColor: color }}
                         />
                         <button
                           onClick={() => handleRemoveColor(index)}
-                          className="absolute -top-1 -right-1 w-4 h-4 bg-surface border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:border-red-500"
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-surface border border-primary/15 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent-coral hover:border-accent-coral"
                         >
                           <X className="w-2.5 h-2.5 text-text hover:text-white" />
                         </button>
@@ -330,7 +331,7 @@ export default function GenerateSpritePage() {
                     ))}
                     {colors.length < 5 && (
                       <div className="flex items-center gap-2">
-                        <div className="relative w-8 h-8 rounded-lg border border-dashed border-white/20 hover:border-primary/50 transition-colors flex items-center justify-center cursor-pointer hover:bg-white/5 overflow-hidden">
+                        <div className="relative w-8 h-8 rounded-lg border border-dashed border-primary/20 hover:border-primary/50 hover:bg-surface-highlight transition-all flex items-center justify-center cursor-pointer overflow-hidden">
                           <input
                             type="color"
                             value={customColor}
@@ -360,11 +361,11 @@ export default function GenerateSpritePage() {
           </div>
 
           {/* Footer Actions */}
-          <div className="p-4 border-t border-white/5 bg-surface/50 backdrop-blur-sm">
+          <div className="p-4 border-t border-primary/15 bg-surface/50 backdrop-blur-sm">
             <Button
               onClick={handleGenerateSprite}
               disabled={!prompt.trim() || isGenerating}
-              className="w-full h-10 text-xs font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all"
+              className="w-full h-10 text-xs font-semibold bg-primary hover:bg-primary-600 text-primary-foreground shadow-lg shadow-primary/30 transition-all"
             >
               {isGenerating ? (
                 <span className="flex items-center gap-2">
@@ -384,26 +385,26 @@ export default function GenerateSpritePage() {
         {/* Resize Handle */}
         <div
           onMouseDown={() => setIsDragging(true)}
-          className="w-px bg-white/5 hover:bg-primary/50 cursor-col-resize transition-colors active:bg-primary z-20 relative group"
+          className="w-px bg-primary/10 hover:bg-primary/50 cursor-col-resize transition-colors active:bg-primary z-20 relative group"
         >
-          <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-3 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="w-0.5 h-4 bg-text-muted/50 rounded-full" />
+          <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-3 h-8 rounded-full bg-primary/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="w-0.5 h-4 bg-primary/40 rounded-full" />
           </div>
         </div>
 
         {/* Right Panel - Viewport */}
         <div className="flex-1 bg-background relative flex flex-col overflow-hidden">
           {/* Viewport Header */}
-          <div className="h-10 border-b border-white/5 flex items-center justify-between px-4 bg-surface/30">
+          <div className="h-10 border-b border-primary/15 flex items-center justify-between px-4 bg-surface/30">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider">Viewport</span>
-              <div className="px-1.5 py-0.5 rounded bg-white/5 text-[10px] font-mono text-text-dim">100%</div>
+              <div className="px-1.5 py-0.5 rounded bg-surface-highlight text-[10px] font-mono text-text-muted">100%</div>
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-white/5 text-text-muted">
+              <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors">
                 <Grid3x3 className="w-3.5 h-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-white/5 text-text-muted">
+              <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors">
                 <Maximize className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -421,8 +422,8 @@ export default function GenerateSpritePage() {
 
             {previewImages.length === 0 ? (
               <div className="text-center space-y-4 max-w-xs opacity-50">
-                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center mx-auto shadow-studio">
-                  <Command className="w-6 h-6 text-text-muted" />
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center mx-auto shadow-lg shadow-primary/10">
+                  <Command className="w-6 h-6 text-primary" />
                 </div>
                 <p className="text-sm text-text-muted font-medium">Configure settings and generate to see results</p>
               </div>
@@ -433,15 +434,15 @@ export default function GenerateSpritePage() {
                     key={index}
                     onClick={() => handleSelectPreview(index)}
                     className={`group relative aspect-square bg-surface rounded-xl border transition-all duration-200 cursor-pointer ${selectedPreview === index
-                      ? 'border-primary shadow-[0_0_0_1px_rgba(139,92,246,1)]'
-                      : 'border-white/5 hover:border-white/20 hover:shadow-2xl'
+                      ? 'border-primary shadow-lg shadow-primary/30'
+                      : 'border-primary/15 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/20'
                       }`}
                   >
                     {/* Technical Markers */}
-                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/20 rounded-tl-lg m-2" />
-                    <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/20 rounded-tr-lg m-2" />
-                    <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/20 rounded-bl-lg m-2" />
-                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/20 rounded-br-lg m-2" />
+                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary/30 rounded-tl-lg m-2" />
+                    <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary/30 rounded-tr-lg m-2" />
+                    <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-primary/30 rounded-bl-lg m-2" />
+                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary/30 rounded-br-lg m-2" />
 
                     <div className="absolute inset-4 flex items-center justify-center">
                       <img src={img} alt="Generated Sprite" className="w-full h-full object-contain pixelated" />
@@ -454,11 +455,11 @@ export default function GenerateSpritePage() {
                     </div>
 
                     {/* Hover Actions */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 backdrop-blur rounded-lg p-1 border border-white/10">
-                      <Button variant="ghost" size="icon" className="w-6 h-6 rounded hover:bg-white/10 text-white">
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 backdrop-blur rounded-lg p-1 border border-primary/20">
+                      <Button variant="ghost" size="icon" className="w-6 h-6 rounded hover:bg-primary/20 text-primary transition-colors">
                         <ZoomIn className="w-3 h-3" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="w-6 h-6 rounded hover:bg-white/10 text-white">
+                      <Button variant="ghost" size="icon" className="w-6 h-6 rounded hover:bg-primary/20 text-primary transition-colors">
                         <Download className="w-3 h-3" />
                       </Button>
                     </div>
@@ -468,16 +469,26 @@ export default function GenerateSpritePage() {
             )}
           </div>
 
-          {/* Bottom Action Bar */}
+          {/* Fixed Floating Action Button */}
           {selectedPreview !== null && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface/90 backdrop-blur-md border border-white/10 rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-4 shadow-2xl animate-in slide-in-from-bottom-4">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface/90 backdrop-blur-md border border-primary/15 rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-4 shadow-lg shadow-primary/20 animate-in slide-in-from-bottom-4 z-10">
               <span className="text-xs font-medium text-text">Variant {selectedPreview + 1} selected</span>
               <Button
                 onClick={handleCreateProject}
                 size="sm"
-                className="h-7 rounded-full bg-white text-black hover:bg-white/90 font-semibold text-xs px-4"
+                className="h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary-600 font-semibold text-xs px-4 shadow-lg shadow-primary/30 flex items-center gap-1.5"
               >
-                Create Project
+                {projectId ? (
+                  <>
+                    <Plus className="w-3.5 h-3.5" />
+                    Add to Project
+                  </>
+                ) : (
+                  <>
+                    <FolderPlus className="w-3.5 h-3.5" />
+                    Create Project
+                  </>
+                )}
               </Button>
             </div>
           )}
