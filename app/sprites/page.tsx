@@ -21,13 +21,20 @@ import {
     FolderPlus,
     User,
     Box,
-    Palette,
     Move,
     Maximize2,
+    Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// Dynamically import PoseEditor to avoid SSR issues with Canvas
+const PoseEditor = dynamic(() => import("@/components/pose-editor/PoseEditor"), {
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center h-full text-text-muted">Loading 3D Editor...</div>
+});
 
 type SpriteType = "character" | "object";
 type Viewpoint = "front" | "back" | "side" | "top_down" | "isometric";
@@ -51,6 +58,8 @@ export default function GenerateSpritePage() {
     const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
     const [sidebarWidth, setSidebarWidth] = useState(360);
     const [isDragging, setIsDragging] = useState(false);
+    const [isEditingPose, setIsEditingPose] = useState(false);
+    const [poseImage, setPoseImage] = useState<string | null>(null);
     const mainRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -123,7 +132,6 @@ export default function GenerateSpritePage() {
     const handleCreateProject = () => {
         if (selectedPreview !== null) {
             if (projectId) {
-                // Logic to add to existing project would go here
                 window.location.href = `/projects`;
             } else {
                 window.location.href = "/projects";
@@ -132,9 +140,9 @@ export default function GenerateSpritePage() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col bg-background text-text font-sans selection:bg-primary/30 overflow-hidden">
+        <div className="h-screen flex flex-col bg-background text-text font-sans selection:bg-primary/30 overflow-hidden">
             {/* Header */}
-            <header className="border-b border-primary/15 bg-surface/50 backdrop-blur-md px-4 py-3 z-50">
+            <header className="border-b border-primary/15 bg-surface/50 backdrop-blur-md px-4 py-2 z-50 shrink-0">
                 <div className="flex items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
                         <Link
@@ -190,19 +198,19 @@ export default function GenerateSpritePage() {
                     className="bg-surface border-r border-primary/15 flex flex-col overflow-hidden transition-none relative z-10"
                 >
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
-                        <div className="p-4 space-y-8">
+                        <div className="p-3 space-y-6">
 
                             {/* Sprite Type Selector */}
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
                                     Sprite Type
                                 </Label>
                                 <div className="grid grid-cols-2 gap-2">
                                     <button
                                         onClick={() => setSpriteType("character")}
-                                        className={`flex items-center justify-center gap-2 py-2.5 px-2 rounded-lg text-xs font-medium transition-all border ${spriteType === "character"
-                                                ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
-                                                : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
+                                        className={`flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-xs font-medium transition-all border ${spriteType === "character"
+                                            ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
+                                            : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
                                             }`}
                                     >
                                         <User className="w-3.5 h-3.5" />
@@ -210,9 +218,9 @@ export default function GenerateSpritePage() {
                                     </button>
                                     <button
                                         onClick={() => setSpriteType("object")}
-                                        className={`flex items-center justify-center gap-2 py-2.5 px-2 rounded-lg text-xs font-medium transition-all border ${spriteType === "object"
-                                                ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
-                                                : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
+                                        className={`flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-xs font-medium transition-all border ${spriteType === "object"
+                                            ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
+                                            : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
                                             }`}
                                     >
                                         <Box className="w-3.5 h-3.5" />
@@ -224,7 +232,7 @@ export default function GenerateSpritePage() {
                             <div className="h-[1px] bg-primary/10" />
 
                             {/* Generation Controls */}
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
                                         Generation
@@ -232,9 +240,9 @@ export default function GenerateSpritePage() {
                                     <Sparkles className="w-3 h-3 text-primary" />
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {/* Prompt */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <div className="flex justify-between text-xs text-text-dim">
                                             <span>Prompt <span className="text-accent-coral">*</span></span>
                                             <span className="font-mono text-[10px] opacity-70">{prompt.length}/500</span>
@@ -243,15 +251,15 @@ export default function GenerateSpritePage() {
                                             value={prompt}
                                             onChange={(e) => setPrompt(e.target.value)}
                                             placeholder={spriteType === "character" ? "A pixel art warrior with a sword..." : "A pixel art treasure chest..."}
-                                            className="w-full h-28 p-3 text-xs bg-surface-highlight/50 border border-primary/25 rounded-lg resize-none focus:border-primary/60 focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-text-muted font-medium leading-relaxed"
+                                            className="w-full h-20 p-2.5 text-xs bg-surface-highlight/50 border border-primary/25 rounded-lg resize-none focus:border-primary/60 focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-text-muted font-medium leading-relaxed"
                                         />
                                     </div>
 
                                     {/* Reference Image */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <Label className="text-xs text-text-dim">Reference Image (Optional)</Label>
                                         {referenceImage ? (
-                                            <div className="relative w-full h-20 rounded-lg border border-primary/20 overflow-hidden group bg-surface-highlight/30">
+                                            <div className="relative w-full h-16 rounded-lg border border-primary/20 overflow-hidden group bg-surface-highlight/30">
                                                 <img
                                                     src={referenceImage}
                                                     alt="Reference"
@@ -265,7 +273,7 @@ export default function GenerateSpritePage() {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <label className="flex items-center justify-center gap-2 w-full h-10 border border-dashed border-primary/20 rounded-lg cursor-pointer hover:bg-surface-highlight hover:border-primary/30 transition-all group">
+                                            <label className="flex items-center justify-center gap-2 w-full h-9 border border-dashed border-primary/20 rounded-lg cursor-pointer hover:bg-surface-highlight hover:border-primary/30 transition-all group">
                                                 <Upload className="w-3.5 h-3.5 text-text-muted group-hover:text-primary transition-colors" />
                                                 <span className="text-xs text-text-muted group-hover:text-primary transition-colors">Upload Image</span>
                                                 <input
@@ -283,14 +291,14 @@ export default function GenerateSpritePage() {
                             <div className="h-[1px] bg-primary/10" />
 
                             {/* Properties */}
-                            <div className="space-y-5">
+                            <div className="space-y-4">
                                 <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
                                     Properties
                                 </Label>
 
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {/* Style */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <Label className="text-xs text-text-dim">Style</Label>
                                         <div className="grid grid-cols-2 gap-2">
                                             {[
@@ -314,13 +322,13 @@ export default function GenerateSpritePage() {
 
                                     {/* Dimensions & Viewpoint */}
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-2">
+                                        <div className="space-y-1.5">
                                             <Label className="text-xs text-text-dim">Dimensions</Label>
                                             <div className="relative">
                                                 <select
                                                     value={dimensions}
                                                     onChange={(e) => setDimensions(e.target.value)}
-                                                    className="w-full px-3 py-2 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-surface-highlight hover:border-primary/30"
+                                                    className="w-full px-3 py-1.5 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-surface-highlight hover:border-primary/30"
                                                 >
                                                     <option value="32x32">32x32</option>
                                                     <option value="64x64">64x64</option>
@@ -330,13 +338,13 @@ export default function GenerateSpritePage() {
                                                 <Maximize2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
+                                        <div className="space-y-1.5">
                                             <Label className="text-xs text-text-dim">Viewpoint</Label>
                                             <div className="relative">
                                                 <select
                                                     value={viewpoint}
                                                     onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
-                                                    className="w-full px-3 py-2 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-surface-highlight hover:border-primary/30"
+                                                    className="w-full px-3 py-1.5 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-surface-highlight hover:border-primary/30"
                                                 >
                                                     <option value="front">Front</option>
                                                     <option value="back">Back</option>
@@ -350,7 +358,7 @@ export default function GenerateSpritePage() {
                                     </div>
 
                                     {/* Colors */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <Label className="text-xs text-text-dim flex justify-between">
                                             <span>Colors (Optional)</span>
                                             <span className="font-mono text-[10px] opacity-50">{colors.length}/5</span>
@@ -412,14 +420,46 @@ export default function GenerateSpritePage() {
                                             <Move className="w-3 h-3 text-primary" />
                                         </div>
 
-                                        <div className="p-4 rounded-lg bg-surface-highlight/30 border border-dashed border-primary/20 flex flex-col items-center justify-center gap-3 text-center">
-                                            <p className="text-xs text-text-muted">
-                                                Advanced pose editor coming soon.
-                                            </p>
-                                            <Button variant="outline" size="sm" className="h-8 text-xs border-primary/20 hover:bg-surface-highlight hover:text-primary">
-                                                Open Pose Editor
-                                            </Button>
-                                        </div>
+                                        {poseImage ? (
+                                            <div className="space-y-2">
+                                                <div className="relative w-full aspect-square rounded-lg border border-primary/20 overflow-hidden bg-black/50 group">
+                                                    <img src={poseImage} alt="Captured Pose" className="w-full h-full object-contain" />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            onClick={() => setIsEditingPose(true)}
+                                                            className="h-7 text-[10px]"
+                                                        >
+                                                            Edit
+                                                        </Button>
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="icon"
+                                                            onClick={() => setPoseImage(null)}
+                                                            className="h-7 w-7"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <p className="text-[10px] text-text-muted text-center">Pose captured. Ready for generation.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="p-4 rounded-lg bg-surface-highlight/30 border border-dashed border-primary/20 flex flex-col items-center justify-center gap-3 text-center">
+                                                <p className="text-xs text-text-muted">
+                                                    Create a custom pose for your character.
+                                                </p>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setIsEditingPose(true)}
+                                                    className="h-8 text-xs border-primary/20 hover:bg-surface-highlight hover:text-primary"
+                                                >
+                                                    Open Pose Editor
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
                                 </>
                             )}
@@ -461,103 +501,117 @@ export default function GenerateSpritePage() {
 
                 {/* Right Panel - Viewport */}
                 <div className="flex-1 bg-background relative flex flex-col overflow-hidden">
-                    {/* Viewport Header */}
-                    <div className="h-10 border-b border-primary/15 flex items-center justify-between px-4 bg-surface/30">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider">Viewport</span>
-                            <div className="px-1.5 py-0.5 rounded bg-surface-highlight text-[10px] font-mono text-text-muted">100%</div>
+                    {isEditingPose ? (
+                        <div className="flex-1 relative z-20 w-full h-full overflow-hidden">
+                            <PoseEditor
+                                onSave={(dataUrl: string) => {
+                                    setPoseImage(dataUrl);
+                                    setIsEditingPose(false);
+                                }}
+                                onCancel={() => setIsEditingPose(false)}
+                            />
                         </div>
-                        <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors">
-                                <Grid3x3 className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors">
-                                <Maximize className="w-3.5 h-3.5" />
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Canvas Area */}
-                    <div className="flex-1 overflow-auto flex items-center justify-center relative bg-[#09090b]">
-                        {/* Grid Background */}
-                        <div className="absolute inset-0 opacity-[0.03]"
-                            style={{
-                                backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
-                                backgroundSize: '20px 20px'
-                            }}
-                        />
-
-                        {previewImages.length === 0 ? (
-                            <div className="text-center space-y-4 max-w-xs opacity-50">
-                                <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center mx-auto shadow-lg shadow-primary/10">
-                                    <Command className="w-6 h-6 text-primary" />
+                    ) : (
+                        <>
+                            {/* Viewport Header */}
+                            <div className="h-10 border-b border-primary/15 flex items-center justify-between px-4 bg-surface/30">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider">Viewport</span>
+                                    <div className="px-1.5 py-0.5 rounded bg-surface-highlight text-[10px] font-mono text-text-muted">100%</div>
                                 </div>
-                                <p className="text-sm text-text-muted font-medium">Configure settings and generate to see results</p>
+                                <div className="flex items-center gap-1">
+                                    <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors">
+                                        <Grid3x3 className="w-3.5 h-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors">
+                                        <Maximize className="w-3.5 h-3.5" />
+                                    </Button>
+                                </div>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-8 p-12 w-full max-w-4xl animate-in fade-in zoom-in duration-300">
-                                {previewImages.map((img, index) => (
-                                    <div
-                                        key={index}
-                                        onClick={() => setSelectedPreview(index)}
-                                        className={`group relative aspect-square bg-surface rounded-xl border transition-all duration-200 cursor-pointer ${selectedPreview === index
-                                            ? 'border-primary shadow-lg shadow-primary/30'
-                                            : 'border-primary/15 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/20'
-                                            }`}
-                                    >
-                                        {/* Technical Markers */}
-                                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary/30 rounded-tl-lg m-2" />
-                                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary/30 rounded-tr-lg m-2" />
-                                        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-primary/30 rounded-bl-lg m-2" />
-                                        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary/30 rounded-br-lg m-2" />
 
-                                        <div className="absolute inset-4 flex items-center justify-center">
-                                            <img src={img} alt="Generated Sprite" className="w-full h-full object-contain pixelated" />
-                                        </div>
+                            {/* Canvas Area */}
+                            <div className="flex-1 overflow-auto flex items-center justify-center relative bg-[#09090b]">
+                                {/* Grid Background */}
+                                <div className="absolute inset-0 opacity-[0.03]"
+                                    style={{
+                                        backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+                                        backgroundSize: '20px 20px'
+                                    }}
+                                />
 
-                                        {/* Selection Indicator */}
-                                        <div className={`absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center transition-all ${selectedPreview === index ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
-                                            }`}>
-                                            <Check className="w-3 h-3 text-white" />
+                                {previewImages.length === 0 ? (
+                                    <div className="text-center space-y-4 max-w-xs opacity-50">
+                                        <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center mx-auto shadow-lg shadow-primary/10">
+                                            <Command className="w-6 h-6 text-primary" />
                                         </div>
-
-                                        {/* Hover Actions */}
-                                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 backdrop-blur rounded-lg p-1 border border-primary/20">
-                                            <Button variant="ghost" size="icon" className="w-6 h-6 rounded hover:bg-primary/20 text-primary transition-colors">
-                                                <ZoomIn className="w-3 h-3" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="w-6 h-6 rounded hover:bg-primary/20 text-primary transition-colors">
-                                                <Download className="w-3 h-3" />
-                                            </Button>
-                                        </div>
+                                        <p className="text-sm text-text-muted font-medium">Configure settings and generate to see results</p>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Fixed Floating Action Button */}
-                    {selectedPreview !== null && (
-                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface/90 backdrop-blur-md border border-primary/15 rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-4 shadow-lg shadow-primary/20 animate-in slide-in-from-bottom-4 z-10">
-                            <span className="text-xs font-medium text-text">Variant {selectedPreview + 1} selected</span>
-                            <Button
-                                onClick={handleCreateProject}
-                                size="sm"
-                                className="h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary-600 font-semibold text-xs px-4 shadow-lg shadow-primary/30 flex items-center gap-1.5"
-                            >
-                                {projectId ? (
-                                    <>
-                                        <Plus className="w-3.5 h-3.5" />
-                                        Add to Project
-                                    </>
                                 ) : (
-                                    <>
-                                        <FolderPlus className="w-3.5 h-3.5" />
-                                        Create Project
-                                    </>
+                                    <div className="grid grid-cols-2 gap-8 p-12 w-full max-w-4xl animate-in fade-in zoom-in duration-300">
+                                        {previewImages.map((img, index) => (
+                                            <div
+                                                key={index}
+                                                onClick={() => setSelectedPreview(index)}
+                                                className={`group relative aspect-square bg-surface rounded-xl border transition-all duration-200 cursor-pointer ${selectedPreview === index
+                                                    ? 'border-primary shadow-lg shadow-primary/30'
+                                                    : 'border-primary/15 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/20'
+                                                    }`}
+                                            >
+                                                {/* Technical Markers */}
+                                                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary/30 rounded-tl-lg m-2" />
+                                                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary/30 rounded-tr-lg m-2" />
+                                                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-primary/30 rounded-bl-lg m-2" />
+                                                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary/30 rounded-br-lg m-2" />
+
+                                                <div className="absolute inset-4 flex items-center justify-center">
+                                                    <img src={img} alt="Generated Sprite" className="w-full h-full object-contain pixelated" />
+                                                </div>
+
+                                                {/* Selection Indicator */}
+                                                <div className={`absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center transition-all ${selectedPreview === index ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+                                                    }`}>
+                                                    <Check className="w-3 h-3 text-white" />
+                                                </div>
+
+                                                {/* Hover Actions */}
+                                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 backdrop-blur rounded-lg p-1 border border-primary/20">
+                                                    <Button variant="ghost" size="icon" className="w-6 h-6 rounded hover:bg-primary/20 text-primary transition-colors">
+                                                        <ZoomIn className="w-3 h-3" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="w-6 h-6 rounded hover:bg-primary/20 text-primary transition-colors">
+                                                        <Download className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
-                            </Button>
-                        </div>
+                            </div>
+
+                            {/* Fixed Floating Action Button */}
+                            {selectedPreview !== null && (
+                                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface/90 backdrop-blur-md border border-primary/15 rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-4 shadow-lg shadow-primary/20 animate-in slide-in-from-bottom-4 z-10">
+                                    <span className="text-xs font-medium text-text">Variant {selectedPreview + 1} selected</span>
+                                    <Button
+                                        onClick={handleCreateProject}
+                                        size="sm"
+                                        className="h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary-600 font-semibold text-xs px-4 shadow-lg shadow-primary/30 flex items-center gap-1.5"
+                                    >
+                                        {projectId ? (
+                                            <>
+                                                <Plus className="w-3.5 h-3.5" />
+                                                Add to Project
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FolderPlus className="w-3.5 h-3.5" />
+                                                Create Project
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </main>
