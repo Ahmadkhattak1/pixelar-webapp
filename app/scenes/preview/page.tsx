@@ -1,625 +1,322 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
     ChevronLeft,
-    Zap,
     Download,
-    ZoomIn,
-    ZoomOut,
-    Grid3x3,
-    Maximize,
-    Info,
-    Palette,
-    Image as ImageIcon,
-    FileDown,
-    Check,
-    Plus,
-    Calendar,
-    Tag,
-    Camera,
+    Share2,
+    MoreHorizontal,
     Sparkles,
     Layers,
-    ExternalLink,
-    Copy,
-    Pencil,
+    Calendar,
+    Maximize,
+    Grid3x3,
+    Check,
+    Plus,
+    Wand2,
+    Settings,
+    Image as ImageIcon,
+    FileCode,
+    MonitorPlay
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 
-type Scene = {
+// Mock Data Types
+type SceneVariant = {
     id: string;
-    name: string;
-    thumbnail: string;
-    prompt: string;
-    createdAt: string;
+    imageUrl: string;
+    timestamp: string;
 };
 
-type ExportFormat = "png" | "sprite_sheet" | "unity" | "godot";
+type SceneProject = {
+    id: string;
+    name: string;
+    createdAt: string;
+    resolution: string;
+    style: string;
+    viewpoint: string;
+    variants: SceneVariant[];
+};
 
 export default function ScenePreviewPage() {
     const searchParams = useSearchParams();
-    const projectId = searchParams.get("projectId") || "project-123"; // Get projectId from URL
+    const router = useRouter();
+    const projectId = searchParams.get("projectId");
 
-    const [zoom, setZoom] = useState(100);
-    const [showGrid, setShowGrid] = useState(true);
-    const [showExportModal, setShowExportModal] = useState(false);
-    const [selectedScene, setSelectedScene] = useState<string>("scene-1");
-    const [exportFormat, setExportFormat] = useState<ExportFormat>("png");
-    const mainRef = useRef<HTMLDivElement>(null);
+    // State
+    const [project, setProject] = useState<SceneProject | null>(null);
+    const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+    const [prompt, setPrompt] = useState("");
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [sidebarWidth, setSidebarWidth] = useState(360);
 
-    // Project metadata (as per requirement 3.2)
-    const projectMetadata = {
-        prompt: "A heroic knight character in pixel art style with sword and shield",
-        createdAt: "Nov 28, 2025",
-        orientation: "Front View",
-        style: "Pixel Art",
-        model: "Pixelar-V2",
-        dimensions: "128x128",
-    };
+    // Mock Data Loading
+    useEffect(() => {
+        // Simulate fetching project data
+        const mockProject: SceneProject = {
+            id: projectId || "demo-123",
+            name: "Mystic Forest Clearing",
+            createdAt: new Date().toLocaleDateString(),
+            resolution: "1024x1024",
+            style: "Pixel Art",
+            viewpoint: "Isometric",
+            variants: [
+                { id: "v1", imageUrl: `https://picsum.photos/seed/scene1/800/600`, timestamp: "10:23 AM" },
+                { id: "v2", imageUrl: `https://picsum.photos/seed/scene2/800/600`, timestamp: "10:25 AM" },
+                { id: "v3", imageUrl: `https://picsum.photos/seed/scene3/800/600`, timestamp: "10:28 AM" },
+                { id: "v4", imageUrl: `https://picsum.photos/seed/scene4/800/600`, timestamp: "10:30 AM" },
+            ],
+        };
 
-    // Multiple scenes in one project
-    const [scenes, setScenes] = useState<Scene[]>([
-        {
-            id: "scene-1",
-            name: "Hero Knight - Original",
-            thumbnail: "https://picsum.photos/seed/knight1/200/200",
-            prompt: "A heroic knight character in pixel art style with sword and shield",
-            createdAt: "Nov 28, 2025",
-        },
-        {
-            id: "scene-2",
-            name: "Hero Knight - Blue Armor",
-            thumbnail: "https://picsum.photos/seed/knight2/200/200",
-            prompt: "A heroic knight character in pixel art style with blue armor",
-            createdAt: "Nov 28, 2025",
-        },
-        {
-            id: "scene-3",
-            name: "Hero Knight - Golden",
-            thumbnail: "https://picsum.photos/seed/knight3/200/200",
-            prompt: "A heroic knight character in pixel art style with golden equipment",
-            createdAt: "Nov 27, 2025",
-        },
-    ]);
+        setProject(mockProject);
+        setSelectedVariantId(mockProject.variants[0].id);
+    }, [projectId]);
 
-    const currentScene = scenes.find((s) => s.id === selectedScene) || scenes[0];
+    const selectedVariant = project?.variants.find((v) => v.id === selectedVariantId);
 
-    const handleZoomIn = () => setZoom((prev) => Math.min(prev + 25, 400));
-    const handleZoomOut = () => setZoom((prev) => Math.max(prev - 25, 25));
+    const handleGenerateVariant = () => {
+        if (!prompt.trim()) return;
+        setIsGenerating(true);
 
-    const duplicateScene = (sceneId: string) => {
-        const scene = scenes.find((s) => s.id === sceneId);
-        if (scene) {
-            const newScene = {
-                ...scene,
-                id: `scene-${Date.now()}`,
-                name: `${scene.name} (Copy)`,
+        // Simulate generation
+        setTimeout(() => {
+            const newVariant: SceneVariant = {
+                id: `v${Date.now()}`,
+                imageUrl: `https://picsum.photos/seed/${Math.random()}/800/600`,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             };
-            setScenes([...scenes, newScene]);
-        }
+
+            setProject((prev) => prev ? {
+                ...prev,
+                variants: [newVariant, ...prev.variants]
+            } : null);
+            setSelectedVariantId(newVariant.id);
+            setIsGenerating(false);
+            setPrompt("");
+        }, 2000);
     };
+
+    const handleExport = () => {
+        // Mock export functionality
+        alert("Exporting scene to Game Engine format...");
+    };
+
+    if (!project) return <div className="min-h-screen bg-background flex items-center justify-center text-text-muted">Loading Project...</div>;
 
     return (
         <div className="min-h-screen flex flex-col bg-background text-text font-sans selection:bg-primary/30 overflow-hidden">
-            {/* Header - Studio Bar */}
+            {/* Header */}
             <header className="border-b border-primary/15 bg-surface/50 backdrop-blur-md px-4 py-3 z-50">
                 <div className="flex items-center justify-between gap-6">
-                    {/* Left Section - Navigation & Title */}
                     <div className="flex items-center gap-4">
                         <Link
-                            href="/projects"
+                            href="/scenes"
                             className="flex items-center justify-center w-8 h-8 hover:bg-surface-highlight rounded-md transition-colors text-text-muted hover:text-primary"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </Link>
                         <div className="h-5 w-[1px] bg-primary/20" />
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                                <span className="font-mono font-bold text-xs text-primary-foreground">Px</span>
-                            </div>
-                            <div className="flex flex-col gap-0.5">
-                                <span className="font-medium text-sm tracking-tight text-text">
-                                    {projectMetadata.prompt.substring(0, 30)}...
-                                </span>
-                                <span className="text-[10px] text-text-muted">
-                                    {scenes.length} {scenes.length === 1 ? "Scene" : "Scenes"}
-                                </span>
-                            </div>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="font-medium text-sm tracking-tight text-text">
+                                {project.name}
+                            </span>
+                            <span className="text-[10px] text-text-muted flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                Ready
+                            </span>
                         </div>
                     </div>
 
-                    {/* Center Section - Scene Info */}
-                    <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-highlight border border-primary/15">
-                        <Layers className="w-3.5 h-3.5 text-primary" />
-                        <span className="text-xs font-medium text-text">Scene Preview</span>
-                    </div>
-
-                    {/* Right Section - Credits & Profile */}
-                    <div className="flex items-center gap-4">
-                        <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface-highlight border border-primary/15">
-                            <div className="flex items-center gap-1.5">
-                                <Zap className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                                <span className="text-xs font-mono font-semibold text-text">450</span>
-                            </div>
-                            <div className="w-[1px] h-4 bg-primary/20" />
-                            <span className="text-xs text-text-muted">Credits</span>
-                        </div>
-
-                        <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15">
-                            <div className="text-right">
-                                <div className="text-xs font-medium text-text">Alex Design</div>
-                                <div className="text-[10px] text-text-muted">Pro Plan</div>
-                            </div>
-                            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
-                                <img
-                                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                    alt="User"
-                                    className="w-full h-full rounded-[3px] bg-black"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] md:hidden">
-                            <img
-                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                alt="User"
-                                className="w-full h-full rounded-[5px] bg-black"
-                            />
-                        </div>
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs border-primary/20 hover:bg-surface-highlight hover:text-primary gap-2"
+                            onClick={() => router.push("/scenes")}
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            New Project
+                        </Button>
+                        <Button
+                            size="sm"
+                            className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary-600 gap-2 shadow-lg shadow-primary/20"
+                            onClick={handleExport}
+                        >
+                            <Download className="w-3.5 h-3.5" />
+                            Export Scene
+                        </Button>
                     </div>
                 </div>
             </header>
 
-            <main className="flex-1 flex overflow-hidden" ref={mainRef}>
-                {/* Left Panel - Scene Preview */}
-                <div className="flex-1 bg-background relative flex flex-col overflow-hidden">
-                    {/* Viewport Header */}
-                    <div className="h-12 border-b border-primary/15 flex items-center justify-between px-4 bg-surface/30">
-                        <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider">
-                                Scene Preview
-                            </span>
-                            <div className="px-2 py-0.5 rounded bg-green-500/10 border border-green-500/20 text-[10px] font-mono text-green-500">
-                                READ-ONLY
-                            </div>
-                            <div className="w-[1px] h-4 bg-primary/20" />
-                            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-highlight">
-                                <span className="text-[10px] font-mono text-text">{zoom}%</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={handleZoomOut}
-                                    className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors"
-                                >
-                                    <ZoomOut className="w-3.5 h-3.5" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={handleZoomIn}
-                                    className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors"
-                                >
-                                    <ZoomIn className="w-3.5 h-3.5" />
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setShowGrid(!showGrid)}
-                                className={`w-7 h-7 rounded transition-colors ${showGrid
-                                    ? "bg-primary/10 text-primary"
-                                    : "hover:bg-surface-highlight hover:text-primary text-text-muted"
-                                    }`}
-                            >
-                                <Grid3x3 className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors"
-                            >
-                                <Maximize className="w-3.5 h-3.5" />
-                            </Button>
-                        </div>
-                    </div>
+            <main className="flex-1 flex overflow-hidden">
+                {/* Left Panel - Metadata & Edit */}
+                <div
+                    style={{ width: `${sidebarWidth}px` }}
+                    className="bg-surface border-r border-primary/15 flex flex-col overflow-hidden relative z-10"
+                >
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
 
-                    {/* Canvas Area */}
-                    <div className="flex-1 overflow-auto flex items-center justify-center relative bg-[#09090b] p-8">
-                        {/* Grid Background */}
-                        {showGrid && (
-                            <div
-                                className="absolute inset-0 opacity-[0.05]"
-                                style={{
-                                    backgroundImage:
-                                        "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-                                    backgroundSize: "20px 20px",
-                                }}
-                            />
-                        )}
+                        {/* Metadata Section */}
+                        <div className="space-y-4">
+                            <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono flex items-center gap-2">
+                                <FileCode className="w-3 h-3" />
+                                Project Metadata
+                            </Label>
 
-                        {/* Center Frame */}
-                        <div className="relative w-[500px] h-[500px]" style={{ transform: `scale(${zoom / 100})` }}>
-                            {/* Corner Markers */}
-                            <div className="absolute -top-3 -left-3 w-6 h-6 border-t-2 border-l-2 border-primary/50 rounded-tl" />
-                            <div className="absolute -top-3 -right-3 w-6 h-6 border-t-2 border-r-2 border-primary/50 rounded-tr" />
-                            <div className="absolute -bottom-3 -left-3 w-6 h-6 border-b-2 border-l-2 border-primary/50 rounded-bl" />
-                            <div className="absolute -bottom-3 -right-3 w-6 h-6 border-b-2 border-r-2 border-primary/50 rounded-br" />
-
-                            {/* Main Canvas */}
-                            <div className="absolute inset-0 bg-surface/10 border-2 border-primary/30 rounded-xl overflow-hidden shadow-2xl shadow-primary/30">
-                                {/* Checkerboard pattern for transparency */}
-                                <div
-                                    className="absolute inset-0 opacity-20"
-                                    style={{
-                                        backgroundImage:
-                                            "linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%)",
-                                        backgroundSize: "20px 20px",
-                                        backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
-                                    }}
-                                />
-
-                                {/* Scene Preview */}
-                                <div className="absolute inset-0 flex items-center justify-center p-12">
-                                    <img
-                                        src={currentScene.thumbnail}
-                                        alt={currentScene.name}
-                                        className="max-w-full max-h-full object-contain pixelated shadow-2xl"
-                                        style={{
-                                            imageRendering: "pixelated",
-                                            filter: "contrast(1.05) saturate(1.05)",
-                                        }}
-                                    />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="p-3 rounded-lg bg-surface-highlight/30 border border-primary/10 space-y-1">
+                                    <span className="text-[10px] text-text-muted block">Resolution</span>
+                                    <span className="text-xs font-mono text-text">{project.resolution}</span>
                                 </div>
-                            </div>
-
-                            {/* Info Badges */}
-                            <div className="absolute -top-10 left-0 right-0 flex items-center justify-between">
-                                <div className="px-2 py-1 bg-surface/90 backdrop-blur-sm border border-primary/15 rounded text-[10px] font-mono text-text-muted">
-                                    {projectMetadata.dimensions}
+                                <div className="p-3 rounded-lg bg-surface-highlight/30 border border-primary/10 space-y-1">
+                                    <span className="text-[10px] text-text-muted block">Created</span>
+                                    <span className="text-xs font-mono text-text">{project.createdAt}</span>
                                 </div>
-                                <div className="px-2 py-1 bg-primary/10 backdrop-blur-sm border border-primary/30 rounded text-[10px] font-mono text-primary">
-                                    {currentScene.name}
+                                <div className="p-3 rounded-lg bg-surface-highlight/30 border border-primary/10 space-y-1">
+                                    <span className="text-[10px] text-text-muted block">Style</span>
+                                    <span className="text-xs font-medium text-text">{project.style}</span>
+                                </div>
+                                <div className="p-3 rounded-lg bg-surface-highlight/30 border border-primary/10 space-y-1">
+                                    <span className="text-[10px] text-text-muted block">Viewpoint</span>
+                                    <span className="text-xs font-medium text-text">{project.viewpoint}</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Bottom Action Bar */}
-                    <div className="border-t border-primary/15 bg-surface/50 backdrop-blur-sm px-6 py-4 flex items-center justify-center gap-3">
-                        <Button
-                            onClick={() => setShowExportModal(true)}
-                            className="h-9 px-5 text-xs font-semibold bg-primary hover:bg-primary-600 text-primary-foreground shadow-lg shadow-primary/30 transition-all"
-                        >
-                            <Download className="w-3.5 h-3.5 mr-2" />
-                            Export Scene
-                        </Button>
-                        <Link href={`/scenes?projectId=${projectId}`}>
-                            <Button
-                                variant="outline"
-                                className="h-9 px-5 text-xs font-semibold border-primary/20 hover:bg-primary/10 hover:border-primary/30 hover:text-primary"
-                            >
-                                <Pencil className="w-3.5 h-3.5 mr-2" />
-                                Edit Scene
-                            </Button>
-                        </Link>
-                    </div>
-                </div>
+                        <div className="h-[1px] bg-primary/10" />
 
-                {/* Right Panel - Metadata & Scenes */}
-                <div className="w-[420px] bg-surface border-l border-primary/15 flex flex-col overflow-hidden">
-                    {/* Metadata Section (Requirement 3.2) */}
-                    <div className="border-b border-primary/15 bg-surface/50">
-                        <div className="p-5 space-y-4">
+                        {/* Edit / Generate Section */}
+                        <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-semibold text-text flex items-center gap-2">
-                                    <Info className="w-4 h-4 text-primary" />
-                                    Scene Details
-                                </h3>
-                                <div className="px-2 py-1 bg-primary/10 border border-primary/20 rounded text-[10px] font-mono text-primary">
-                                    {projectMetadata.style}
-                                </div>
+                                <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono flex items-center gap-2">
+                                    <Sparkles className="w-3 h-3 text-primary" />
+                                    Edit Scene
+                                </Label>
                             </div>
 
                             <div className="space-y-3">
-                                {/* Prompt */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-mono text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                                        <Sparkles className="w-3 h-3" />
-                                        Generation Prompt
-                                    </Label>
-                                    <div className="text-xs text-text leading-relaxed bg-surface-highlight/40 p-3 rounded-lg border border-primary/10 font-medium">
-                                        {currentScene.prompt}
+                                <div className="relative">
+                                    <textarea
+                                        value={prompt}
+                                        onChange={(e) => setPrompt(e.target.value)}
+                                        placeholder="Describe changes or new elements (e.g., 'Add a mystical glowing tree in the center')..."
+                                        className="w-full h-32 p-3 text-xs bg-surface-highlight/50 border border-primary/25 rounded-lg resize-none focus:border-primary/60 focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-text-muted font-medium leading-relaxed"
+                                    />
+                                    <div className="absolute bottom-2 right-2 text-[10px] text-text-muted font-mono opacity-60">
+                                        {prompt.length}/500
                                     </div>
                                 </div>
 
-                                {/* Metadata Grid */}
-                                <div className="grid grid-cols-2 gap-2">
-                                    {/* Creation Date */}
-                                    <div className="space-y-1.5">
-                                        <Label className="text-[10px] font-mono text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                                            <Calendar className="w-3 h-3" />
-                                            Created
-                                        </Label>
-                                        <div className="text-xs text-text font-mono bg-surface-highlight/40 p-2.5 rounded-lg border border-primary/10">
-                                            {currentScene.createdAt}
-                                        </div>
-                                    </div>
-
-                                    {/* Orientation */}
-                                    <div className="space-y-1.5">
-                                        <Label className="text-[10px] font-mono text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                                            <Camera className="w-3 h-3" />
-                                            View
-                                        </Label>
-                                        <div className="text-xs text-text font-mono bg-surface-highlight/40 p-2.5 rounded-lg border border-primary/10">
-                                            {projectMetadata.orientation}
-                                        </div>
-                                    </div>
-
-                                    {/* Model */}
-                                    <div className="space-y-1.5">
-                                        <Label className="text-[10px] font-mono text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                                            <Tag className="w-3 h-3" />
-                                            Model
-                                        </Label>
-                                        <div className="text-xs text-text font-mono bg-surface-highlight/40 p-2.5 rounded-lg border border-primary/10">
-                                            {projectMetadata.model}
-                                        </div>
-                                    </div>
-
-                                    {/* Dimensions */}
-                                    <div className="space-y-1.5">
-                                        <Label className="text-[10px] font-mono text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                                            <ImageIcon className="w-3 h-3" />
-                                            Size
-                                        </Label>
-                                        <div className="text-xs text-text font-mono bg-surface-highlight/40 p-2.5 rounded-lg border border-primary/10">
-                                            {projectMetadata.dimensions}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Scenes Section - Multiple scenes in one project */}
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        <div className="p-4 border-b border-primary/15 flex items-center justify-between bg-surface/50">
-                            <h3 className="text-sm font-semibold text-text flex items-center gap-2">
-                                <Layers className="w-4 h-4 text-primary" />
-                                Project Scenes
-                                <span className="text-xs font-mono text-text-muted">({scenes.length})</span>
-                            </h3>
-                            {/* New Scene creates new variation in same project */}
-                            <Link href={`/scenes?projectId=${projectId}`}>
                                 <Button
-                                    size="sm"
-                                    className="h-7 px-3 text-xs font-semibold bg-primary hover:bg-primary-600 text-primary-foreground shadow-lg shadow-primary/30"
+                                    onClick={handleGenerateVariant}
+                                    disabled={!prompt.trim() || isGenerating}
+                                    className="w-full h-9 text-xs font-semibold bg-primary hover:bg-primary-600 text-primary-foreground shadow-lg shadow-primary/30 transition-all"
                                 >
-                                    <Plus className="w-3 h-3 mr-1.5" />
-                                    New Scene
+                                    {isGenerating ? (
+                                        <span className="flex items-center gap-2">
+                                            <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                                            Generating Variant...
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-2">
+                                            <Wand2 className="w-3.5 h-3.5" />
+                                            Generate Variant
+                                        </span>
+                                    )}
                                 </Button>
-                            </Link>
+                            </div>
                         </div>
 
-                        {/* Scenes List */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar">
-                            <div className="p-3 space-y-2">
-                                {scenes.map((scene) => (
-                                    <div
-                                        key={scene.id}
-                                        onClick={() => setSelectedScene(scene.id)}
-                                        className={`group relative rounded-lg border transition-all cursor-pointer ${selectedScene === scene.id
-                                            ? "border-primary/40 bg-primary/5 shadow-lg shadow-primary/10"
-                                            : "border-primary/15 bg-surface-highlight/30 hover:border-primary/25 hover:bg-surface-highlight/50"
-                                            }`}
-                                    >
-                                        <div className="flex items-start gap-3 p-3">
-                                            {/* Scene Thumbnail */}
-                                            <div className="relative w-20 h-20 rounded-lg border border-primary/20 overflow-hidden flex-shrink-0 bg-black">
-                                                <img
-                                                    src={scene.thumbnail}
-                                                    alt={scene.name}
-                                                    className="w-full h-full object-cover"
-                                                    style={{ imageRendering: "pixelated" }}
-                                                />
-                                                {selectedScene === scene.id && (
-                                                    <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                                                        <Check className="w-3 h-3 text-white" />
-                                                    </div>
-                                                )}
-                                            </div>
+                        <div className="h-[1px] bg-primary/10" />
 
-                                            {/* Scene Info */}
-                                            <div className="flex-1 min-w-0 space-y-1">
-                                                <h4 className="text-sm font-medium text-text truncate">{scene.name}</h4>
-                                                <p className="text-[10px] text-text-muted line-clamp-2 leading-relaxed">
-                                                    {scene.prompt}
-                                                </p>
-                                                <div className="text-[10px] text-text-muted font-mono">{scene.createdAt}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Buttons */}
-                                        <div className="px-3 pb-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedScene(scene.id);
-                                                    setShowExportModal(true);
-                                                }}
-                                                className="h-6 px-2 text-[10px] hover:bg-primary/10 hover:text-primary"
-                                            >
-                                                <Download className="w-3 h-3 mr-1" />
-                                                Export
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    duplicateScene(scene.id);
-                                                }}
-                                                className="h-6 px-2 text-[10px] hover:bg-primary/10 hover:text-primary"
-                                            >
-                                                <Copy className="w-3 h-3 mr-1" />
-                                                Duplicate
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
+                        {/* Export Options Info */}
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono flex items-center gap-2">
+                                <MonitorPlay className="w-3 h-3" />
+                                Export Settings
+                            </Label>
+                            <div className="p-3 rounded-lg bg-surface-highlight/30 border border-primary/10 text-xs text-text-muted">
+                                Exports include PNG sequence and JSON metadata compatible with Unity and Godot.
                             </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                {/* Right Panel - Preview & Variants */}
+                <div className="flex-1 bg-background relative flex flex-col overflow-hidden">
+
+                    {/* Main Preview Area */}
+                    <div className="flex-1 bg-[#09090b] relative flex items-center justify-center overflow-hidden group">
+                        {/* Grid Background */}
+                        <div className="absolute inset-0 opacity-[0.03]"
+                            style={{
+                                backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+                                backgroundSize: '20px 20px'
+                            }}
+                        />
+
+                        {selectedVariant ? (
+                            <img
+                                src={selectedVariant.imageUrl}
+                                alt="Scene Preview"
+                                className="max-w-full max-h-full object-contain shadow-2xl shadow-black/50"
+                            />
+                        ) : (
+                            <div className="text-text-muted text-sm">Select a variant to preview</div>
+                        )}
+
+                        {/* Overlay Actions */}
+                        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="secondary" size="icon" className="h-8 w-8 rounded-lg bg-black/50 backdrop-blur text-white hover:bg-black/70 border border-white/10">
+                                <Maximize className="w-4 h-4" />
+                            </Button>
                         </div>
                     </div>
 
-                    {/* Info Footer */}
-                    <div className="p-4 border-t border-primary/15 bg-surface/50 backdrop-blur-sm">
-                        <div className="flex items-start gap-2 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                            <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                            <div className="text-xs text-text-muted leading-relaxed">
-                                <span className="font-semibold text-blue-400">Edit Scene</span> creates a new visual
-                                variation that appears as a new scene in this project.
-                            </div>
+                    {/* Variants Strip */}
+                    <div className="h-32 bg-surface border-t border-primary/15 flex flex-col">
+                        <div className="px-4 py-2 border-b border-primary/10 flex items-center justify-between">
+                            <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider flex items-center gap-2">
+                                <Layers className="w-3 h-3" />
+                                Variants ({project.variants.length})
+                            </span>
+                        </div>
+                        <div className="flex-1 overflow-x-auto custom-scrollbar p-3 flex gap-3 items-center">
+                            {project.variants.map((variant) => (
+                                <button
+                                    key={variant.id}
+                                    onClick={() => setSelectedVariantId(variant.id)}
+                                    className={`relative h-20 aspect-video rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 group ${selectedVariantId === variant.id
+                                            ? "border-primary shadow-lg shadow-primary/20 scale-105"
+                                            : "border-transparent hover:border-primary/50 opacity-70 hover:opacity-100"
+                                        }`}
+                                >
+                                    <img
+                                        src={variant.imageUrl}
+                                        alt={`Variant ${variant.id}`}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    {selectedVariantId === variant.id && (
+                                        <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
+                                            <div className="bg-primary text-primary-foreground rounded-full p-0.5">
+                                                <Check className="w-3 h-3" />
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white py-0.5 px-1 opacity-0 group-hover:opacity-100 transition-opacity truncate">
+                                        {variant.timestamp}
+                                    </div>
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
             </main>
-
-            {/* Export Modal */}
-            {showExportModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-                    <div className="bg-surface border border-primary/20 rounded-2xl shadow-2xl shadow-black/40 w-full max-w-lg overflow-hidden animate-in zoom-in duration-200">
-                        {/* Modal Header */}
-                        <div className="px-6 py-4 border-b border-primary/15 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                    <FileDown className="w-4 h-4 text-primary" />
-                                </div>
-                                <div>
-                                    <h2 className="text-base font-semibold text-text">Export Scene</h2>
-                                    <p className="text-xs text-text-muted">{currentScene.name}</p>
-                                </div>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setShowExportModal(false)}
-                                className="w-8 h-8 rounded-lg hover:bg-surface-highlight hover:text-primary text-text-muted"
-                            >
-                                <ChevronLeft className="w-4 h-4" />
-                            </Button>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="p-6 space-y-5">
-                            <div className="space-y-2">
-                                <Label className="text-xs text-text-dim">Export Format</Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[
-                                        { value: "png", label: "PNG", icon: ImageIcon, desc: "Single image" },
-                                        { value: "sprite_sheet", label: "Sprite Sheet", icon: Grid3x3, desc: "Grid layout" },
-                                        { value: "unity", label: "Unity", icon: ExternalLink, desc: "Package" },
-                                        { value: "godot", label: "Godot", icon: ExternalLink, desc: "Scene file" },
-                                    ].map(({ value, label, icon: Icon, desc }) => (
-                                        <button
-                                            key={value}
-                                            onClick={() => setExportFormat(value as ExportFormat)}
-                                            className={`flex flex-col gap-1.5 py-3 px-3 rounded-lg text-xs font-medium transition-all border ${exportFormat === value
-                                                ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
-                                                : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
-                                                }`}
-                                        >
-                                            <div className="flex items-center justify-between w-full">
-                                                <Icon className="w-4 h-4" />
-                                                {exportFormat === value && <Check className="w-3.5 h-3.5" />}
-                                            </div>
-                                            <span className="text-left font-semibold">{label}</span>
-                                            <span className="text-[10px] opacity-70 text-left">{desc}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-xs text-text-dim">Resolution</Label>
-                                <select className="w-full px-3 py-2.5 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all cursor-pointer">
-                                    <option>Original ({projectMetadata.dimensions})</option>
-                                    <option>2x (256 × 256)</option>
-                                    <option>4x (512 × 512)</option>
-                                    <option>8x (1024 × 1024)</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-xs text-text-dim flex items-center gap-2">
-                                    <Info className="w-3 h-3" />
-                                    Export Settings
-                                </Label>
-                                <div className="space-y-2.5 p-3 bg-surface-highlight/30 rounded-lg border border-primary/10">
-                                    <label className="flex items-center gap-2.5 cursor-pointer group">
-                                        <input
-                                            type="checkbox"
-                                            defaultChecked
-                                            className="w-4 h-4 rounded border-primary/30 bg-surface-highlight text-primary focus:ring-2 focus:ring-primary/30"
-                                        />
-                                        <span className="text-xs text-text group-hover:text-primary transition-colors">
-                                            Preserve transparency
-                                        </span>
-                                    </label>
-                                    <label className="flex items-center gap-2.5 cursor-pointer group">
-                                        <input
-                                            type="checkbox"
-                                            defaultChecked
-                                            className="w-4 h-4 rounded border-primary/30 bg-surface-highlight text-primary focus:ring-2 focus:ring-primary/30"
-                                        />
-                                        <span className="text-xs text-text group-hover:text-primary transition-colors">
-                                            Include metadata
-                                        </span>
-                                    </label>
-                                    <label className="flex items-center gap-2.5 cursor-pointer group">
-                                        <input
-                                            type="checkbox"
-                                            className="w-4 h-4 rounded border-primary/30 bg-surface-highlight text-primary focus:ring-2 focus:ring-primary/30"
-                                        />
-                                        <span className="text-xs text-text group-hover:text-primary transition-colors">
-                                            Optimize for web
-                                        </span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="px-6 py-4 border-t border-primary/15 flex items-center justify-between bg-surface/50">
-                            <div className="text-xs text-text-muted">
-                                <span className="font-mono">~1.2 MB</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => setShowExportModal(false)}
-                                    className="h-8 px-4 text-xs hover:bg-surface-highlight"
-                                >
-                                    Cancel
-                                </Button>
-                                <Button className="h-8 px-4 text-xs font-semibold bg-primary hover:bg-primary-600 text-primary-foreground shadow-lg shadow-primary/30">
-                                    <Download className="w-3 h-3 mr-1.5" />
-                                    Export
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
