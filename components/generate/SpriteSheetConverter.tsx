@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, Save, Settings2, Grid3X3, Clock, Move } from "lucide-react";
+import { Play, Pause, Save, Settings2, Grid3X3, Clock, Move, Wand2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import GIF from "gif.js";
 
 interface SpriteSheetConverterProps {
     spriteSheetUrl: string;
@@ -12,7 +13,7 @@ interface SpriteSheetConverterProps {
 export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConverterProps) {
     // Settings
     const [rows, setRows] = useState(1);
-    const [cols, setCols] = useState(6); // Default to typical strip
+    const [cols, setCols] = useState(1);
     const [delay, setDelay] = useState(100);
     const [offsetTop, setOffsetTop] = useState(0);
     const [offsetBottom, setOffsetBottom] = useState(0);
@@ -22,6 +23,7 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
     // Playback State
     const [isPlaying, setIsPlaying] = useState(true);
     const [currentFrame, setCurrentFrame] = useState(0);
+    const [isExporting, setIsExporting] = useState(false);
 
     // Refs
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,15 +31,109 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
     const imageRef = useRef<HTMLImageElement | null>(null);
     const animationRef = useRef<number>();
 
-    // Load Image
+    // Load Image & Auto Detect
     useEffect(() => {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         img.src = spriteSheetUrl;
         img.onload = () => {
             imageRef.current = img;
-            drawGrid();
+            autoDetectGrid(img);
         };
     }, [spriteSheetUrl]);
+
+    // Auto Detect Grid Logic
+    const autoDetectGrid = (img: HTMLImageElement) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        // Helper to check if a pixel is empty (alpha < 10)
+        const isEmpty = (x: number, y: number) => {
+            const index = (y * canvas.width + x) * 4;
+            return data[index + 3] < 10;
+        };
+
+        // Scan for content bounds
+        let minX = canvas.width, maxX = 0, minY = canvas.height, maxY = 0;
+        let hasContent = false;
+
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                if (!isEmpty(x, y)) {
+                    minX = Math.min(minX, x);
+                    maxX = Math.max(maxX, x);
+                    minY = Math.min(minY, y);
+                    maxY = Math.max(maxY, y);
+                    hasContent = true;
+                }
+            }
+        }
+
+        if (!hasContent) return;
+
+        // Detect Rows (gaps in Y)
+        let detectedRows = 0;
+        let inRow = false;
+        for (let y = minY; y <= maxY; y++) {
+            let rowHasContent = false;
+            for (let x = minX; x <= maxX; x++) {
+                if (!isEmpty(x, y)) {
+                    rowHasContent = true;
+                    break;
+                }
+            }
+            if (rowHasContent && !inRow) {
+                detectedRows++;
+                inRow = true;
+            } else if (!rowHasContent && inRow) {
+                inRow = false;
+            }
+        }
+
+        // Detect Cols (gaps in X) - Simplified: Check first row
+        let detectedCols = 0;
+        let inCol = false;
+        // Sample the middle of the content height to avoid noise
+        const sampleY = Math.floor((minY + maxY) / 2);
+
+        // Better approach: Scan X across the entire height to find vertical gaps
+        for (let x = minX; x <= maxX; x++) {
+            let colHasContent = false;
+            for (let y = minY; y <= maxY; y++) {
+                if (!isEmpty(x, y)) {
+                    colHasContent = true;
+                    break;
+                }
+            }
+
+            if (colHasContent && !inCol) {
+                detectedCols++;
+                inCol = true;
+            } else if (!colHasContent && inCol) {
+                inCol = false;
+            }
+        }
+
+        // Fallbacks
+        setRows(Math.max(1, detectedRows));
+        setCols(Math.max(1, detectedCols));
+
+        // Set offsets based on content bounds
+        // setOffsetTop(minY);
+        // setOffsetBottom(canvas.height - maxY - 1);
+        // setOffsetLeft(minX);
+        // setOffsetRight(canvas.width - maxX - 1);
+
+        // For now, keep offsets 0 as sprites are often packed tightly or user might want to adjust manually
+        // But setting rows/cols is the biggest help.
+    };
 
     // Draw Grid Overlay
     const drawGrid = () => {
@@ -60,23 +156,55 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         const frameWidth = (img.width - offsetLeft - offsetRight) / cols;
         const frameHeight = (img.height - offsetTop - offsetBottom) / rows;
 
-        // Draw Grid
-        ctx.strokeStyle = "rgba(0, 255, 255, 0.5)";
-        ctx.lineWidth = 1;
-
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                const x = offsetLeft + c * frameWidth;
-                const y = offsetTop + r * frameHeight;
-                ctx.strokeRect(x, y, frameWidth, frameHeight);
-            }
+        // Draw Grid - Subtle but visible
+        // 1. Dark outline for contrast
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let r = 0; r <= rows; r++) {
+            const y = offsetTop + r * frameHeight;
+            ctx.moveTo(offsetLeft, y);
+            ctx.lineTo(img.width - offsetRight, y);
         }
+        for (let c = 0; c <= cols; c++) {
+            const x = offsetLeft + c * frameWidth;
+            ctx.moveTo(x, offsetTop);
+            ctx.lineTo(x, img.height - offsetBottom);
+        }
+        ctx.stroke();
+
+        // 2. Light inner line
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let r = 0; r <= rows; r++) {
+            const y = offsetTop + r * frameHeight;
+            ctx.moveTo(offsetLeft, y);
+            ctx.lineTo(img.width - offsetRight, y);
+        }
+        for (let c = 0; c <= cols; c++) {
+            const x = offsetLeft + c * frameWidth;
+            ctx.moveTo(x, offsetTop);
+            ctx.lineTo(x, img.height - offsetBottom);
+        }
+        ctx.stroke();
+
+        // Draw Mask for Offsets (semi-transparent overlay on ignored areas)
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        // Top
+        if (offsetTop > 0) ctx.fillRect(0, 0, canvas.width, offsetTop);
+        // Bottom
+        if (offsetBottom > 0) ctx.fillRect(0, canvas.height - offsetBottom, canvas.width, offsetBottom);
+        // Left
+        if (offsetLeft > 0) ctx.fillRect(0, offsetTop, offsetLeft, canvas.height - offsetTop - offsetBottom);
+        // Right
+        if (offsetRight > 0) ctx.fillRect(canvas.width - offsetRight, offsetTop, offsetRight, canvas.height - offsetTop - offsetBottom);
     };
 
     // Update Grid when settings change
     useEffect(() => {
         drawGrid();
-    }, [rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight]);
+    }, [rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight, imageRef.current]);
 
     // Animation Loop
     useEffect(() => {
@@ -123,8 +251,47 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
     }, [currentFrame, rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight]);
 
     const handleSave = () => {
-        // Mock save - in real app, generate GIF blob here
-        onSave("mock-gif-url");
+        const img = imageRef.current;
+        if (!img) return;
+
+        setIsExporting(true);
+
+        const gif = new GIF({
+            workers: 2,
+            quality: 10,
+            workerScript: 'https://unpkg.com/gif.js/dist/gif.worker.js'
+        });
+
+        const frameWidth = (img.width - offsetLeft - offsetRight) / cols;
+        const frameHeight = (img.height - offsetTop - offsetBottom) / rows;
+
+        // Add frames
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = frameWidth;
+        tempCanvas.height = frameHeight;
+        const ctx = tempCanvas.getContext("2d");
+
+        if (ctx) {
+            for (let i = 0; i < rows * cols; i++) {
+                const row = Math.floor(i / cols);
+                const col = i % cols;
+                const sx = offsetLeft + col * frameWidth;
+                const sy = offsetTop + row * frameHeight;
+
+                ctx.clearRect(0, 0, frameWidth, frameHeight);
+                ctx.drawImage(img, sx, sy, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
+
+                gif.addFrame(ctx, { copy: true, delay: delay });
+            }
+        }
+
+        gif.on('finished', (blob: Blob) => {
+            const url = URL.createObjectURL(blob);
+            onSave(url);
+            setIsExporting(false);
+        });
+
+        gif.render();
     };
 
     return (
@@ -162,11 +329,20 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
 
             {/* Right: Settings Panel */}
             <div className="w-80 bg-surface/30 border-l border-primary/10 flex flex-col h-full">
-                <div className="p-6 border-b border-primary/10">
+                <div className="p-6 border-b border-primary/10 flex items-center justify-between">
                     <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
                         <Settings2 className="w-4 h-4" />
                         Configuration
                     </h2>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1.5"
+                        onClick={() => imageRef.current && autoDetectGrid(imageRef.current)}
+                    >
+                        <Wand2 className="w-3 h-3" />
+                        Auto
+                    </Button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
@@ -275,9 +451,18 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
                 </div>
 
                 <div className="p-6 border-t border-primary/10 bg-surface/50">
-                    <Button className="w-full" size="lg" onClick={handleSave}>
-                        <Save className="w-4 h-4 mr-2" />
-                        Save Animation
+                    <Button className="w-full" size="lg" onClick={handleSave} disabled={isExporting}>
+                        {isExporting ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Rendering GIF...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-4 h-4 mr-2" />
+                                Save Animation
+                            </>
+                        )}
                     </Button>
                 </div>
             </div>
