@@ -1,16 +1,19 @@
 import { ReactNode } from "react";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft, Zap, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
+import { ProfileModal } from "@/components/profile-modal";
 
 interface SpritePreviewLayoutProps {
     children: ReactNode;
     title: string;
     projectId: string;
+    backLink?: string;
+    actions?: ReactNode;
 }
 
-export function SpritePreviewLayout({ children, title, projectId }: SpritePreviewLayoutProps) {
+export function SpritePreviewLayout({ children, title, projectId, backLink = "/projects", actions }: SpritePreviewLayoutProps) {
     return (
         <div className="h-screen bg-background flex flex-col overflow-hidden">
             {/* Header */}
@@ -18,7 +21,7 @@ export function SpritePreviewLayout({ children, title, projectId }: SpritePrevie
                 <div className="flex items-center justify-between gap-6 h-full">
                     {/* Left Section */}
                     <div className="flex items-center gap-4 flex-1">
-                        <Link href="/projects">
+                        <Link href={backLink}>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <ArrowLeft className="w-4 h-4" />
                             </Button>
@@ -46,6 +49,13 @@ export function SpritePreviewLayout({ children, title, projectId }: SpritePrevie
 
                     {/* Right Section */}
                     <div className="flex items-center gap-4">
+                        {actions && (
+                            <>
+                                {actions}
+                                <div className="h-5 w-[1px] bg-primary/20" />
+                            </>
+                        )}
+
                         <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface-highlight border border-primary/15">
                             <div className="flex items-center gap-1.5">
                                 <Zap className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
@@ -55,27 +65,31 @@ export function SpritePreviewLayout({ children, title, projectId }: SpritePrevie
                             <span className="text-xs text-text-muted">Credits</span>
                         </div>
 
-                        <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15">
-                            <div className="text-right">
-                                <div className="text-xs font-medium text-text">Alex Design</div>
-                                <div className="text-[10px] text-text-muted">Pro Plan</div>
+                        <ProfileModal>
+                            <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15 cursor-pointer hover:bg-surface-highlight/80 transition-colors">
+                                <div className="text-right">
+                                    <div className="text-xs font-medium text-text">Alex Design</div>
+                                    <div className="text-[10px] text-text-muted">Pro Plan</div>
+                                </div>
+                                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+                                    <img
+                                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                                        alt="User"
+                                        className="w-full h-full rounded-[3px] bg-black"
+                                    />
+                                </div>
                             </div>
-                            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+                        </ProfileModal>
+
+                        <ProfileModal>
+                            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] sm:hidden cursor-pointer hover:opacity-80 transition-opacity">
                                 <img
                                     src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
                                     alt="User"
-                                    className="w-full h-full rounded-[3px] bg-black"
+                                    className="w-full h-full rounded-[5px] bg-black"
                                 />
                             </div>
-                        </div>
-
-                        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] sm:hidden">
-                            <img
-                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                alt="User"
-                                className="w-full h-full rounded-[5px] bg-black"
-                            />
-                        </div>
+                        </ProfileModal>
                     </div>
                 </div>
             </header>

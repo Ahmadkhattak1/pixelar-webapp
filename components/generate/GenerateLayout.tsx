@@ -3,6 +3,7 @@ import { ArrowLeft, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
+import { ProfileModal } from "@/components/profile-modal";
 
 interface GenerateLayoutProps {
     children: ReactNode;
@@ -53,6 +54,32 @@ export function GenerateLayout({ children, projectId }: GenerateLayoutProps) {
                             <div className="hidden sm:block w-[1px] h-4 bg-primary/20" />
                             <span className="hidden sm:inline text-xs text-text-muted">Credits</span>
                         </div>
+
+                        <ProfileModal>
+                            <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15 cursor-pointer hover:bg-surface-highlight/80 transition-colors">
+                                <div className="text-right">
+                                    <div className="text-xs font-medium text-text">Alex Design</div>
+                                    <div className="text-[10px] text-text-muted">Pro Plan</div>
+                                </div>
+                                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+                                    <img
+                                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                                        alt="User"
+                                        className="w-full h-full rounded-[3px] bg-black"
+                                    />
+                                </div>
+                            </div>
+                        </ProfileModal>
+
+                        <ProfileModal>
+                            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] sm:hidden cursor-pointer hover:opacity-80 transition-opacity">
+                                <img
+                                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                                    alt="User"
+                                    className="w-full h-full rounded-[5px] bg-black"
+                                />
+                            </div>
+                        </ProfileModal>
                     </div>
                 </div>
             </header>

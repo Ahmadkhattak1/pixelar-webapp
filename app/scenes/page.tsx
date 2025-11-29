@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -21,24 +20,32 @@ import {
   Eye,
   Plus,
   FolderPlus,
+  Maximize2,
+  Image as ImageIcon,
+  Trees,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { ProfileModal } from "@/components/profile-modal";
 
+type SceneType = "indoor" | "outdoor";
 type Viewpoint = "front" | "back" | "side" | "top_down" | "isometric";
 type Style = "2d_flat" | "pixel_art";
 
-export default function GenerateSpritePage() {
+export default function GenerateScenePage() {
   const searchParams = useSearchParams();
-  const projectId = searchParams.get("projectId"); // Detect if user came from a project
+  const projectId = searchParams.get("projectId");
 
+  // State
+  const [sceneType, setSceneType] = useState<SceneType>("outdoor");
   const [prompt, setPrompt] = useState("");
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [colors, setColors] = useState<string[]>([]);
   const [customColor, setCustomColor] = useState("");
-  const [viewpoint, setViewpoint] = useState<Viewpoint>("front");
-  const [style, setStyle] = useState<Style>("2d_flat");
+  const [viewpoint, setViewpoint] = useState<Viewpoint>("isometric");
+  const [style, setStyle] = useState<Style>("pixel_art");
+  const [dimensions, setDimensions] = useState("512x512");
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
@@ -88,7 +95,7 @@ export default function GenerateSpritePage() {
   const handleAddColor = () => {
     if (customColor && !colors.includes(customColor) && colors.length < 5) {
       setColors([...colors, customColor]);
-      setCustomColor(""); // Clear input after adding
+      setCustomColor("");
     }
   };
 
@@ -96,32 +103,25 @@ export default function GenerateSpritePage() {
     setColors(colors.filter((_, i) => i !== index));
   };
 
-  const handleGenerateSprite = () => {
-    if (!prompt.trim()) {
-      return;
-    }
+  const handleGenerateScene = () => {
+    if (!prompt.trim()) return;
 
     setIsGenerating(true);
 
     setTimeout(() => {
       const mockImages = [
-        `https://picsum.photos/seed/${Math.random()}/400/400`,
-        `https://picsum.photos/seed/${Math.random()}/400/400`,
-        `https://picsum.photos/seed/${Math.random()}/400/400`,
-        `https://picsum.photos/seed/${Math.random()}/400/400`,
+        `https://picsum.photos/seed/${Math.random()}/800/600`,
+        `https://picsum.photos/seed/${Math.random()}/800/600`,
+        `https://picsum.photos/seed/${Math.random()}/800/600`,
+        `https://picsum.photos/seed/${Math.random()}/800/600`,
       ];
       setPreviewImages(mockImages);
       setIsGenerating(false);
     }, 2000);
   };
 
-  const handleSelectPreview = (index: number) => {
-    setSelectedPreview(index);
-  };
-
   const handleCreateProject = () => {
     if (selectedPreview !== null) {
-      // Navigate back to project preview if coming from a project, otherwise go to projects list
       if (projectId) {
         window.location.href = `/scenes/preview?projectId=${projectId}`;
       } else {
@@ -131,11 +131,10 @@ export default function GenerateSpritePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-text font-sans selection:bg-primary/30 overflow-hidden">
-      {/* Header - Studio Bar */}
-      <header className="border-b border-primary/15 bg-surface/50 backdrop-blur-md px-4 py-3 z-50">
+    <div className="h-screen flex flex-col bg-background text-text font-sans selection:bg-primary/30 overflow-hidden">
+      {/* Header */}
+      <header className="border-b border-primary/15 bg-surface/50 backdrop-blur-md px-4 py-2 z-50 shrink-0">
         <div className="flex items-center justify-between gap-6">
-          {/* Left Section - Navigation & Title */}
           <div className="flex items-center gap-4">
             <Link
               href={projectId ? `/scenes/preview?projectId=${projectId}` : "/projects"}
@@ -150,14 +149,13 @@ export default function GenerateSpritePage() {
               </div>
               <div className="flex flex-col gap-0.5">
                 <span className="font-medium text-sm tracking-tight text-text">
-                  Untitled Sprite
+                  New Scene
                 </span>
-                <span className="text-[10px] text-text-muted">Draft</span>
+                <span className="text-[10px] text-text-muted">Generator</span>
               </div>
             </div>
           </div>
 
-          {/* Right Section - Credits & Profile */}
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface-highlight border border-primary/15">
               <div className="flex items-center gap-1.5">
@@ -167,45 +165,67 @@ export default function GenerateSpritePage() {
               <div className="w-[1px] h-4 bg-primary/20" />
               <span className="text-xs text-text-muted">Credits</span>
             </div>
-
-            <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15">
-              <div className="text-right">
-                <div className="text-xs font-medium text-text">Alex Design</div>
-                <div className="text-[10px] text-text-muted">Pro Plan</div>
+            <ProfileModal>
+              <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15 cursor-pointer hover:bg-surface-highlight/80 transition-colors">
+                <div className="text-right">
+                  <div className="text-xs font-medium text-text">Alex Design</div>
+                  <div className="text-[10px] text-text-muted">Pro Plan</div>
+                </div>
+                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+                  <img
+                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                    alt="User"
+                    className="w-full h-full rounded-[3px] bg-black"
+                  />
+                </div>
               </div>
-              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
-                <img
-                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                  alt="User"
-                  className="w-full h-full rounded-[3px] bg-black"
-                />
-              </div>
-            </div>
-
-            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] md:hidden">
-              <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                alt="User"
-                className="w-full h-full rounded-[5px] bg-black"
-              />
-            </div>
+            </ProfileModal>
           </div>
         </div>
       </header>
 
       <main className="flex-1 flex overflow-hidden" ref={mainRef}>
-        {/* Left Panel - Tool Palette */}
+        {/* Left Panel - Controls */}
         <div
           style={{ width: `${sidebarWidth}px` }}
           className="bg-surface border-r border-primary/15 flex flex-col overflow-hidden transition-none relative z-10"
         >
-
-          {/* Scroll Area */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <div className="p-4 space-y-8">
+            <div className="p-3 space-y-6">
 
-              {/* Section: Generation */}
-              <div className="space-y-4">
+              {/* Scene Type Selector */}
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
+                  Scene Type
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setSceneType("outdoor")}
+                    className={`flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-xs font-medium transition-all border ${sceneType === "outdoor"
+                      ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
+                      : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
+                      }`}
+                  >
+                    <Trees className="w-3.5 h-3.5" />
+                    Outdoor
+                  </button>
+                  <button
+                    onClick={() => setSceneType("indoor")}
+                    className={`flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-xs font-medium transition-all border ${sceneType === "indoor"
+                      ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
+                      : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
+                      }`}
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    Indoor
+                  </button>
+                </div>
+              </div>
+
+              <div className="h-[1px] bg-primary/10" />
+
+              {/* Generation Controls */}
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
                     Generation
@@ -213,24 +233,26 @@ export default function GenerateSpritePage() {
                   <Sparkles className="w-3 h-3 text-primary" />
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
+                <div className="space-y-3">
+                  {/* Prompt */}
+                  <div className="space-y-1.5">
                     <div className="flex justify-between text-xs text-text-dim">
-                      <span>Prompt</span>
+                      <span>Prompt <span className="text-accent-coral">*</span></span>
                       <span className="font-mono text-[10px] opacity-70">{prompt.length}/500</span>
                     </div>
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="Describe your sprite..."
-                      className="w-full h-32 p-3 text-xs bg-surface-highlight/50 border border-primary/25 rounded-lg resize-none focus:border-primary/60 focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-text-muted font-medium leading-relaxed"
+                      placeholder={sceneType === "outdoor" ? "A mystical forest clearing with glowing mushrooms..." : "A futuristic sci-fi laboratory..."}
+                      className="w-full h-20 p-2.5 text-xs bg-surface-highlight/50 border border-primary/25 rounded-lg resize-none focus:border-primary/60 focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-text-muted font-medium leading-relaxed"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs text-text-dim">Reference</Label>
+                  {/* Reference Image */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-text-dim">Reference Image (Optional)</Label>
                     {referenceImage ? (
-                      <div className="relative w-full h-24 rounded-lg border border-primary/20 overflow-hidden group bg-surface-highlight/30">
+                      <div className="relative w-full h-16 rounded-lg border border-primary/20 overflow-hidden group bg-surface-highlight/30">
                         <img
                           src={referenceImage}
                           alt="Reference"
@@ -244,7 +266,7 @@ export default function GenerateSpritePage() {
                         </button>
                       </div>
                     ) : (
-                      <label className="flex items-center justify-center gap-2 w-full h-10 border border-dashed border-primary/20 rounded-lg cursor-pointer hover:bg-surface-highlight hover:border-primary/30 transition-all group">
+                      <label className="flex items-center justify-center gap-2 w-full h-9 border border-dashed border-primary/20 rounded-lg cursor-pointer hover:bg-surface-highlight hover:border-primary/30 transition-all group">
                         <Upload className="w-3.5 h-3.5 text-text-muted group-hover:text-primary transition-colors" />
                         <span className="text-xs text-text-muted group-hover:text-primary transition-colors">Upload Image</span>
                         <input
@@ -261,19 +283,20 @@ export default function GenerateSpritePage() {
 
               <div className="h-[1px] bg-primary/10" />
 
-              {/* Section: Properties */}
-              <div className="space-y-5">
+              {/* Properties */}
+              <div className="space-y-4">
                 <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
                   Properties
                 </Label>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
+                <div className="space-y-3">
+                  {/* Style */}
+                  <div className="space-y-1.5">
                     <Label className="text-xs text-text-dim">Style</Label>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { value: "2d_flat", label: "2D Flat", icon: Layers },
                         { value: "pixel_art", label: "Pixel Art", icon: Grid3x3 },
+                        { value: "2d_flat", label: "2D Flat", icon: Layers },
                       ].map(({ value, label, icon: Icon }) => (
                         <button
                           key={value}
@@ -290,92 +313,112 @@ export default function GenerateSpritePage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs text-text-dim">Viewpoint</Label>
-                    <div className="relative">
-                      <select
-                        value={viewpoint}
-                        onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
-                        className="w-full px-3 py-2 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-surface-highlight hover:border-primary/30"
-                      >
-                        <option value="front">Front View</option>
-                        <option value="back">Back View</option>
-                        <option value="side">Side View</option>
-                        <option value="top_down">Top Down</option>
-                        <option value="isometric">Isometric</option>
-                      </select>
-                      <Eye className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+                  {/* Dimensions & Viewpoint */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-text-dim">Dimensions</Label>
+                      <div className="relative">
+                        <select
+                          value={dimensions}
+                          onChange={(e) => setDimensions(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-surface-highlight hover:border-primary/30"
+                        >
+                          <option value="256x256">256x256</option>
+                          <option value="512x512">512x512</option>
+                          <option value="1024x1024">1024x1024</option>
+                        </select>
+                        <Maximize2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-text-dim">Viewpoint</Label>
+                      <div className="relative">
+                        <select
+                          value={viewpoint}
+                          onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
+                          className="w-full px-3 py-1.5 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-surface-highlight hover:border-primary/30"
+                        >
+                          <option value="front">Front</option>
+                          <option value="back">Back</option>
+                          <option value="side">Side</option>
+                          <option value="top_down">Top Down</option>
+                          <option value="isometric">Isometric</option>
+                        </select>
+                        <Eye className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Colors */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-text-dim flex justify-between">
+                      <span>Colors (Optional)</span>
+                      <span className="font-mono text-[10px] opacity-50">{colors.length}/5</span>
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {colors.map((color, index) => (
+                        <div key={index} className="group relative">
+                          <div
+                            className="w-8 h-8 rounded-lg border border-primary/30 cursor-pointer hover:scale-105 hover:border-primary/50 transition-all shadow-sm"
+                            style={{ backgroundColor: color }}
+                          />
+                          <button
+                            onClick={() => handleRemoveColor(index)}
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-surface border border-primary/15 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent-coral hover:border-accent-coral"
+                          >
+                            <X className="w-2.5 h-2.5 text-text hover:text-white" />
+                          </button>
+                        </div>
+                      ))}
+                      {colors.length < 5 && (
+                        <div className="flex items-center gap-2">
+                          <div className="relative w-8 h-8 rounded-lg border border-dashed border-primary/20 hover:border-primary/50 hover:bg-surface-highlight transition-all flex items-center justify-center cursor-pointer overflow-hidden">
+                            <input
+                              type="color"
+                              value={customColor}
+                              onChange={(e) => setCustomColor(e.target.value)}
+                              className="absolute inset-0 w-[150%] h-[150%] -top-1/4 -left-1/4 cursor-pointer opacity-0"
+                            />
+                            <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: customColor || 'transparent' }}>
+                              {!customColor && <span className="text-xs text-text-muted">+</span>}
+                            </div>
+                          </div>
+                          {customColor && (
+                            <Button
+                              onClick={handleAddColor}
+                              size="sm"
+                              variant="secondary"
+                              className="h-8 px-3 text-[10px] font-bold"
+                            >
+                              ADD
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs text-text-dim flex justify-between">
-                    <span>Colors</span>
-                    <span className="font-mono text-[10px] opacity-50">{colors.length}/5</span>
-                  </Label>
-                  <div className="flex flex-wrap gap-2">
-                    {colors.map((color, index) => (
-                      <div key={index} className="group relative">
-                        <div
-                          className="w-8 h-8 rounded-lg border border-primary/30 cursor-pointer hover:scale-105 hover:border-primary/50 transition-all shadow-sm"
-                          style={{ backgroundColor: color }}
-                        />
-                        <button
-                          onClick={() => handleRemoveColor(index)}
-                          className="absolute -top-1 -right-1 w-4 h-4 bg-surface border border-primary/15 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent-coral hover:border-accent-coral"
-                        >
-                          <X className="w-2.5 h-2.5 text-text hover:text-white" />
-                        </button>
-                      </div>
-                    ))}
-                    {colors.length < 5 && (
-                      <div className="flex items-center gap-2">
-                        <div className="relative w-8 h-8 rounded-lg border border-dashed border-primary/20 hover:border-primary/50 hover:bg-surface-highlight transition-all flex items-center justify-center cursor-pointer overflow-hidden">
-                          <input
-                            type="color"
-                            value={customColor}
-                            onChange={(e) => setCustomColor(e.target.value)}
-                            className="absolute inset-0 w-[150%] h-[150%] -top-1/4 -left-1/4 cursor-pointer opacity-0"
-                          />
-                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: customColor || 'transparent' }}>
-                            {!customColor && <span className="text-xs text-text-muted">+</span>}
-                          </div>
-                        </div>
-                        {customColor && (
-                          <Button
-                            onClick={handleAddColor}
-                            size="sm"
-                            variant="secondary"
-                            className="h-8 px-3 text-[10px] font-bold"
-                          >
-                            ADD
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
+
             </div>
           </div>
 
           {/* Footer Actions */}
           <div className="p-4 border-t border-primary/15 bg-surface/50 backdrop-blur-sm">
             <Button
-              onClick={handleGenerateSprite}
+              onClick={handleGenerateScene}
               disabled={!prompt.trim() || isGenerating}
               className="w-full h-10 text-xs font-semibold bg-primary hover:bg-primary-600 text-primary-foreground shadow-lg shadow-primary/30 transition-all"
             >
               {isGenerating ? (
                 <span className="flex items-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                  Processing...
+                  Generating...
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Wand2 className="w-3.5 h-3.5" />
-                  Generate
+                  Generate Scene
                 </span>
               )}
             </Button>
@@ -432,8 +475,8 @@ export default function GenerateSpritePage() {
                 {previewImages.map((img, index) => (
                   <div
                     key={index}
-                    onClick={() => handleSelectPreview(index)}
-                    className={`group relative aspect-square bg-surface rounded-xl border transition-all duration-200 cursor-pointer ${selectedPreview === index
+                    onClick={() => setSelectedPreview(index)}
+                    className={`group relative aspect-video bg-surface rounded-xl border transition-all duration-200 cursor-pointer ${selectedPreview === index
                       ? 'border-primary shadow-lg shadow-primary/30'
                       : 'border-primary/15 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/20'
                       }`}
@@ -445,7 +488,7 @@ export default function GenerateSpritePage() {
                     <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary/30 rounded-br-lg m-2" />
 
                     <div className="absolute inset-4 flex items-center justify-center">
-                      <img src={img} alt="Generated Sprite" className="w-full h-full object-contain pixelated" />
+                      <img src={img} alt="Generated Scene" className="w-full h-full object-cover rounded-md pixelated" />
                     </div>
 
                     {/* Selection Indicator */}

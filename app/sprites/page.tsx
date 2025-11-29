@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { ProfileModal } from "@/components/profile-modal";
 
 // Dynamically import PoseEditor to avoid SSR issues with Canvas
 const PoseEditor = dynamic(() => import("@/components/pose-editor/PoseEditor"), {
@@ -174,19 +175,21 @@ export default function GenerateSpritePage() {
                             <div className="w-[1px] h-4 bg-primary/20" />
                             <span className="text-xs text-text-muted">Credits</span>
                         </div>
-                        <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15">
-                            <div className="text-right">
-                                <div className="text-xs font-medium text-text">Alex Design</div>
-                                <div className="text-[10px] text-text-muted">Pro Plan</div>
+                        <ProfileModal>
+                            <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15 cursor-pointer hover:bg-surface-highlight/80 transition-colors">
+                                <div className="text-right">
+                                    <div className="text-xs font-medium text-text">Alex Design</div>
+                                    <div className="text-[10px] text-text-muted">Pro Plan</div>
+                                </div>
+                                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+                                    <img
+                                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                                        alt="User"
+                                        className="w-full h-full rounded-[3px] bg-black"
+                                    />
+                                </div>
                             </div>
-                            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
-                                <img
-                                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                    alt="User"
-                                    className="w-full h-full rounded-[3px] bg-black"
-                                />
-                            </div>
-                        </div>
+                        </ProfileModal>
                     </div>
                 </div>
             </header>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { SpritePreviewLayout } from "@/components/sprite-preview/SpritePreviewLayout";
 import { SpriteViewer } from "@/components/sprite-preview/SpriteViewer";
@@ -21,6 +21,16 @@ const MOCK_ANIMATIONS = [
     { id: "death", name: "Death", thumbnailUrl: "https://opengameart.org/sites/default/files/knight_death_spritesheet.png" },
 ];
 
+// Mock project data to determine type
+const MOCK_PROJECTS = [
+    { id: "8842", title: "Cyberpunk City", type: "scene" },
+    { id: "9120", title: "Hero Idle Animation", type: "sprite" },
+    { id: "7731", title: "Forest Tileset", type: "sprite" },
+    { id: "6654", title: "Dungeon Level 1", type: "scene" },
+    { id: "5521", title: "NPC Merchant", type: "sprite" },
+    { id: "4419", title: "Space Background", type: "scene" },
+];
+
 export default function ProjectPage() {
     const params = useParams();
     const router = useRouter();
@@ -28,6 +38,14 @@ export default function ProjectPage() {
 
     const [selectedAnimationId, setSelectedAnimationId] = useState("sprite");
     const [isPlaying, setIsPlaying] = useState(true);
+
+    // Determine project type and redirect if it's a scene
+    useEffect(() => {
+        const project = MOCK_PROJECTS.find(p => p.id === projectId);
+        if (project && project.type === "scene") {
+            router.replace(`/scenes/preview?projectId=${projectId}`);
+        }
+    }, [projectId, router]);
 
     const currentAnimation = MOCK_ANIMATIONS.find(a => a.id === selectedAnimationId) || MOCK_ANIMATIONS[0];
 
