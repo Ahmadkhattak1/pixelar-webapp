@@ -647,6 +647,11 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
     const [isExporting, setIsExporting] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
 
+    // Dragging state
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragType, setDragType] = useState<'top' | 'bottom' | 'left' | 'right' | null>(null);
+    const [hoveredEdge, setHoveredEdge] = useState<'top' | 'bottom' | 'left' | 'right' | null>(null);
+
     // Refs
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -823,6 +828,57 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         if (offsetLeft > 0) ctx.fillRect(0, offsetTop, offsetLeft, canvas.height - offsetTop - offsetBottom);
         // Right
         if (offsetRight > 0) ctx.fillRect(canvas.width - offsetRight, offsetTop, offsetRight, canvas.height - offsetTop - offsetBottom);
+
+        // Draw draggable offset boundaries
+        const hitZone = 10; // pixels on each side of the line
+
+        // Top boundary
+        if (offsetTop > 0 || hoveredEdge === 'top' || dragType === 'top') {
+            ctx.strokeStyle = (hoveredEdge === 'top' || dragType === 'top') ? "rgba(59, 130, 246, 0.9)" : "rgba(255, 255, 255, 0.8)";
+            ctx.lineWidth = (hoveredEdge === 'top' || dragType === 'top') ? 3 : 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, offsetTop);
+            ctx.lineTo(canvas.width, offsetTop);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Bottom boundary
+        if (offsetBottom > 0 || hoveredEdge === 'bottom' || dragType === 'bottom') {
+            ctx.strokeStyle = (hoveredEdge === 'bottom' || dragType === 'bottom') ? "rgba(59, 130, 246, 0.9)" : "rgba(255, 255, 255, 0.8)";
+            ctx.lineWidth = (hoveredEdge === 'bottom' || dragType === 'bottom') ? 3 : 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - offsetBottom);
+            ctx.lineTo(canvas.width, canvas.height - offsetBottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Left boundary
+        if (offsetLeft > 0 || hoveredEdge === 'left' || dragType === 'left') {
+            ctx.strokeStyle = (hoveredEdge === 'left' || dragType === 'left') ? "rgba(59, 130, 246, 0.9)" : "rgba(255, 255, 255, 0.8)";
+            ctx.lineWidth = (hoveredEdge === 'left' || dragType === 'left') ? 3 : 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(offsetLeft, 0);
+            ctx.lineTo(offsetLeft, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Right boundary
+        if (offsetRight > 0 || hoveredEdge === 'right' || dragType === 'right') {
+            ctx.strokeStyle = (hoveredEdge === 'right' || dragType === 'right') ? "rgba(59, 130, 246, 0.9)" : "rgba(255, 255, 255, 0.8)";
+            ctx.lineWidth = (hoveredEdge === 'right' || dragType === 'right') ? 3 : 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width - offsetRight, 0);
+            ctx.lineTo(canvas.width - offsetRight, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
     };
 
     // Update Grid when settings change
@@ -830,7 +886,7 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         if (imageLoaded) {
             drawGrid();
         }
-    }, [rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight, imageLoaded]);
+    }, [rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight, imageLoaded, hoveredEdge, dragType]);
 
     // Animation Loop
     useEffect(() => {
@@ -876,6 +932,118 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, sx, sy, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
     }, [currentFrame, rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight]);
+
+    // Global mouseup handler for dragging
+    useEffect(() => {
+        const handleGlobalMouseUp = () => {
+            if (isDragging) {
+                setIsDragging(false);
+                setDragType(null);
+            }
+        };
+
+        window.addEventListener('mouseup', handleGlobalMouseUp);
+        return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+    }, [isDragging]);
+
+    // Mouse event handlers for draggable offsets
+    const getCanvasMousePos = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return null;
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    };
+
+    const getEdgeAtPosition = (x: number, y: number): 'top' | 'bottom' | 'left' | 'right' | null => {
+        const img = imageRef.current;
+        if (!img) return null;
+
+        const hitZone = 10;
+
+        // Check top edge
+        if (Math.abs(y - offsetTop) < hitZone) return 'top';
+        // Check bottom edge
+        if (Math.abs(y - (img.height - offsetBottom)) < hitZone) return 'bottom';
+        // Check left edge
+        if (Math.abs(x - offsetLeft) < hitZone) return 'left';
+        // Check right edge
+        if (Math.abs(x - (img.width - offsetRight)) < hitZone) return 'right';
+
+        return null;
+    };
+
+    const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const pos = getCanvasMousePos(e);
+        if (!pos) return;
+
+        const img = imageRef.current;
+        if (!img) return;
+
+        if (isDragging && dragType) {
+            // Update offset based on drag
+            switch (dragType) {
+                case 'top':
+                    setOffsetTop(Math.max(0, Math.min(pos.y, img.height - offsetBottom - 10)));
+                    break;
+                case 'bottom':
+                    setOffsetBottom(Math.max(0, Math.min(img.height - pos.y, img.height - offsetTop - 10)));
+                    break;
+                case 'left':
+                    setOffsetLeft(Math.max(0, Math.min(pos.x, img.width - offsetRight - 10)));
+                    break;
+                case 'right':
+                    setOffsetRight(Math.max(0, Math.min(img.width - pos.x, img.width - offsetLeft - 10)));
+                    break;
+            }
+        } else {
+            // Update hover state
+            const edge = getEdgeAtPosition(pos.x, pos.y);
+            setHoveredEdge(edge);
+
+            // Update cursor
+            const canvas = canvasRef.current;
+            if (canvas) {
+                if (edge === 'top' || edge === 'bottom') {
+                    canvas.style.cursor = 'ns-resize';
+                } else if (edge === 'left' || edge === 'right') {
+                    canvas.style.cursor = 'ew-resize';
+                } else {
+                    canvas.style.cursor = 'default';
+                }
+            }
+        }
+    };
+
+    const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const pos = getCanvasMousePos(e);
+        if (!pos) return;
+
+        const edge = getEdgeAtPosition(pos.x, pos.y);
+        if (edge) {
+            setIsDragging(true);
+            setDragType(edge);
+        }
+    };
+
+    const handleCanvasMouseUp = () => {
+        setIsDragging(false);
+        setDragType(null);
+    };
+
+    const handleCanvasMouseLeave = () => {
+        if (!isDragging) {
+            setHoveredEdge(null);
+            const canvas = canvasRef.current;
+            if (canvas) canvas.style.cursor = 'default';
+        }
+    };
 
     const handleSave = async () => {
         const img = imageRef.current;
@@ -986,6 +1154,10 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
                         ref={canvasRef}
                         className="max-w-full max-h-[80vh] object-contain image-pixelated"
                         style={{ imageRendering: "pixelated" }}
+                        onMouseMove={handleCanvasMouseMove}
+                        onMouseDown={handleCanvasMouseDown}
+                        onMouseUp={handleCanvasMouseUp}
+                        onMouseLeave={handleCanvasMouseLeave}
                     />
                 </div>
 
