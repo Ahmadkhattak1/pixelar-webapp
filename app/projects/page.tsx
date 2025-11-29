@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
+import { ProfileModal } from "@/components/profile-modal";
 
 type Project = {
   id: string;
@@ -125,27 +126,31 @@ export default function ProjectsPage() {
               <span className="text-xs text-text-muted">Credits</span>
             </div>
 
-            <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15">
-              <div className="text-right">
-                <div className="text-xs font-medium text-text">Alex Design</div>
-                <div className="text-[10px] text-text-muted">Pro Plan</div>
+            <ProfileModal>
+              <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15 cursor-pointer hover:bg-surface-highlight/80 transition-colors">
+                <div className="text-right">
+                  <div className="text-xs font-medium text-text">Alex Design</div>
+                  <div className="text-[10px] text-text-muted">Pro Plan</div>
+                </div>
+                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+                  <img
+                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                    alt="User"
+                    className="w-full h-full rounded-[3px] bg-black"
+                  />
+                </div>
               </div>
-              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+            </ProfileModal>
+
+            <ProfileModal>
+              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] sm:hidden cursor-pointer hover:opacity-80 transition-opacity">
                 <img
                   src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
                   alt="User"
-                  className="w-full h-full rounded-[3px] bg-black"
+                  className="w-full h-full rounded-[5px] bg-black"
                 />
               </div>
-            </div>
-
-            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] sm:hidden">
-              <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                alt="User"
-                className="w-full h-full rounded-[5px] bg-black"
-              />
-            </div>
+            </ProfileModal>
           </div>
         </div>
       </header>

@@ -1146,13 +1146,13 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
     };
 
     return (
-        <div className="flex-1 flex h-full overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden">
             {/* Center: Canvas Viewer */}
-            <div className="flex-1 bg-surface/10 p-8 flex items-center justify-center overflow-auto relative">
-                <div className="bg-surface-highlight border border-primary/10 rounded-lg shadow-2xl overflow-hidden">
+            <div className="flex-1 bg-surface/10 p-4 sm:p-8 flex items-center justify-center overflow-auto relative min-h-[300px] lg:min-h-0">
+                <div className="bg-surface-highlight border border-primary/10 rounded-lg shadow-2xl overflow-hidden max-w-full">
                     <canvas
                         ref={canvasRef}
-                        className="max-w-full max-h-[80vh] object-contain image-pixelated"
+                        className="w-full h-auto max-h-[50vh] lg:max-h-[80vh] object-contain image-pixelated"
                         style={{ imageRendering: "pixelated" }}
                         onMouseMove={handleCanvasMouseMove}
                         onMouseDown={handleCanvasMouseDown}
@@ -1162,9 +1162,9 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
                 </div>
 
                 {/* Floating Preview */}
-                <div className="absolute top-8 right-8 bg-surface/90 backdrop-blur-md border border-primary/20 p-4 rounded-xl shadow-xl flex flex-col items-center gap-3">
-                    <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Preview</h3>
-                    <div className="w-24 h-24 bg-surface-highlight rounded-lg border border-primary/10 flex items-center justify-center overflow-hidden">
+                <div className="absolute top-4 sm:top-8 right-4 sm:right-8 bg-surface/90 backdrop-blur-md border border-primary/20 p-3 sm:p-4 rounded-xl shadow-xl flex flex-col items-center gap-2 sm:gap-3">
+                    <h3 className="text-[10px] sm:text-xs font-semibold text-text-muted uppercase tracking-wider">Preview</h3>
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 bg-surface-highlight rounded-lg border border-primary/10 flex items-center justify-center overflow-hidden">
                         <canvas
                             ref={previewCanvasRef}
                             className="max-w-full max-h-full object-contain image-pixelated"
@@ -1172,10 +1172,10 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
                         />
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsPlaying(!isPlaying)}>
-                            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        <Button size="icon" variant="ghost" className="h-6 w-6 sm:h-8 sm:w-8" onClick={() => setIsPlaying(!isPlaying)}>
+                            {isPlaying ? <Pause className="w-3 h-3 sm:w-4 sm:h-4" /> : <Play className="w-3 h-3 sm:w-4 sm:h-4" />}
                         </Button>
-                        <span className="text-xs font-mono text-text-muted">
+                        <span className="text-[10px] sm:text-xs font-mono text-text-muted">
                             {currentFrame + 1} / {rows * cols}
                         </span>
                     </div>
@@ -1183,64 +1183,65 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
             </div>
 
             {/* Right: Settings Panel */}
-            <div className="w-80 bg-surface/30 border-l border-primary/10 flex flex-col h-full">
-                <div className="p-6 border-b border-primary/10 flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
-                        <Settings2 className="w-4 h-4" />
-                        Configuration
+            <div className="w-full lg:w-80 bg-surface/30 border-t lg:border-t-0 lg:border-l border-primary/10 flex flex-col h-auto lg:h-full max-h-[50vh] lg:max-h-none">
+                <div className="p-4 sm:p-6 border-b border-primary/10 flex items-center justify-between flex-shrink-0">
+                    <h2 className="text-xs sm:text-sm font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                        <Settings2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">Configuration</span>
+                        <span className="sm:hidden">Config</span>
                     </h2>
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-xs gap-1.5"
+                        className="h-6 sm:h-7 text-[10px] sm:text-xs gap-1 sm:gap-1.5 px-2 sm:px-3"
                         onClick={() => imageRef.current && autoDetectGrid(imageRef.current)}
                     >
-                        <Wand2 className="w-3 h-3" />
+                        <Wand2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                         Auto
                     </Button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 sm:space-y-8 custom-scrollbar">
                     {/* Grid Settings */}
-                    <div className="space-y-4">
-                        <h3 className="text-xs font-medium text-text flex items-center gap-2">
-                            <Grid3X3 className="w-3.5 h-3.5 text-primary" />
+                    <div className="space-y-3 sm:space-y-4">
+                        <h3 className="text-[11px] sm:text-xs font-medium text-text flex items-center gap-2">
+                            <Grid3X3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
                             Grid Layout
                         </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-xs text-text-muted">Rows</Label>
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                            <div className="space-y-1.5 sm:space-y-2">
+                                <Label className="text-[10px] sm:text-xs text-text-muted">Rows</Label>
                                 <Input
                                     type="number"
                                     min={1}
                                     value={rows}
                                     onChange={(e) => setRows(Number(e.target.value))}
-                                    className="h-8"
+                                    className="h-8 text-xs sm:text-sm"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs text-text-muted">Columns</Label>
+                            <div className="space-y-1.5 sm:space-y-2">
+                                <Label className="text-[10px] sm:text-xs text-text-muted">Columns</Label>
                                 <Input
                                     type="number"
                                     min={1}
                                     value={cols}
                                     onChange={(e) => setCols(Number(e.target.value))}
-                                    className="h-8"
+                                    className="h-8 text-xs sm:text-sm"
                                 />
                             </div>
                         </div>
                     </div>
 
                     {/* Timing */}
-                    <div className="space-y-4">
-                        <h3 className="text-xs font-medium text-text flex items-center gap-2">
-                            <Clock className="w-3.5 h-3.5 text-primary" />
+                    <div className="space-y-3 sm:space-y-4">
+                        <h3 className="text-[11px] sm:text-xs font-medium text-text flex items-center gap-2">
+                            <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
                             Timing
                         </h3>
                         <div className="space-y-2">
                             <div className="flex justify-between">
-                                <Label className="text-xs text-text-muted">Frame Delay (ms)</Label>
-                                <span className="text-xs font-mono text-primary">{delay}ms</span>
+                                <Label className="text-[10px] sm:text-xs text-text-muted">Frame Delay (ms)</Label>
+                                <span className="text-[10px] sm:text-xs font-mono text-primary">{delay}ms</span>
                             </div>
                             <input
                                 type="range"
@@ -1255,67 +1256,67 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
                     </div>
 
                     {/* Offsets */}
-                    <div className="space-y-4">
-                        <h3 className="text-xs font-medium text-text flex items-center gap-2">
-                            <Move className="w-3.5 h-3.5 text-primary" />
+                    <div className="space-y-3 sm:space-y-4">
+                        <h3 className="text-[11px] sm:text-xs font-medium text-text flex items-center gap-2">
+                            <Move className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
                             Offsets (px)
                         </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-xs text-text-muted">Top</Label>
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                            <div className="space-y-1.5 sm:space-y-2">
+                                <Label className="text-[10px] sm:text-xs text-text-muted">Top</Label>
                                 <Input
                                     type="number"
                                     min={0}
                                     value={offsetTop}
                                     onChange={(e) => setOffsetTop(Number(e.target.value))}
-                                    className="h-8"
+                                    className="h-8 text-xs sm:text-sm"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs text-text-muted">Bottom</Label>
+                            <div className="space-y-1.5 sm:space-y-2">
+                                <Label className="text-[10px] sm:text-xs text-text-muted">Bottom</Label>
                                 <Input
                                     type="number"
                                     min={0}
                                     value={offsetBottom}
                                     onChange={(e) => setOffsetBottom(Number(e.target.value))}
-                                    className="h-8"
+                                    className="h-8 text-xs sm:text-sm"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs text-text-muted">Left</Label>
+                            <div className="space-y-1.5 sm:space-y-2">
+                                <Label className="text-[10px] sm:text-xs text-text-muted">Left</Label>
                                 <Input
                                     type="number"
                                     min={0}
                                     value={offsetLeft}
                                     onChange={(e) => setOffsetLeft(Number(e.target.value))}
-                                    className="h-8"
+                                    className="h-8 text-xs sm:text-sm"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs text-text-muted">Right</Label>
+                            <div className="space-y-1.5 sm:space-y-2">
+                                <Label className="text-[10px] sm:text-xs text-text-muted">Right</Label>
                                 <Input
                                     type="number"
                                     min={0}
                                     value={offsetRight}
                                     onChange={(e) => setOffsetRight(Number(e.target.value))}
-                                    className="h-8"
+                                    className="h-8 text-xs sm:text-sm"
                                 />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-6 border-t border-primary/10 bg-surface/50">
+                <div className="p-4 sm:p-6 border-t border-primary/10 bg-surface/50 flex-shrink-0">
                     <Button className="w-full" size="lg" onClick={handleSave} disabled={isExporting}>
                         {isExporting ? (
                             <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Rendering GIF...
+                                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 animate-spin" />
+                                <span className="text-xs sm:text-sm">Rendering GIF...</span>
                             </>
                         ) : (
                             <>
-                                <Save className="w-4 h-4 mr-2" />
-                                Save Animation
+                                <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
+                                <span className="text-xs sm:text-sm">Save Animation</span>
                             </>
                         )}
                     </Button>
