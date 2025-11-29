@@ -10,6 +10,627 @@ interface SpriteSheetConverterProps {
     onSave: (gifUrl: string) => void;
 }
 
+// Inline worker script as a blob URL to avoid CORS issues
+const workerBlob = new Blob([`
+(function() {
+    var NeuQuant = (function() {
+        var ncycles = 100;
+        var netsize = 256;
+        var maxnetpos = netsize - 1;
+        var netbiasshift = 4;
+        var intbiasshift = 16;
+        var intbias = 1 << intbiasshift;
+        var gammashift = 10;
+        var gamma = 1 << gammashift;
+        var betashift = 10;
+        var beta = intbias >> betashift;
+        var betagamma = intbias << (gammashift - betashift);
+        var initrad = netsize >> 3;
+        var radiusbiasshift = 6;
+        var radiusbias = 1 << radiusbiasshift;
+        var initradius = initrad * radiusbias;
+        var radiusdec = 30;
+        var alphabiasshift = 10;
+        var initalpha = 1 << alphabiasshift;
+        var alphadec;
+        var radbiasshift = 8;
+        var radbias = 1 << radbiasshift;
+        var alpharadbshift = alphabiasshift + radbiasshift;
+        var alpharadbias = 1 << alpharadbshift;
+        var prime1 = 499;
+        var prime2 = 491;
+        var prime3 = 487;
+        var prime4 = 503;
+        var minpicturebytes = 3 * prime4;
+
+        function NeuQuant(pixels, samplefac) {
+            var network;
+            var netindex;
+            var bias;
+            var freq;
+            var radpower;
+
+            function init() {
+                network = [];
+                netindex = new Int32Array(256);
+                bias = new Int32Array(netsize);
+                freq = new Int32Array(netsize);
+                radpower = new Int32Array(netsize >> 3);
+                var i, v;
+                for (i = 0; i < netsize; i++) {
+                    v = (i << (netbiasshift + 8)) / netsize;
+                    network[i] = new Float64Array([v, v, v, 0]);
+                    freq[i] = intbias / netsize;
+                    bias[i] = 0;
+                }
+            }
+
+            function unbiasnet() {
+                for (var i = 0; i < netsize; i++) {
+                    network[i][0] >>= netbiasshift;
+                    network[i][1] >>= netbiasshift;
+                    network[i][2] >>= netbiasshift;
+                    network[i][3] = i;
+                }
+            }
+
+            function altersingle(alpha, i, b, g, r) {
+                network[i][0] -= (alpha * (network[i][0] - b)) / initalpha;
+                network[i][1] -= (alpha * (network[i][1] - g)) / initalpha;
+                network[i][2] -= (alpha * (network[i][2] - r)) / initalpha;
+            }
+
+            function alterneigh(radius, i, b, g, r) {
+                var lo = Math.abs(i - radius);
+                var hi = Math.min(i + radius, netsize);
+                var j = i + 1;
+                var k = i - 1;
+                var m = 1;
+                var p, a;
+                while (j < hi || k > lo) {
+                    a = radpower[m++];
+                    if (j < hi) {
+                        p = network[j++];
+                        p[0] -= (a * (p[0] - b)) / alpharadbias;
+                        p[1] -= (a * (p[1] - g)) / alpharadbias;
+                        p[2] -= (a * (p[2] - r)) / alpharadbias;
+                    }
+                    if (k > lo) {
+                        p = network[--k];
+                        p[0] -= (a * (p[0] - b)) / alpharadbias;
+                        p[1] -= (a * (p[1] - g)) / alpharadbias;
+                        p[2] -= (a * (p[2] - r)) / alpharadbias;
+                    }
+                }
+            }
+
+            function contest(b, g, r) {
+                var bestd = ~(1 << 31);
+                var bestbiasd = bestd;
+                var bestpos = -1;
+                var bestbiaspos = bestpos;
+                var i, n, dist, biasdist, betafreq;
+                for (i = 0; i < netsize; i++) {
+                    n = network[i];
+                    dist = Math.abs(n[0] - b) + Math.abs(n[1] - g) + Math.abs(n[2] - r);
+                    if (dist < bestd) {
+                        bestd = dist;
+                        bestpos = i;
+                    }
+                    biasdist = dist - (bias[i] >> (intbiasshift - netbiasshift));
+                    if (biasdist < bestbiasd) {
+                        bestbiasd = biasdist;
+                        bestbiaspos = i;
+                    }
+                    betafreq = freq[i] >> betashift;
+                    freq[i] -= betafreq;
+                    bias[i] += betafreq << gammashift;
+                }
+                freq[bestpos] += beta;
+                bias[bestpos] -= betagamma;
+                return bestbiaspos;
+            }
+
+            function inxbuild() {
+                var i, j, p, q, smallpos, smallval, previouscol = 0, startpos = 0;
+                for (i = 0; i < netsize; i++) {
+                    p = network[i];
+                    smallpos = i;
+                    smallval = p[1];
+                    for (j = i + 1; j < netsize; j++) {
+                        q = network[j];
+                        if (q[1] < smallval) {
+                            smallpos = j;
+                            smallval = q[1];
+                        }
+                    }
+                    q = network[smallpos];
+                    if (i != smallpos) {
+                        j = q[0]; q[0] = p[0]; p[0] = j;
+                        j = q[1]; q[1] = p[1]; p[1] = j;
+                        j = q[2]; q[2] = p[2]; p[2] = j;
+                        j = q[3]; q[3] = p[3]; p[3] = j;
+                    }
+                    if (smallval != previouscol) {
+                        netindex[previouscol] = (startpos + i) >> 1;
+                        for (j = previouscol + 1; j < smallval; j++) netindex[j] = i;
+                        previouscol = smallval;
+                        startpos = i;
+                    }
+                }
+                netindex[previouscol] = (startpos + maxnetpos) >> 1;
+                for (j = previouscol + 1; j < 256; j++) netindex[j] = maxnetpos;
+            }
+
+            function learn() {
+                var i;
+                var lengthcount = pixels.length;
+                var alphadec = 30 + ((samplefac - 1) / 3);
+                var samplepixels = lengthcount / (3 * samplefac);
+                var delta = ~~(samplepixels / ncycles);
+                var alpha = initalpha;
+                var radius = initradius;
+                var rad = radius >> radiusbiasshift;
+                if (rad <= 1) rad = 0;
+                for (i = 0; i < rad; i++) radpower[i] = alpha * (((rad * rad - i * i) * radbias) / (rad * rad));
+                var step;
+                if (lengthcount < minpicturebytes) {
+                    samplefac = 1;
+                    step = 3;
+                } else if (lengthcount % prime1 !== 0) {
+                    step = 3 * prime1;
+                } else if (lengthcount % prime2 !== 0) {
+                    step = 3 * prime2;
+                } else if (lengthcount % prime3 !== 0) {
+                    step = 3 * prime3;
+                } else {
+                    step = 3 * prime4;
+                }
+                var b, g, r, j;
+                var pix = 0;
+                i = 0;
+                while (i < samplepixels) {
+                    b = (pixels[pix] & 0xff) << netbiasshift;
+                    g = (pixels[pix + 1] & 0xff) << netbiasshift;
+                    r = (pixels[pix + 2] & 0xff) << netbiasshift;
+                    j = contest(b, g, r);
+                    altersingle(alpha, j, b, g, r);
+                    if (rad !== 0) alterneigh(rad, j, b, g, r);
+                    pix += step;
+                    if (pix >= lengthcount) pix -= lengthcount;
+                    i++;
+                    if (delta === 0) delta = 1;
+                    if (i % delta === 0) {
+                        alpha -= alpha / alphadec;
+                        radius -= radius / radiusdec;
+                        rad = radius >> radiusbiasshift;
+                        if (rad <= 1) rad = 0;
+                        for (j = 0; j < rad; j++) radpower[j] = alpha * (((rad * rad - j * j) * radbias) / (rad * rad));
+                    }
+                }
+            }
+
+            function buildColormap() {
+                init();
+                learn();
+                unbiasnet();
+                inxbuild();
+            }
+            this.buildColormap = buildColormap;
+
+            function getColormap() {
+                var map = [];
+                var index = [];
+                for (var i = 0; i < netsize; i++) index[network[i][3]] = i;
+                var k = 0;
+                for (var l = 0; l < netsize; l++) {
+                    var j = index[l];
+                    map[k++] = network[j][0];
+                    map[k++] = network[j][1];
+                    map[k++] = network[j][2];
+                }
+                return map;
+            }
+            this.getColormap = getColormap;
+
+            function inxsearch(b, g, r) {
+                var a, p, dist;
+                var bestd = 1000;
+                var best = -1;
+                var i = netindex[g];
+                var j = i - 1;
+                while (i < netsize || j >= 0) {
+                    if (i < netsize) {
+                        p = network[i];
+                        dist = p[1] - g;
+                        if (dist >= bestd) i = netsize;
+                        else {
+                            i++;
+                            if (dist < 0) dist = -dist;
+                            a = p[0] - b;
+                            if (a < 0) a = -a;
+                            dist += a;
+                            if (dist < bestd) {
+                                a = p[2] - r;
+                                if (a < 0) a = -a;
+                                dist += a;
+                                if (dist < bestd) {
+                                    bestd = dist;
+                                    best = p[3];
+                                }
+                            }
+                        }
+                    }
+                    if (j >= 0) {
+                        p = network[j];
+                        dist = g - p[1];
+                        if (dist >= bestd) j = -1;
+                        else {
+                            j--;
+                            if (dist < 0) dist = -dist;
+                            a = p[0] - b;
+                            if (a < 0) a = -a;
+                            dist += a;
+                            if (dist < bestd) {
+                                a = p[2] - r;
+                                if (a < 0) a = -a;
+                                dist += a;
+                                if (dist < bestd) {
+                                    bestd = dist;
+                                    best = p[3];
+                                }
+                            }
+                        }
+                    }
+                }
+                return best;
+            }
+            this.lookupRGB = inxsearch;
+        }
+
+        return NeuQuant;
+    })();
+
+    var LZWEncoder = (function() {
+        var EOF = -1;
+        var BITS = 12;
+        var HSIZE = 5003;
+        var masks = [0x0000, 0x0001, 0x0003, 0x0007, 0x000F, 0x001F, 0x003F, 0x007F, 0x00FF, 0x01FF, 0x03FF, 0x07FF, 0x0FFF, 0x1FFF, 0x3FFF, 0x7FFF, 0xFFFF];
+
+        function LZWEncoder(width, height, pixels, colorDepth) {
+            var initCodeSize = Math.max(2, colorDepth);
+            var accum = new Uint8Array(256);
+            var htab = new Int32Array(HSIZE);
+            var codetab = new Int32Array(HSIZE);
+            var cur_accum, cur_bits = 0;
+            var a_count;
+            var free_ent = 0;
+            var maxcode;
+            var clear_flg = false;
+            var g_init_bits, ClearCode, EOFCode;
+            var remaining, curPixel;
+            var out = [];
+
+            function char_out(c) {
+                accum[a_count++] = c;
+                if (a_count >= 254) flush_char();
+            }
+
+            function cl_block() {
+                cl_hash(HSIZE);
+                free_ent = ClearCode + 2;
+                clear_flg = true;
+                output(ClearCode);
+            }
+
+            function cl_hash(hsize) {
+                for (var i = 0; i < hsize; ++i) htab[i] = -1;
+            }
+
+            function compress(init_bits) {
+                var fcode, c, i, ent, disp, hsize_reg, hshift;
+                g_init_bits = init_bits;
+                clear_flg = false;
+                n_bits = g_init_bits;
+                maxcode = (1 << n_bits) - 1;
+                ClearCode = 1 << (init_bits - 1);
+                EOFCode = ClearCode + 1;
+                free_ent = ClearCode + 2;
+                a_count = 0;
+                ent = nextPixel();
+                hshift = 0;
+                for (fcode = HSIZE; fcode < 65536; fcode *= 2) ++hshift;
+                hshift = 8 - hshift;
+                hsize_reg = HSIZE;
+                cl_hash(hsize_reg);
+                output(ClearCode);
+                outer_loop: while ((c = nextPixel()) != EOF) {
+                    fcode = (c << BITS) + ent;
+                    i = (c << hshift) ^ ent;
+                    if (htab[i] === fcode) {
+                        ent = codetab[i];
+                        continue;
+                    } else if (htab[i] >= 0) {
+                        disp = hsize_reg - i;
+                        if (i === 0) disp = 1;
+                        do {
+                            if ((i -= disp) < 0) i += hsize_reg;
+                            if (htab[i] === fcode) {
+                                ent = codetab[i];
+                                continue outer_loop;
+                            }
+                        } while (htab[i] >= 0);
+                    }
+                    output(ent);
+                    ent = c;
+                    if (free_ent < 1 << BITS) {
+                        codetab[i] = free_ent++;
+                        htab[i] = fcode;
+                    } else {
+                        cl_block();
+                    }
+                }
+                output(ent);
+                output(EOFCode);
+            }
+
+            function flush_char() {
+                if (a_count > 0) {
+                    out.push(a_count);
+                    for (var i = 0; i < a_count; i++) out.push(accum[i]);
+                    a_count = 0;
+                }
+            }
+
+            var n_bits;
+            function output(code) {
+                cur_accum &= masks[cur_bits];
+                if (cur_bits > 0) cur_accum |= code << cur_bits;
+                else cur_accum = code;
+                cur_bits += n_bits;
+                while (cur_bits >= 8) {
+                    char_out(cur_accum & 0xff);
+                    cur_accum >>= 8;
+                    cur_bits -= 8;
+                }
+                if (free_ent > maxcode || clear_flg) {
+                    if (clear_flg) {
+                        n_bits = g_init_bits;
+                        maxcode = (1 << n_bits) - 1;
+                        clear_flg = false;
+                    } else {
+                        ++n_bits;
+                        if (n_bits == BITS) maxcode = 1 << BITS;
+                        else maxcode = (1 << n_bits) - 1;
+                    }
+                }
+                if (code == EOFCode) {
+                    while (cur_bits > 0) {
+                        char_out(cur_accum & 0xff);
+                        cur_accum >>= 8;
+                        cur_bits -= 8;
+                    }
+                    flush_char();
+                }
+            }
+
+            function nextPixel() {
+                if (remaining === 0) return EOF;
+                --remaining;
+                return pixels[curPixel++] & 0xff;
+            }
+
+            this.encode = function() {
+                out = [];
+                cur_accum = 0;
+                cur_bits = 0;
+                remaining = width * height;
+                curPixel = 0;
+                compress(initCodeSize + 1);
+                return out;
+            };
+        }
+
+        return LZWEncoder;
+    })();
+
+    function GIFEncoder(width, height) {
+        var out = [];
+        var image, pixels, indexedPixels, colorDepth, colorTab, usedEntry = [];
+        var palSize = 7;
+        var dispose = -1;
+        var firstFrame = true;
+        var sample = 10;
+        var delay = 0;
+        var repeat = 0;
+        var transIndex = 0;
+        var transparent = null;
+
+        this.setDelay = function(ms) { delay = Math.round(ms / 10); };
+        this.setFrameRate = function(fps) { delay = Math.round(100 / fps); };
+        this.setDispose = function(code) { if (code >= 0) dispose = code; };
+        this.setRepeat = function(iter) { repeat = iter; };
+        this.setTransparent = function(c) { transparent = c; };
+        this.setQuality = function(q) { if (q < 1) q = 1; sample = q; };
+
+        this.addFrame = function(imageData) {
+            image = imageData;
+            getImagePixels();
+            analyzePixels();
+            if (firstFrame) {
+                writeLSD();
+                writePalette();
+                if (repeat >= 0) writeNetscapeExt();
+            }
+            writeGraphicCtrlExt();
+            writeImageDesc();
+            if (!firstFrame) writePalette();
+            writePixels();
+            firstFrame = false;
+        };
+
+        this.finish = function() {
+            out.push(0x3b);
+        };
+
+        this.getOutput = function() {
+            return new Uint8Array(out);
+        };
+
+        function analyzePixels() {
+            var len = pixels.length;
+            var nPix = len / 3;
+            indexedPixels = new Uint8Array(nPix);
+            var nq = new NeuQuant(pixels, sample);
+            nq.buildColormap();
+            colorTab = nq.getColormap();
+            var k = 0;
+            for (var j = 0; j < nPix; j++) {
+                var index = nq.lookupRGB(pixels[k++] & 0xff, pixels[k++] & 0xff, pixels[k++] & 0xff);
+                usedEntry[index] = true;
+                indexedPixels[j] = index;
+            }
+            pixels = null;
+            colorDepth = 8;
+            palSize = 7;
+            if (transparent !== null) {
+                transIndex = findClosest(transparent);
+            }
+        }
+
+        function findClosest(c) {
+            if (colorTab === null) return -1;
+            var r = (c & 0xFF0000) >> 16;
+            var g = (c & 0x00FF00) >> 8;
+            var b = c & 0x0000FF;
+            var minpos = 0;
+            var dmin = 256 * 256 * 256;
+            var len = colorTab.length;
+            for (var i = 0; i < len;) {
+                var dr = r - (colorTab[i++] & 0xff);
+                var dg = g - (colorTab[i++] & 0xff);
+                var db = b - (colorTab[i] & 0xff);
+                var d = dr * dr + dg * dg + db * db;
+                var index = i / 3;
+                if (usedEntry[index] && d < dmin) {
+                    dmin = d;
+                    minpos = index;
+                }
+                i++;
+            }
+            return minpos;
+        }
+
+        function getImagePixels() {
+            var w = image.width;
+            var h = image.height;
+            pixels = new Uint8Array(w * h * 3);
+            var data = image.data;
+            var count = 0;
+            for (var i = 0; i < h; i++) {
+                for (var j = 0; j < w; j++) {
+                    var b = (i * w * 4) + j * 4;
+                    pixels[count++] = data[b];
+                    pixels[count++] = data[b + 1];
+                    pixels[count++] = data[b + 2];
+                }
+            }
+        }
+
+        function writeGraphicCtrlExt() {
+            out.push(0x21);
+            out.push(0xf9);
+            out.push(4);
+            var transp, disp;
+            if (transparent === null) {
+                transp = 0;
+                disp = 0;
+            } else {
+                transp = 1;
+                disp = 2;
+            }
+            if (dispose >= 0) disp = dispose & 7;
+            disp <<= 2;
+            out.push(0 | disp | 0 | transp);
+            out.push(delay & 0xff);
+            out.push((delay >> 8) & 0xff);
+            out.push(transIndex);
+            out.push(0);
+        }
+
+        function writeImageDesc() {
+            out.push(0x2c);
+            out.push(0); out.push(0);
+            out.push(0); out.push(0);
+            out.push(image.width & 0xff);
+            out.push((image.width >> 8) & 0xff);
+            out.push(image.height & 0xff);
+            out.push((image.height >> 8) & 0xff);
+            if (firstFrame) out.push(0);
+            else out.push(0x80 | palSize);
+        }
+
+        function writeLSD() {
+            out.push(image.width & 0xff);
+            out.push((image.width >> 8) & 0xff);
+            out.push(image.height & 0xff);
+            out.push((image.height >> 8) & 0xff);
+            out.push(0x80 | 0x70 | 0x00 | palSize);
+            out.push(0);
+            out.push(0);
+        }
+
+        function writeNetscapeExt() {
+            out.push(0x21);
+            out.push(0xff);
+            out.push(11);
+            var app = "NETSCAPE2.0";
+            for (var i = 0; i < 11; i++) out.push(app.charCodeAt(i));
+            out.push(3);
+            out.push(1);
+            out.push(repeat & 0xff);
+            out.push((repeat >> 8) & 0xff);
+            out.push(0);
+        }
+
+        function writePalette() {
+            for (var i = 0; i < colorTab.length; i++) out.push(colorTab[i]);
+            var n = 3 * 256 - colorTab.length;
+            for (var j = 0; j < n; j++) out.push(0);
+        }
+
+        function writePixels() {
+            var enc = new LZWEncoder(image.width, image.height, indexedPixels, colorDepth);
+            var encoded = enc.encode();
+            out.push(colorDepth);
+            for (var i = 0; i < encoded.length; i++) out.push(encoded[i]);
+            out.push(0);
+        }
+
+        out.push(0x47); out.push(0x49); out.push(0x46);
+        out.push(0x38); out.push(0x39); out.push(0x61);
+    }
+
+    self.onmessage = function(ev) {
+        var data = ev.data;
+        var encoder = new GIFEncoder(data.width, data.height);
+        encoder.setRepeat(data.repeat);
+        encoder.setQuality(data.quality);
+        if (data.transparent !== null) encoder.setTransparent(data.transparent);
+        for (var i = 0; i < data.frames.length; i++) {
+            var frame = data.frames[i];
+            encoder.setDelay(frame.delay);
+            encoder.addFrame(frame.data);
+        }
+        encoder.finish();
+        var output = encoder.getOutput();
+        self.postMessage({ type: 'finished', data: output.buffer }, [output.buffer]);
+    };
+})();
+`], { type: 'application/javascript' });
+
+const workerUrl = URL.createObjectURL(workerBlob);
+
 export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConverterProps) {
     // Settings
     const [rows, setRows] = useState(1);
@@ -24,6 +645,7 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
     const [isPlaying, setIsPlaying] = useState(true);
     const [currentFrame, setCurrentFrame] = useState(0);
     const [isExporting, setIsExporting] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
 
     // Refs
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,12 +655,14 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
 
     // Load Image & Auto Detect
     useEffect(() => {
+        setImageLoaded(false);
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = spriteSheetUrl;
         img.onload = () => {
             imageRef.current = img;
             autoDetectGrid(img);
+            setImageLoaded(true);
         };
     }, [spriteSheetUrl]);
 
@@ -152,9 +776,9 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
 
-        // Calculate Frame Size
-        const frameWidth = (img.width - offsetLeft - offsetRight) / cols;
-        const frameHeight = (img.height - offsetTop - offsetBottom) / rows;
+        // Calculate Frame Size (ensure integers)
+        const frameWidth = Math.floor((img.width - offsetLeft - offsetRight) / cols);
+        const frameHeight = Math.floor((img.height - offsetTop - offsetBottom) / rows);
 
         // Draw Grid - Subtle but visible
         // 1. Dark outline for contrast
@@ -203,8 +827,10 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
 
     // Update Grid when settings change
     useEffect(() => {
-        drawGrid();
-    }, [rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight, imageRef.current]);
+        if (imageLoaded) {
+            drawGrid();
+        }
+    }, [rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight, imageLoaded]);
 
     // Animation Loop
     useEffect(() => {
@@ -234,8 +860,9 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        const frameWidth = (img.width - offsetLeft - offsetRight) / cols;
-        const frameHeight = (img.height - offsetTop - offsetBottom) / rows;
+        // Ensure frame dimensions are integers
+        const frameWidth = Math.floor((img.width - offsetLeft - offsetRight) / cols);
+        const frameHeight = Math.floor((img.height - offsetTop - offsetBottom) / rows);
 
         canvas.width = frameWidth;
         canvas.height = frameHeight;
@@ -243,55 +870,111 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         // Calculate current frame position
         const row = Math.floor(currentFrame / cols);
         const col = currentFrame % cols;
-        const sx = offsetLeft + col * frameWidth;
-        const sy = offsetTop + row * frameHeight;
+        const sx = Math.floor(offsetLeft + col * frameWidth);
+        const sy = Math.floor(offsetTop + row * frameHeight);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, sx, sy, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
     }, [currentFrame, rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const img = imageRef.current;
         if (!img) return;
 
         setIsExporting(true);
 
-        const gif = new GIF({
-            workers: 2,
-            quality: 10,
-            workerScript: 'https://unpkg.com/gif.js/dist/gif.worker.js'
-        });
+        try {
+            // Ensure frame dimensions are integers
+            const frameWidth = Math.floor((img.width - offsetLeft - offsetRight) / cols);
+            const frameHeight = Math.floor((img.height - offsetTop - offsetBottom) / rows);
 
-        const frameWidth = (img.width - offsetLeft - offsetRight) / cols;
-        const frameHeight = (img.height - offsetTop - offsetBottom) / rows;
+            console.log('Starting GIF export...', { frameWidth, frameHeight, rows, cols, totalFrames: rows * cols });
 
-        // Add frames
-        const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = frameWidth;
-        tempCanvas.height = frameHeight;
-        const ctx = tempCanvas.getContext("2d");
+            // Prepare frames data
+            const frames = [];
+            const tempCanvas = document.createElement("canvas");
+            tempCanvas.width = frameWidth;
+            tempCanvas.height = frameHeight;
+            const ctx = tempCanvas.getContext("2d", { willReadFrequently: true });
 
-        if (ctx) {
+            if (!ctx) {
+                throw new Error('Failed to get canvas context');
+            }
+
             for (let i = 0; i < rows * cols; i++) {
                 const row = Math.floor(i / cols);
                 const col = i % cols;
-                const sx = offsetLeft + col * frameWidth;
-                const sy = offsetTop + row * frameHeight;
+                const sx = Math.floor(offsetLeft + col * frameWidth);
+                const sy = Math.floor(offsetTop + row * frameHeight);
 
-                ctx.clearRect(0, 0, frameWidth, frameHeight);
-                ctx.drawImage(img, sx, sy, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
+                ctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                ctx.drawImage(img, sx, sy, frameWidth, frameHeight, 0, 0, tempCanvas.width, tempCanvas.height);
 
-                gif.addFrame(ctx, { copy: true, delay: delay });
+                // Get image data
+                const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                frames.push({
+                    data: imageData,
+                    delay: Math.floor(delay)
+                });
             }
-        }
 
-        gif.on('finished', (blob: Blob) => {
-            const url = URL.createObjectURL(blob);
-            onSave(url);
+            console.log('All frames prepared, encoding with worker...');
+
+            // Use worker to encode
+            const worker = new Worker(workerUrl);
+
+            worker.onmessage = (ev) => {
+                if (ev.data.type === 'finished') {
+                    console.log('GIF finished encoding!');
+
+                    const blob = new Blob([ev.data.data], { type: 'image/gif' });
+                    const url = URL.createObjectURL(blob);
+
+                    // Download the GIF
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `animation-${Date.now()}.gif`;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+
+                    // Cleanup
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+
+                    // Call onSave
+                    onSave(url);
+
+                    console.log('GIF downloaded successfully!');
+                    setIsExporting(false);
+                    worker.terminate();
+                }
+            };
+
+            worker.onerror = (error) => {
+                console.error('Worker error:', error);
+                setIsExporting(false);
+                alert('Failed to encode GIF');
+                worker.terminate();
+            };
+
+            // Send data to worker
+            worker.postMessage({
+                width: frameWidth,
+                height: frameHeight,
+                frames: frames,
+                repeat: 0,
+                quality: 10,
+                transparent: null
+            });
+
+        } catch (error) {
+            console.error('Failed to start GIF rendering:', error);
             setIsExporting(false);
-        });
-
-        gif.render();
+            alert('Failed to start GIF rendering: ' + (error instanceof Error ? error.message : 'Unknown error'));
+        }
     };
 
     return (
