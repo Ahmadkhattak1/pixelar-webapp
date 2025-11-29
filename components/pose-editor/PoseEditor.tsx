@@ -146,31 +146,29 @@ const SceneContent = ({
     useEffect(() => {
         // @ts-ignore
         window.capturePose = () => {
-            // 1. Hide helpers
+            // 1. Reset Camera to Front View (User Requirement)
+            // Adjusted to fit full body (approx height 4-5 units)
+            camera.position.set(0, 0, 7);
+            camera.lookAt(0, -0.5, 0);
+            camera.updateMatrixWorld();
+
+            if (controlsRef.current) {
+                controlsRef.current.target.set(0, -0.5, 0);
+                controlsRef.current.update();
+            }
+
+            // 2. Hide helpers
             const originalGridVisible = gridRef.current?.visible;
             const originalControlsVisible = controlsRef.current?.visible;
 
             if (gridRef.current) gridRef.current.visible = false;
             if (controlsRef.current) controlsRef.current.visible = false;
 
-            // Deselect to hide the gizmo if it's part of the scene (TransformControls adds itself)
-            // But TransformControls is a separate component. We can just hide it via the ref if possible,
-            // or temporarily unmount it.
-            // A cleaner way for TransformControls is to detach it or hide it.
-            // Since `controlsRef` points to OrbitControls, we need a ref for TransformControls too.
-            // However, TransformControls is conditional on `selectedObject`.
-            // We can just clear selection temporarily? No, that triggers state update.
-            // We'll access the TransformControls via a ref if we can, or just accept the gizmo might be there
-            // unless we handle it.
-            // Actually, let's try to hide the grid at least.
-            // For the gizmo, we can try to find it in the scene or just accept it for now if it's tricky.
-            // BUT, for a clean OpenPose input, we really don't want the gizmo.
-
             // Hack: force a render without the helpers
             gl.render(scene, camera);
             const dataUrl = gl.domElement.toDataURL("image/png");
 
-            // 2. Restore helpers
+            // 3. Restore helpers
             if (gridRef.current) gridRef.current.visible = originalGridVisible;
             if (controlsRef.current) controlsRef.current.visible = originalControlsVisible;
 
@@ -209,10 +207,6 @@ const SceneContent = ({
                     object={selectedObject}
                     mode="rotate"
                     size={0.8}
-                // Hide gizmo during capture by checking a global flag?
-                // Or we can just rely on the user deselecting?
-                // Let's auto-deselect for a split second? No, state is async.
-                // We can use the `visible` prop on TransformControls if we had a state for `isCapturing`.
                 />
             )}
 
@@ -250,63 +244,75 @@ const SceneContent = ({
                         <sphereGeometry args={[0.03]} />
                         <meshBasicMaterial color={COLORS.l_eye} toneMapped={false} />
                     </mesh>
-                </Joint>
 
-                {/* Right Shoulder */}
-                <Joint
-                    name="r_shoulder"
-                    position={[-0.5, 1.4, 0]}
-                    color={COLORS.r_shoulder}
-                    isSelected={selectedName === "r_shoulder"}
-                    onSelect={handleSelect}
-                >
-                    <Limb position={[0, -0.6, 0]} length={1.2} color={LIMB_COLORS.r_arm} />
-                    {/* Right Elbow */}
+                    {/* Shoulder Connectors */}
+                    {/* Right Shoulder Connector */}
+                    <mesh position={[-0.25, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                        <cylinderGeometry args={[0.04, 0.04, 0.5, 8]} />
+                        <meshBasicMaterial color={COLORS.r_shoulder} toneMapped={false} />
+                    </mesh>
+                    {/* Left Shoulder Connector */}
+                    <mesh position={[0.25, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                        <cylinderGeometry args={[0.04, 0.04, 0.5, 8]} />
+                        <meshBasicMaterial color={COLORS.l_shoulder} toneMapped={false} />
+                    </mesh>
+
+                    {/* Right Shoulder */}
                     <Joint
-                        name="r_elbow"
-                        position={[0, -1.2, 0]}
-                        color={COLORS.r_elbow}
-                        isSelected={selectedName === "r_elbow"}
+                        name="r_shoulder"
+                        position={[-0.5, 0, 0]}
+                        color={COLORS.r_shoulder}
+                        isSelected={selectedName === "r_shoulder"}
                         onSelect={handleSelect}
                     >
-                        <Limb position={[0, -0.6, 0]} length={1.2} color={LIMB_COLORS.r_forearm} />
-                        {/* Right Wrist */}
+                        <Limb position={[0, -0.4, 0]} length={0.8} color={LIMB_COLORS.r_arm} />
+                        {/* Right Elbow */}
                         <Joint
-                            name="r_wrist"
-                            position={[0, -1.2, 0]}
-                            color={COLORS.r_wrist}
-                            isSelected={selectedName === "r_wrist"}
+                            name="r_elbow"
+                            position={[0, -0.8, 0]}
+                            color={COLORS.r_elbow}
+                            isSelected={selectedName === "r_elbow"}
                             onSelect={handleSelect}
-                        />
+                        >
+                            <Limb position={[0, -0.4, 0]} length={0.8} color={LIMB_COLORS.r_forearm} />
+                            {/* Right Wrist */}
+                            <Joint
+                                name="r_wrist"
+                                position={[0, -0.8, 0]}
+                                color={COLORS.r_wrist}
+                                isSelected={selectedName === "r_wrist"}
+                                onSelect={handleSelect}
+                            />
+                        </Joint>
                     </Joint>
-                </Joint>
 
-                {/* Left Shoulder */}
-                <Joint
-                    name="l_shoulder"
-                    position={[0.5, 1.4, 0]}
-                    color={COLORS.l_shoulder}
-                    isSelected={selectedName === "l_shoulder"}
-                    onSelect={handleSelect}
-                >
-                    <Limb position={[0, -0.6, 0]} length={1.2} color={LIMB_COLORS.l_arm} />
-                    {/* Left Elbow */}
+                    {/* Left Shoulder */}
                     <Joint
-                        name="l_elbow"
-                        position={[0, -1.2, 0]}
-                        color={COLORS.l_elbow}
-                        isSelected={selectedName === "l_elbow"}
+                        name="l_shoulder"
+                        position={[0.5, 0, 0]}
+                        color={COLORS.l_shoulder}
+                        isSelected={selectedName === "l_shoulder"}
                         onSelect={handleSelect}
                     >
-                        <Limb position={[0, -0.6, 0]} length={1.2} color={LIMB_COLORS.l_forearm} />
-                        {/* Left Wrist */}
+                        <Limb position={[0, -0.4, 0]} length={0.8} color={LIMB_COLORS.l_arm} />
+                        {/* Left Elbow */}
                         <Joint
-                            name="l_wrist"
-                            position={[0, -1.2, 0]}
-                            color={COLORS.l_wrist}
-                            isSelected={selectedName === "l_wrist"}
+                            name="l_elbow"
+                            position={[0, -0.8, 0]}
+                            color={COLORS.l_elbow}
+                            isSelected={selectedName === "l_elbow"}
                             onSelect={handleSelect}
-                        />
+                        >
+                            <Limb position={[0, -0.4, 0]} length={0.8} color={LIMB_COLORS.l_forearm} />
+                            {/* Left Wrist */}
+                            <Joint
+                                name="l_wrist"
+                                position={[0, -0.8, 0]}
+                                color={COLORS.l_wrist}
+                                isSelected={selectedName === "l_wrist"}
+                                onSelect={handleSelect}
+                            />
+                        </Joint>
                     </Joint>
                 </Joint>
 
@@ -318,20 +324,20 @@ const SceneContent = ({
                     isSelected={selectedName === "r_hip"}
                     onSelect={handleSelect}
                 >
-                    <Limb position={[0, -0.75, 0]} length={1.5} color={LIMB_COLORS.r_thigh} />
+                    <Limb position={[0, -0.5, 0]} length={1.0} color={LIMB_COLORS.r_thigh} />
                     {/* Right Knee */}
                     <Joint
                         name="r_knee"
-                        position={[0, -1.5, 0]}
+                        position={[0, -1.0, 0]}
                         color={COLORS.r_knee}
                         isSelected={selectedName === "r_knee"}
                         onSelect={handleSelect}
                     >
-                        <Limb position={[0, -0.75, 0]} length={1.5} color={LIMB_COLORS.r_shin} />
+                        <Limb position={[0, -0.5, 0]} length={1.0} color={LIMB_COLORS.r_shin} />
                         {/* Right Ankle */}
                         <Joint
                             name="r_ankle"
-                            position={[0, -1.5, 0]}
+                            position={[0, -1.0, 0]}
                             color={COLORS.r_ankle}
                             isSelected={selectedName === "r_ankle"}
                             onSelect={handleSelect}
@@ -352,20 +358,20 @@ const SceneContent = ({
                     isSelected={selectedName === "l_hip"}
                     onSelect={handleSelect}
                 >
-                    <Limb position={[0, -0.75, 0]} length={1.5} color={LIMB_COLORS.l_thigh} />
+                    <Limb position={[0, -0.5, 0]} length={1.0} color={LIMB_COLORS.l_thigh} />
                     {/* Left Knee */}
                     <Joint
                         name="l_knee"
-                        position={[0, -1.5, 0]}
+                        position={[0, -1.0, 0]}
                         color={COLORS.l_knee}
                         isSelected={selectedName === "l_knee"}
                         onSelect={handleSelect}
                     >
-                        <Limb position={[0, -0.75, 0]} length={1.5} color={LIMB_COLORS.l_shin} />
+                        <Limb position={[0, -0.5, 0]} length={1.0} color={LIMB_COLORS.l_shin} />
                         {/* Left Ankle */}
                         <Joint
                             name="l_ankle"
-                            position={[0, -1.5, 0]}
+                            position={[0, -1.0, 0]}
                             color={COLORS.l_ankle}
                             isSelected={selectedName === "l_ankle"}
                             onSelect={handleSelect}

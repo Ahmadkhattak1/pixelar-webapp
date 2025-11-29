@@ -292,8 +292,8 @@ export default function ScenePreviewPage() {
                                     key={variant.id}
                                     onClick={() => setSelectedVariantId(variant.id)}
                                     className={`relative h-20 aspect-video rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 group ${selectedVariantId === variant.id
-                                            ? "border-primary shadow-lg shadow-primary/20 scale-105"
-                                            : "border-transparent hover:border-primary/50 opacity-70 hover:opacity-100"
+                                        ? "border-primary shadow-lg shadow-primary/20 scale-105"
+                                        : "border-transparent hover:border-primary/50 opacity-70 hover:opacity-100"
                                         }`}
                                 >
                                     <img

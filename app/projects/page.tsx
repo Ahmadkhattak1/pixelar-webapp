@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Plus, Upload, Image as ImageIcon, Map, Pencil, Trash2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ const mockProjects: Project[] = [
 const projectColors = ["bg-purple-500", "bg-blue-500", "bg-green-500", "bg-orange-500", "bg-pink-500", "bg-cyan-500"];
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [currentFilter, setCurrentFilter] = useState<"all" | "sprite" | "scene">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -249,7 +251,11 @@ export default function ProjectsPage() {
             </Card>
 
             {filteredProjects.map((project) => (
-              <Card key={project.id} className="group cursor-pointer hover:shadow-md transition-all overflow-hidden">
+              <Card
+                key={project.id}
+                className="group cursor-pointer hover:shadow-md transition-all overflow-hidden"
+                onClick={() => router.push(`/projects/${project.id}`)}
+              >
                 <div className={`h-40 ${project.color} grid-pattern relative`}>
                   <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors"></div>
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -325,8 +331,8 @@ export default function ProjectsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <Card
                   className={`cursor-pointer transition-all ${selectedType === "sprite"
-                      ? "border-primary bg-primary/10"
-                      : "hover:border-primary/50"
+                    ? "border-primary bg-primary/10"
+                    : "hover:border-primary/50"
                     }`}
                   onClick={() => setSelectedType("sprite")}
                 >
@@ -339,8 +345,8 @@ export default function ProjectsPage() {
 
                 <Card
                   className={`cursor-pointer transition-all ${selectedType === "scene"
-                      ? "border-primary bg-primary/10"
-                      : "hover:border-primary/50"
+                    ? "border-primary bg-primary/10"
+                    : "hover:border-primary/50"
                     }`}
                   onClick={() => setSelectedType("scene")}
                 >
