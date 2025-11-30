@@ -38,6 +38,7 @@ export default function ProjectsPage() {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<"sprite" | "scene">("sprite");
   const [newProjectName, setNewProjectName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProjects = projects.filter((p) => {
@@ -51,7 +52,9 @@ export default function ProjectsPage() {
   };
 
   const handleCreateProject = () => {
-    if (!newProjectName.trim()) return;
+    if (!newProjectName.trim() || isCreating) return;
+
+    setIsCreating(true);
 
     const newProject: Project = {
       id: Math.floor(Math.random() * 9000 + 1000).toString(),
@@ -62,9 +65,21 @@ export default function ProjectsPage() {
     };
 
     setProjects([newProject, ...projects]);
-    setIsNewProjectOpen(false);
-    setNewProjectName("");
-    setSelectedType("sprite");
+
+    // Small delay to show loading state
+    setTimeout(() => {
+      setIsNewProjectOpen(false);
+      setNewProjectName("");
+      setSelectedType("sprite");
+      setIsCreating(false);
+
+      // Navigate to the appropriate generation page based on project type
+      if (selectedType === "sprite") {
+        router.push(`/sprites?projectId=${newProject.id}`);
+      } else {
+        router.push(`/scenes?projectId=${newProject.id}`);
+      }
+    }, 300);
   };
 
   const handleImport = () => {
@@ -381,11 +396,18 @@ export default function ProjectsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNewProjectOpen(false)}>
+            <Button variant="outline" onClick={() => setIsNewProjectOpen(false)} disabled={isCreating}>
               Cancel
             </Button>
-            <Button onClick={handleCreateProject} disabled={!newProjectName.trim()}>
-              Create Project
+            <Button onClick={handleCreateProject} disabled={!newProjectName.trim() || isCreating}>
+              {isCreating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+                  Creating...
+                </>
+              ) : (
+                "Create Project"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Plus, Download, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SpritePreviewLayout } from "@/components/sprite-preview/SpritePreviewLayout";
 import { SpriteViewer } from "@/components/sprite-preview/SpriteViewer";
 import { SpriteMetadata } from "@/components/sprite-preview/SpriteMetadata";
-import { SpriteActions } from "@/components/sprite-preview/SpriteActions";
 import { AnimationGallery } from "@/components/sprite-preview/AnimationGallery";
 
 // Mock Data - Base sprite URL
@@ -61,8 +62,34 @@ export default function ProjectPage() {
         console.log(`Export as ${format} clicked`);
     };
 
+    const handleNewProject = () => {
+        router.push("/sprites");
+    };
+
+    const headerActions = (
+        <div className="flex items-center gap-3">
+            <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-primary/20 hover:bg-surface-highlight hover:text-primary gap-2"
+                onClick={handleNewProject}
+            >
+                <Plus className="w-3.5 h-3.5" />
+                New Project
+            </Button>
+            <Button
+                size="sm"
+                className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary-600 gap-2 shadow-lg shadow-primary/20"
+                onClick={() => handleExport('png')}
+            >
+                <Download className="w-3.5 h-3.5" />
+                Export Sprite
+            </Button>
+        </div>
+    );
+
     return (
-        <SpritePreviewLayout title="Hero Character" projectId={projectId}>
+        <SpritePreviewLayout title="Hero Character" projectId={projectId} actions={headerActions}>
             <div className="flex flex-col lg:flex-row h-full overflow-hidden">
                 {/* Left Sidebar: Animations List - Hidden on mobile, shown on large screens */}
                 <div className="hidden lg:flex lg:w-64 border-r border-primary/10 bg-surface/30 flex-col">
@@ -107,11 +134,14 @@ export default function ProjectPage() {
                             <div className="space-y-3 lg:space-y-4">
                                 <h3 className="text-xs lg:text-sm font-semibold text-text-muted uppercase tracking-wider">Actions</h3>
                                 <div className="p-3 lg:p-4 rounded-xl bg-surface border border-primary/10 shadow-sm">
-                                    <SpriteActions
-                                        onGenerate={handleGenerate}
-                                        onEdit={handleEdit}
-                                        onExport={handleExport}
-                                    />
+                                    <Button
+                                        size="lg"
+                                        onClick={handleGenerate}
+                                        className="w-full"
+                                    >
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        Generate Animation
+                                    </Button>
                                 </div>
                             </div>
 

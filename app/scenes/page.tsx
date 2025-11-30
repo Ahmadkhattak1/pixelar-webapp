@@ -137,7 +137,7 @@ export default function GenerateScenePage() {
         <div className="flex items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <Link
-              href={projectId ? `/scenes/preview?projectId=${projectId}` : "/projects"}
+              href="/projects"
               className="flex items-center justify-center w-8 h-8 hover:bg-surface-highlight rounded-md transition-colors text-text-muted hover:text-primary"
             >
               <ChevronLeft className="w-4 h-4" />
