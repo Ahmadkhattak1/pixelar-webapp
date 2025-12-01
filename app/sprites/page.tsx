@@ -133,7 +133,7 @@ export default function GenerateSpritePage() {
     const handleCreateProject = () => {
         if (selectedPreview !== null) {
             if (projectId) {
-                window.location.href = `/projects`;
+                window.location.href = `/projects/${projectId}`;
             } else {
                 window.location.href = "/projects";
             }
@@ -147,7 +147,7 @@ export default function GenerateSpritePage() {
                 <div className="flex items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
                         <Link
-                            href="/projects"
+                            href={projectId ? `/projects/${projectId}` : "/home"}
                             className="flex items-center justify-center w-8 h-8 hover:bg-surface-highlight rounded-md transition-colors text-text-muted hover:text-primary"
                         >
                             <ChevronLeft className="w-4 h-4" />

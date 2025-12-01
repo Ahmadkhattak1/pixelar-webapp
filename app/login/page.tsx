@@ -34,8 +34,8 @@ export default function LoginPage() {
       // Simulate a delay
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Redirect to projects page
-      router.push('/projects');
+      // Redirect to home page
+      router.push('/home');
     } catch (err: any) {
       console.error("Authentication error:", err);
       setError(err.message || "Failed to sign in. Please try again.");
