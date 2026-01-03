@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,7 +17,7 @@ export function ActionCard({ title, description, iconSrc, href, image, delay = 0
     return (
         <Link
             href={href}
-            className="group block rounded-xl border-2 border-primary/15 bg-surface overflow-hidden transition-all duration-150 hover:border-primary hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.3)] active:translate-y-0"
+            className="group block rounded-xl border border-border bg-surface overflow-hidden transition-colors duration-150 hover:border-primary"
             style={{ animationDelay: `${delay}ms` }}
         >
             {/* Image Container */}
@@ -27,7 +26,7 @@ export function ActionCard({ title, description, iconSrc, href, image, delay = 0
                     src={image}
                     alt={title}
                     fill
-                    className="object-cover transition-transform duration-150 group-hover:scale-[1.02]"
+                    className="object-cover"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
             </div>
@@ -35,7 +34,7 @@ export function ActionCard({ title, description, iconSrc, href, image, delay = 0
             {/* Content Below Image */}
             <div className="p-4 space-y-2">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 transition-all duration-150 group-hover:bg-primary group-hover:border-primary group-hover:scale-110">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 transition-colors duration-150 group-hover:bg-primary group-hover:border-primary">
                         <div className="relative w-4 h-4">
                             {/* Default state - Primary color */}
                             <Image
@@ -43,7 +42,7 @@ export function ActionCard({ title, description, iconSrc, href, image, delay = 0
                                 alt={title}
                                 width={16}
                                 height={16}
-                                className="absolute inset-0 transition-all duration-150 opacity-60 group-hover:opacity-0"
+                                className="absolute inset-0 transition-opacity duration-150 opacity-60 group-hover:opacity-0"
                                 style={{
                                     filter: 'invert(84%) sepia(35%) saturate(1000%) hue-rotate(95deg) brightness(103%) contrast(96%)'
                                 }}
@@ -54,7 +53,7 @@ export function ActionCard({ title, description, iconSrc, href, image, delay = 0
                                 alt={title}
                                 width={16}
                                 height={16}
-                                className="absolute inset-0 transition-all duration-150 opacity-0 group-hover:opacity-100 invert brightness-200"
+                                className="absolute inset-0 transition-opacity duration-150 opacity-0 group-hover:opacity-100 invert brightness-200"
                             />
                         </div>
                     </div>

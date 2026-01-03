@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Sparkle } from "@phosphor-icons/react";
 
 const templates = [
     {
@@ -61,14 +61,14 @@ export function TemplateSection() {
                     {templates.map((template) => (
                         <div
                             key={template.id}
-                            className="group relative aspect-[4/5] overflow-hidden rounded-xl border-2 border-primary/15 bg-surface cursor-pointer hover:border-primary transition-all duration-150 hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.3)] active:translate-y-0"
+                            className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-border bg-surface cursor-pointer hover:border-primary transition-colors duration-150"
                         >
                             {/* Placeholder for Image - In real app, use actual images */}
                             <div className={`absolute inset-0 bg-gradient-to-br ${template.color} opacity-50 group-hover:opacity-70 transition-opacity duration-150`} />
 
                             {/* Content Overlay */}
                             <div className="absolute inset-0 p-4 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                                <h3 className="font-semibold text-white mb-1 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-150">
+                                <h3 className="font-semibold text-white mb-1">
                                     {template.title}
                                 </h3>
                                 <p className="text-xs text-white/70 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
@@ -77,9 +77,9 @@ export function TemplateSection() {
                             </div>
 
                             {/* Hover Effect */}
-                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-150 group-hover:scale-110">
-                                <div className="w-8 h-8 rounded-full bg-primary backdrop-blur-md flex items-center justify-center">
-                                    <Sparkles className="w-4 h-4 text-primary-foreground" />
+                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                                    <Sparkle className="w-4 h-4 text-primary-foreground" weight="fill" />
                                 </div>
                             </div>
                         </div>

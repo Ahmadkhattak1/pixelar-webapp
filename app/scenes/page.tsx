@@ -1,29 +1,29 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  ChevronLeft,
-  Upload,
-  Zap,
-  X,
-  Check,
-  Sparkles,
-  Wand2,
-  Grid3x3,
-  ZoomIn,
-  Maximize,
-  Settings,
-  Layers,
-  Download,
-  Command,
-  Eye,
-  Plus,
-  FolderPlus,
-  Maximize2,
-  Image as ImageIcon,
-  Trees,
-} from "lucide-react";
+    CaretLeft,
+    Upload,
+    Lightning,
+    X,
+    Check,
+    Sparkle,
+    MagicWand,
+    GridFour,
+    MagnifyingGlassPlus,
+    ArrowsOut,
+    Stack,
+    Download,
+    Command,
+    Plus,
+    FolderPlus,
+    CaretDown,
+    CaretRight,
+    Sidebar,
+    Tree,
+    Image as ImageIcon,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -34,509 +34,494 @@ type Viewpoint = "front" | "back" | "side" | "top_down" | "isometric";
 type Style = "2d_flat" | "pixel_art";
 
 export default function GenerateScenePage() {
-  const searchParams = useSearchParams();
-  const projectId = searchParams.get("projectId");
+    const searchParams = useSearchParams();
+    const projectId = searchParams.get("projectId");
 
-  // State
-  const [sceneType, setSceneType] = useState<SceneType>("outdoor");
-  const [prompt, setPrompt] = useState("");
-  const [referenceImage, setReferenceImage] = useState<string | null>(null);
-  const [colors, setColors] = useState<string[]>([]);
-  const [customColor, setCustomColor] = useState("");
-  const [viewpoint, setViewpoint] = useState<Viewpoint>("isometric");
-  const [style, setStyle] = useState<Style>("pixel_art");
-  const [dimensions, setDimensions] = useState("512x512");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [previewImages, setPreviewImages] = useState<string[]>([]);
-  const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
-  const [sidebarWidth, setSidebarWidth] = useState(360);
-  const [isDragging, setIsDragging] = useState(false);
-  const mainRef = useRef<HTMLDivElement>(null);
+    // State
+    const [sceneType, setSceneType] = useState<SceneType>("outdoor");
+    const [prompt, setPrompt] = useState("");
+    const [referenceImages, setReferenceImages] = useState<string[]>([]);
+    const [colors, setColors] = useState<string[]>([]);
+    const [customColor, setCustomColor] = useState("");
+    const [viewpoint, setViewpoint] = useState<Viewpoint>("isometric");
+    const [style, setStyle] = useState<Style>("pixel_art");
+    const [dimensions, setDimensions] = useState("512x512");
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [previewImages, setPreviewImages] = useState<string[]>([]);
+    const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const mainRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging || !mainRef.current) return;
+    const handleReferenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
 
-      const mainRect = mainRef.current.getBoundingClientRect();
-      const newWidth = e.clientX - mainRect.left;
-      const minWidth = 300;
-      const maxWidth = 500;
+        const remainingSlots = 10 - referenceImages.length;
+        const filesToProcess = files.slice(0, remainingSlots);
 
-      if (newWidth >= minWidth && newWidth <= maxWidth) {
-        setSidebarWidth(newWidth);
-      }
+        filesToProcess.forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setReferenceImages(prev => [...prev, reader.result as string].slice(0, 10));
+            };
+            reader.readAsDataURL(file);
+        });
     };
 
-    const handleMouseUp = () => {
-      setIsDragging(false);
+    const handleRemoveReferenceImage = (index: number) => {
+        setReferenceImages(prev => prev.filter((_, i) => i !== index));
     };
 
-    if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-      };
-    }
-  }, [isDragging]);
+    const handleAddColor = () => {
+        if (customColor && !colors.includes(customColor) && colors.length < 5) {
+            setColors([...colors, customColor]);
+            setCustomColor("");
+        }
+    };
 
-  const handleReferenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setReferenceImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+    const handleRemoveColor = (index: number) => {
+        setColors(colors.filter((_, i) => i !== index));
+    };
 
-  const handleAddColor = () => {
-    if (customColor && !colors.includes(customColor) && colors.length < 5) {
-      setColors([...colors, customColor]);
-      setCustomColor("");
-    }
-  };
+    const handleGenerateScene = () => {
+        if (!prompt.trim()) return;
 
-  const handleRemoveColor = (index: number) => {
-    setColors(colors.filter((_, i) => i !== index));
-  };
+        setIsGenerating(true);
 
-  const handleGenerateScene = () => {
-    if (!prompt.trim()) return;
+        setTimeout(() => {
+            const mockImages = [
+                `https://picsum.photos/seed/${Math.random()}/800/600`,
+                `https://picsum.photos/seed/${Math.random()}/800/600`,
+                `https://picsum.photos/seed/${Math.random()}/800/600`,
+                `https://picsum.photos/seed/${Math.random()}/800/600`,
+            ];
+            setPreviewImages(mockImages);
+            setIsGenerating(false);
+        }, 2000);
+    };
 
-    setIsGenerating(true);
+    const handleCreateProject = () => {
+        if (selectedPreview !== null) {
+            if (projectId) {
+                window.location.href = `/scenes/preview?projectId=${projectId}`;
+            } else {
+                window.location.href = "/projects";
+            }
+        }
+    };
 
-    setTimeout(() => {
-      const mockImages = [
-        `https://picsum.photos/seed/${Math.random()}/800/600`,
-        `https://picsum.photos/seed/${Math.random()}/800/600`,
-        `https://picsum.photos/seed/${Math.random()}/800/600`,
-        `https://picsum.photos/seed/${Math.random()}/800/600`,
-      ];
-      setPreviewImages(mockImages);
-      setIsGenerating(false);
-    }, 2000);
-  };
+    return (
+        <div className="h-screen flex flex-col bg-background text-text font-sans selection:bg-primary/30 overflow-hidden">
+            {/* Header */}
+            {/* Header */}
+            <header className="h-14 bg-background/80 backdrop-blur-md border-b border-white/[0.05] px-6 flex items-center justify-between shrink-0 z-50">
+                <div className="flex items-center gap-4">
+                    <Link
+                        href={projectId ? `/projects/${projectId}` : "/home"}
+                        className="flex items-center justify-center w-9 h-9 border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl transition-all duration-200 text-text-muted hover:text-text group"
+                    >
+                        <CaretLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+                    </Link>
 
-  const handleCreateProject = () => {
-    if (selectedPreview !== null) {
-      if (projectId) {
-        window.location.href = `/scenes/preview?projectId=${projectId}`;
-      } else {
-        window.location.href = "/projects";
-      }
-    }
-  };
+                    <div className="h-6 w-[1px] bg-white/[0.08]" />
 
-  return (
-    <div className="h-screen flex flex-col bg-background text-text font-sans selection:bg-primary/30 overflow-hidden">
-      {/* Header */}
-      <header className="border-b border-primary/15 bg-surface/50 backdrop-blur-md px-4 py-2 z-50 shrink-0">
-        <div className="flex items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <Link
-              href={projectId ? `/projects/${projectId}` : "/home"}
-              className="flex items-center justify-center w-8 h-8 hover:bg-surface-highlight rounded-md transition-colors text-text-muted hover:text-primary"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Link>
-            <div className="h-5 w-[1px] bg-primary/20" />
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                <span className="font-mono font-bold text-xs text-primary-foreground">Px</span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="font-medium text-sm tracking-tight text-text">
-                  New Scene
-                </span>
-                <span className="text-[10px] text-text-muted">Generator</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface-highlight border border-primary/15">
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                <span className="text-xs font-mono font-semibold text-text">450</span>
-              </div>
-              <div className="w-[1px] h-4 bg-primary/20" />
-              <span className="text-xs text-text-muted">Credits</span>
-            </div>
-            <ProfileModal>
-              <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15 cursor-pointer hover:bg-surface-highlight/80 transition-colors">
-                <div className="text-right">
-                  <div className="text-xs font-medium text-text">Alex Design</div>
-                  <div className="text-[10px] text-text-muted">Pro Plan</div>
-                </div>
-                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
-                  <img
-                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                    alt="User"
-                    className="w-full h-full rounded-[3px] bg-black"
-                  />
-                </div>
-              </div>
-            </ProfileModal>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 flex overflow-hidden" ref={mainRef}>
-        {/* Left Panel - Controls */}
-        <div
-          style={{ width: `${sidebarWidth}px` }}
-          className="bg-surface border-r border-primary/15 flex flex-col overflow-hidden transition-none relative z-10"
-        >
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <div className="p-3 space-y-6">
-
-              {/* Scene Type Selector */}
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
-                  Scene Type
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setSceneType("outdoor")}
-                    className={`flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-xs font-medium transition-all border ${sceneType === "outdoor"
-                      ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
-                      : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
-                      }`}
-                  >
-                    <Trees className="w-3.5 h-3.5" />
-                    Outdoor
-                  </button>
-                  <button
-                    onClick={() => setSceneType("indoor")}
-                    className={`flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-xs font-medium transition-all border ${sceneType === "indoor"
-                      ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
-                      : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
-                      }`}
-                  >
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    Indoor
-                  </button>
-                </div>
-              </div>
-
-              <div className="h-[1px] bg-primary/10" />
-
-              {/* Generation Controls */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
-                    Generation
-                  </Label>
-                  <Sparkles className="w-3 h-3 text-primary" />
-                </div>
-
-                <div className="space-y-3">
-                  {/* Prompt */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-text-dim">
-                      <span>Prompt <span className="text-accent-coral">*</span></span>
-                      <span className="font-mono text-[10px] opacity-70">{prompt.length}/500</span>
-                    </div>
-                    <textarea
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      placeholder={sceneType === "outdoor" ? "A mystical forest clearing with glowing mushrooms..." : "A futuristic sci-fi laboratory..."}
-                      className="w-full h-20 p-2.5 text-xs bg-surface-highlight/50 border border-primary/25 rounded-lg resize-none focus:border-primary/60 focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-text-muted font-medium leading-relaxed"
-                    />
-                  </div>
-
-                  {/* Reference Image */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-text-dim">Reference Image (Optional)</Label>
-                    {referenceImage ? (
-                      <div className="relative w-full h-16 rounded-lg border border-primary/20 overflow-hidden group bg-surface-highlight/30">
-                        <img
-                          src={referenceImage}
-                          alt="Reference"
-                          className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity"
-                        />
-                        <button
-                          onClick={() => setReferenceImage(null)}
-                          className="absolute top-1 right-1 p-1 bg-black/80 hover:bg-accent-coral/80 text-white rounded opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex items-center justify-center gap-2 w-full h-9 border border-dashed border-primary/20 rounded-lg cursor-pointer hover:bg-surface-highlight hover:border-primary/30 transition-all group">
-                        <Upload className="w-3.5 h-3.5 text-text-muted group-hover:text-primary transition-colors" />
-                        <span className="text-xs text-text-muted group-hover:text-primary transition-colors">Upload Image</span>
-                        <input
-                          type="file"
-                          onChange={handleReferenceImageUpload}
-                          accept="image/png,image/jpeg,image/webp"
-                          className="hidden"
-                        />
-                      </label>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="h-[1px] bg-primary/10" />
-
-              {/* Properties */}
-              <div className="space-y-4">
-                <Label className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
-                  Properties
-                </Label>
-
-                <div className="space-y-3">
-                  {/* Style */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-text-dim">Style</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { value: "pixel_art", label: "Pixel Art", icon: Grid3x3 },
-                        { value: "2d_flat", label: "2D Flat", icon: Layers },
-                      ].map(({ value, label, icon: Icon }) => (
-                        <button
-                          key={value}
-                          onClick={() => setStyle(value as Style)}
-                          className={`flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-xs font-medium transition-all border ${style === value
-                            ? "bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/20"
-                            : "bg-surface-highlight/50 border-primary/15 text-text-muted hover:bg-surface-highlight hover:border-primary/25 hover:text-primary"
-                            }`}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Dimensions & Viewpoint */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-text-dim">Dimensions</Label>
-                      <div className="relative">
-                        <select
-                          value={dimensions}
-                          onChange={(e) => setDimensions(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-surface-highlight hover:border-primary/30"
-                        >
-                          <option value="256x256">256x256</option>
-                          <option value="512x512">512x512</option>
-                          <option value="1024x1024">1024x1024</option>
-                        </select>
-                        <Maximize2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-text-dim">Viewpoint</Label>
-                      <div className="relative">
-                        <select
-                          value={viewpoint}
-                          onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
-                          className="w-full px-3 py-1.5 bg-surface-highlight/50 border border-primary/25 rounded-lg text-xs text-text focus:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all appearance-none cursor-pointer hover:bg-surface-highlight hover:border-primary/30"
-                        >
-                          <option value="front">Front</option>
-                          <option value="back">Back</option>
-                          <option value="side">Side</option>
-                          <option value="top_down">Top Down</option>
-                          <option value="isometric">Isometric</option>
-                        </select>
-                        <Eye className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Colors */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-text-dim flex justify-between">
-                      <span>Colors (Optional)</span>
-                      <span className="font-mono text-[10px] opacity-50">{colors.length}/5</span>
-                    </Label>
-                    <div className="flex flex-wrap gap-2">
-                      {colors.map((color, index) => (
-                        <div key={index} className="group relative">
-                          <div
-                            className="w-8 h-8 rounded-lg border border-primary/30 cursor-pointer hover:scale-105 hover:border-primary/50 transition-all shadow-sm"
-                            style={{ backgroundColor: color }}
-                          />
-                          <button
-                            onClick={() => handleRemoveColor(index)}
-                            className="absolute -top-1 -right-1 w-4 h-4 bg-surface border border-primary/15 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent-coral hover:border-accent-coral"
-                          >
-                            <X className="w-2.5 h-2.5 text-text hover:text-white" />
-                          </button>
-                        </div>
-                      ))}
-                      {colors.length < 5 && (
-                        <div className="flex items-center gap-2">
-                          <div className="relative w-8 h-8 rounded-lg border border-dashed border-primary/20 hover:border-primary/50 hover:bg-surface-highlight transition-all flex items-center justify-center cursor-pointer overflow-hidden">
-                            <input
-                              type="color"
-                              value={customColor}
-                              onChange={(e) => setCustomColor(e.target.value)}
-                              className="absolute inset-0 w-[150%] h-[150%] -top-1/4 -left-1/4 cursor-pointer opacity-0"
-                            />
-                            <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: customColor || 'transparent' }}>
-                              {!customColor && <span className="text-xs text-text-muted">+</span>}
+                    <div className="flex items-center gap-3">
+                        <div className="relative group">
+                            <div className="absolute -inset-1 bg-gradient-to-tr from-primary/40 to-cyan-400/40 rounded-lg blur opacity-40 group-hover:opacity-60 transition duration-200" />
+                            <div className="relative w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-cyan-400 flex items-center justify-center shadow-lg shadow-primary/20">
+                                <span className="font-mono font-bold text-xs text-background">Px</span>
                             </div>
-                          </div>
-                          {customColor && (
-                            <Button
-                              onClick={handleAddColor}
-                              size="sm"
-                              variant="secondary"
-                              className="h-8 px-3 text-[10px] font-bold"
-                            >
-                              ADD
-                            </Button>
-                          )}
                         </div>
-                      )}
+                        <div className="flex flex-col">
+                            <span className="font-semibold text-sm tracking-tight text-white">Scene Generator</span>
+                            <span className="text-[10px] text-text-muted font-medium uppercase tracking-widest">Workspace</span>
+                        </div>
                     </div>
-                  </div>
                 </div>
-              </div>
 
-            </div>
-          </div>
+                <div className="flex items-center gap-4">
+                    {/* Credits Badge */}
+                    <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] hover:border-white/[0.15] transition-colors cursor-pointer group">
+                        <div className="w-5 h-5 rounded-full bg-amber-400/10 flex items-center justify-center shadow-sm">
+                            <Lightning className="w-3 h-3 text-amber-400" weight="fill" />
+                        </div>
+                        <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-bold text-white tracking-tight">450</span>
+                            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Credits</span>
+                        </div>
+                    </div>
 
-          {/* Footer Actions */}
-          <div className="p-4 border-t border-primary/15 bg-surface/50 backdrop-blur-sm">
-            <Button
-              onClick={handleGenerateScene}
-              disabled={!prompt.trim() || isGenerating}
-              className="w-full h-10 text-xs font-semibold bg-primary hover:bg-primary-600 text-primary-foreground shadow-lg shadow-primary/30 transition-all"
-            >
-              {isGenerating ? (
-                <span className="flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                  Generating...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Wand2 className="w-3.5 h-3.5" />
-                  Generate Scene
-                </span>
-              )}
-            </Button>
-          </div>
-        </div>
+                    <div className="h-6 w-[1px] bg-white/[0.08] hidden md:block" />
 
-        {/* Resize Handle */}
-        <div
-          onMouseDown={() => setIsDragging(true)}
-          className="w-px bg-primary/10 hover:bg-primary/50 cursor-col-resize transition-colors active:bg-primary z-20 relative group"
-        >
-          <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-3 h-8 rounded-full bg-primary/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="w-0.5 h-4 bg-primary/40 rounded-full" />
-          </div>
-        </div>
-
-        {/* Right Panel - Viewport */}
-        <div className="flex-1 bg-background relative flex flex-col overflow-hidden">
-          {/* Viewport Header */}
-          <div className="h-10 border-b border-primary/15 flex items-center justify-between px-4 bg-surface/30">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider">Viewport</span>
-              <div className="px-1.5 py-0.5 rounded bg-surface-highlight text-[10px] font-mono text-text-muted">100%</div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors">
-                <Grid3x3 className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="w-7 h-7 rounded hover:bg-surface-highlight hover:text-primary text-text-muted transition-colors">
-                <Maximize className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Canvas Area */}
-          <div className="flex-1 overflow-auto flex items-center justify-center relative bg-[#09090b]">
-            {/* Grid Background */}
-            <div className="absolute inset-0 opacity-[0.03]"
-              style={{
-                backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
-                backgroundSize: '20px 20px'
-              }}
-            />
-
-            {previewImages.length === 0 ? (
-              <div className="text-center space-y-4 max-w-xs opacity-50">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center mx-auto shadow-lg shadow-primary/10">
-                  <Command className="w-6 h-6 text-primary" />
+                    {/* Profile Section */}
+                    <ProfileModal>
+                        <div className="flex items-center gap-3 px-1 py-1 pl-3 bg-white/[0.03] hover:bg-white/[0.08] rounded-full border border-white/[0.08] hover:border-white/[0.15] cursor-pointer transition-all duration-200 active:scale-[0.98]">
+                            <div className="hidden md:flex flex-col items-end">
+                                <span className="text-xs font-bold text-white tracking-wide">Alex Design</span>
+                                <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Pro Member</span>
+                            </div>
+                            <div className="relative">
+                                <img
+                                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                                    alt="User"
+                                    className="w-8 h-8 rounded-full border-2 border-surface-highlight bg-surface-highlight shadow-inner"
+                                />
+                                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-primary border-2 border-background rounded-full shadow-sm" />
+                            </div>
+                        </div>
+                    </ProfileModal>
                 </div>
-                <p className="text-sm text-text-muted font-medium">Configure settings and generate to see results</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-8 p-12 w-full max-w-4xl animate-in fade-in zoom-in duration-300">
-                {previewImages.map((img, index) => (
-                  <div
-                    key={index}
-                    onClick={() => setSelectedPreview(index)}
-                    className={`group relative aspect-video bg-surface rounded-xl border transition-all duration-200 cursor-pointer ${selectedPreview === index
-                      ? 'border-primary shadow-lg shadow-primary/30'
-                      : 'border-primary/15 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/20'
-                      }`}
-                  >
-                    {/* Technical Markers */}
-                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary/30 rounded-tl-lg m-2" />
-                    <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary/30 rounded-tr-lg m-2" />
-                    <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-primary/30 rounded-bl-lg m-2" />
-                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary/30 rounded-br-lg m-2" />
+            </header>
 
-                    <div className="absolute inset-4 flex items-center justify-center">
-                      <img src={img} alt="Generated Scene" className="w-full h-full object-cover rounded-md pixelated" />
+            <main className="flex-1 flex overflow-hidden" ref={mainRef}>
+                {/* Left Panel - Controls */}
+                <aside
+                    className={`bg-surface border-r border-border flex flex-col overflow-hidden transition-all duration-200 ${sidebarCollapsed ? 'w-12' : 'w-96'
+                        }`}
+                >
+                    {/* Sidebar Toggle */}
+                    <div className="h-10 border-b border-border flex items-center justify-between px-3">
+                        {!sidebarCollapsed && (
+                            <span className="text-xs font-medium text-text-muted">Settings</span>
+                        )}
+                        <button
+                            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                            className="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-highlight text-text-muted hover:text-text transition-colors"
+                        >
+                            <Sidebar className="w-4 h-4" />
+                        </button>
                     </div>
 
-                    {/* Selection Indicator */}
-                    <div className={`absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center transition-all ${selectedPreview === index ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
-                      }`}>
-                      <Check className="w-3 h-3 text-white" />
+                    {!sidebarCollapsed && (
+                        <div className="flex-1 overflow-y-auto custom-scrollbar">
+                            <div className="p-4 space-y-6">
+
+                                {/* Scene Type Selector */}
+                                <div className="p-4 rounded-xl bg-surface-highlight/40 space-y-3">
+                                    <Label className="studio-field-label">Scene Type</Label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={() => setSceneType("outdoor")}
+                                            className={`flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${sceneType === "outdoor"
+                                                ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
+                                                : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.1]"
+                                                }`}
+                                        >
+                                            <Tree className={`w-4 h-4 ${sceneType === "outdoor" ? "text-primary" : "text-text-muted"}`} />
+                                            Outdoor
+                                        </button>
+                                        <button
+                                            onClick={() => setSceneType("indoor")}
+                                            className={`flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${sceneType === "indoor"
+                                                ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
+                                                : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.1]"
+                                                }`}
+                                        >
+                                            <ImageIcon className={`w-4 h-4 ${sceneType === "indoor" ? "text-primary" : "text-text-muted"}`} />
+                                            Indoor
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Prompt Section */}
+                                <div className="p-4 rounded-xl bg-surface-highlight/40 space-y-3">
+                                    <div className="relative">
+                                        <textarea
+                                            value={prompt}
+                                            onChange={(e) => setPrompt(e.target.value)}
+                                            placeholder={sceneType === "outdoor" ? "Describe your outdoor scene..." : "Describe your indoor scene..."}
+                                            className="w-full h-64 px-4 py-3 text-sm bg-background/50 border border-white/[0.05] rounded-xl resize-none focus:border-primary/50 focus:outline-none transition-all placeholder:text-text-muted pb-14 shadow-inner"
+                                        />
+
+                                        {/* Prompt Toolbar */}
+                                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                                            <div className="flex items-center gap-1.5 p-1 bg-surface/90 rounded-md border border-border pointer-events-auto shadow-sm">
+                                                <label className="flex items-center justify-center p-1.5 rounded-lg hover:bg-surface-highlight text-text-muted hover:text-primary cursor-pointer transition-all active:scale-90" title="Upload Reference">
+                                                    <ImageIcon className="w-4 h-4" />
+                                                    <input
+                                                        type="file"
+                                                        onChange={handleReferenceImageUpload}
+                                                        accept="image/png,image/jpeg,image/webp"
+                                                        className="hidden"
+                                                        multiple
+                                                    />
+                                                </label>
+                                            </div>
+                                            <div className="flex items-center pointer-events-auto">
+                                                {prompt.length >= 9000 && (
+                                                    <span className="text-[10px] text-text-dim px-2 py-1.5 bg-surface/90 rounded-md border border-border shadow-sm tabular-nums scale-in-center animate-in fade-in duration-200">
+                                                        {prompt.length.toLocaleString()}/10,000
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Multiple Reference Display */}
+                                    {referenceImages.length > 0 && (
+                                        <div className="grid grid-cols-5 gap-2 pt-1">
+                                            {referenceImages.map((img, idx) => (
+                                                <div key={idx} className="relative aspect-square rounded-md border border-border overflow-hidden bg-surface-highlight group shadow-sm">
+                                                    <img src={img} alt="Ref" className="w-full h-full object-cover" />
+                                                    <button
+                                                        onClick={() => handleRemoveReferenceImage(idx)}
+                                                        className="absolute inset-x-0 bottom-0 top-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                                    >
+                                                        <X className="w-3 h-3 text-white" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Properties Section */}
+                                <div className="p-4 rounded-xl bg-surface-highlight/40 space-y-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[11px] font-medium text-text-muted ml-1">Dimensions</Label>
+                                            <div className="relative">
+                                                <select
+                                                    value={dimensions}
+                                                    onChange={(e) => setDimensions(e.target.value)}
+                                                    className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
+                                                >
+                                                    <option value="256x256">256x256</option>
+                                                    <option value="512x512">512x512</option>
+                                                    <option value="1024x1024">1024x1024</option>
+                                                </select>
+                                                <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[11px] font-medium text-text-muted ml-1">Viewpoint</Label>
+                                            <div className="relative">
+                                                <select
+                                                    value={viewpoint}
+                                                    onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
+                                                    className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
+                                                >
+                                                    <option value="front">Front</option>
+                                                    <option value="back">Back</option>
+                                                    <option value="side">Side</option>
+                                                    <option value="top_down">Top Down</option>
+                                                    <option value="isometric">Isometric</option>
+                                                </select>
+                                                <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Advanced Options Toggle */}
+                                    <div className="pt-1">
+                                        <button
+                                            onClick={() => setShowAdvanced(!showAdvanced)}
+                                            className="flex items-center gap-2.5 text-[11px] font-semibold text-text-muted hover:text-white transition-all group"
+                                        >
+                                            <div className="p-1 rounded-lg bg-background/50 border border-white/[0.05] group-hover:border-primary/30 transition-all shadow-sm group-active:scale-95">
+                                                {showAdvanced ? (
+                                                    <CaretDown className="w-3 h-3" />
+                                                ) : (
+                                                    <CaretRight className="w-3 h-3" />
+                                                )}
+                                            </div>
+                                            Advanced Options
+                                        </button>
+                                    </div>
+
+                                    {/* Collapsible Content */}
+                                    {showAdvanced && (
+                                        <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                            {/* Style */}
+                                            <div className="space-y-2">
+                                                <Label className="text-[11px] text-text-muted ml-1">Style</Label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {[
+                                                        { value: "pixel_art", label: "Pixel Art", icon: GridFour },
+                                                        { value: "2d_flat", label: "2D Flat", icon: Stack },
+                                                    ].map(({ value, label, icon: Icon }) => (
+                                                        <button
+                                                            key={value}
+                                                            onClick={() => setStyle(value as Style)}
+                                                            className={`flex items-center justify-center gap-2 h-9 px-3 rounded-xl text-[11px] font-semibold transition-all duration-200 border ${style === value
+                                                                ? "bg-primary/10 border-primary/50 text-primary shadow-sm"
+                                                                : "bg-background/40 border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text"
+                                                                }`}
+                                                        >
+                                                            <Icon className={`w-3.5 h-3.5 ${style === value ? "text-primary" : "text-text-muted"}`} />
+                                                            {label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Colors */}
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center px-1">
+                                                    <Label className="text-[11px] text-text-muted">Colors (Optional)</Label>
+                                                    <span className="text-[10px] text-text-dim tabular-nums">{colors.length}/5</span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {colors.map((color, index) => (
+                                                        <div key={index} className="group relative">
+                                                            <div
+                                                                className="w-7 h-7 rounded-md border border-border cursor-pointer transition-colors hover:border-primary shadow-sm"
+                                                                style={{ backgroundColor: color }}
+                                                            />
+                                                            <button
+                                                                onClick={() => handleRemoveColor(index)}
+                                                                className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-surface border border-border rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent-coral hover:border-accent-coral shadow-sm"
+                                                            >
+                                                                <X className="w-2 h-2 text-text hover:text-white" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                    {colors.length < 5 && (
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="relative w-7 h-7 rounded-md border border-dashed border-border hover:border-primary transition-colors flex items-center justify-center cursor-pointer overflow-hidden bg-surface/30 shadow-sm">
+                                                                <input
+                                                                    type="color"
+                                                                    value={customColor}
+                                                                    onChange={(e) => setCustomColor(e.target.value)}
+                                                                    className="absolute inset-0 w-[150%] h-[150%] -top-1/4 -left-1/4 cursor-pointer opacity-0"
+                                                                />
+                                                                <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: customColor || 'transparent' }}>
+                                                                    {!customColor && <Plus className="w-3.5 h-3.5 text-text-muted" />}
+                                                                </div>
+                                                            </div>
+                                                            {customColor && (
+                                                                <Button
+                                                                    onClick={handleAddColor}
+                                                                    size="sm"
+                                                                    variant="secondary"
+                                                                    className="h-7 px-2 text-[10px] bg-surface/80"
+                                                                >
+                                                                    Add
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Footer Actions */}
+                    <div className="p-4 border-t border-white/[0.05] bg-background/50 backdrop-blur-sm">
+                        <Button
+                            onClick={handleGenerateScene}
+                            disabled={!prompt.trim() || isGenerating}
+                            className="w-full h-11 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 bg-gradient-to-r from-primary to-emerald-400 hover:opacity-90 transition-all active:scale-[0.98]"
+                        >
+                            {isGenerating ? (
+                                <span className="flex items-center gap-2">
+                                    <Sparkle className="w-4 h-4 animate-spin" />
+                                    Generating...
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <MagicWand className="w-4 h-4" />
+                                    Generate Scene
+                                </span>
+                            )}
+                        </Button>
+                    </div>
+                </aside>
+
+                {/* Right Panel - Viewport */}
+                <div className="flex-1 bg-background relative flex flex-col overflow-hidden">
+                    {/* Viewport Header */}
+                    <div className="h-10 border-b border-border flex items-center justify-between px-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-text-muted">Preview</span>
+                            <div className="px-2 py-0.5 rounded bg-surface border border-border text-xs text-text-muted">100%</div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="w-8 h-8">
+                                <GridFour className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="w-8 h-8">
+                                <ArrowsOut className="w-4 h-4" />
+                            </Button>
+                        </div>
                     </div>
 
-                    {/* Hover Actions */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 backdrop-blur rounded-lg p-1 border border-primary/20">
-                      <Button variant="ghost" size="icon" className="w-6 h-6 rounded hover:bg-primary/20 text-primary transition-colors">
-                        <ZoomIn className="w-3 h-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="w-6 h-6 rounded hover:bg-primary/20 text-primary transition-colors">
-                        <Download className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                    {/* Canvas Area */}
+                    <div className="flex-1 overflow-auto flex items-center justify-center relative">
+                        {previewImages.length === 0 ? (
+                            <div className="text-center space-y-4 max-w-xs">
+                                <div className="w-16 h-16 rounded-xl bg-surface border border-border flex items-center justify-center mx-auto">
+                                    <Command className="w-6 h-6 text-text-muted" />
+                                </div>
+                                <p className="text-sm text-text-muted">Configure settings and generate to see results</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-6 p-8 w-full max-w-4xl">
+                                {previewImages.map((img, index) => (
+                                    <div
+                                        key={index}
+                                        onClick={() => setSelectedPreview(index)}
+                                        className={`group relative aspect-video bg-surface rounded-lg border transition-colors cursor-pointer ${selectedPreview === index
+                                            ? 'border-primary'
+                                            : 'border-border hover:border-primary/50'
+                                            }`}
+                                    >
+                                        <div className="absolute inset-4 flex items-center justify-center">
+                                            <img src={img} alt="Generated Scene" className="w-full h-full object-cover rounded-md pixelated" />
+                                        </div>
 
-          {/* Fixed Floating Action Button */}
-          {selectedPreview !== null && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface/90 backdrop-blur-md border border-primary/15 rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-4 shadow-lg shadow-primary/20 animate-in slide-in-from-bottom-4 z-10">
-              <span className="text-xs font-medium text-text">Variant {selectedPreview + 1} selected</span>
-              <Button
-                onClick={handleCreateProject}
-                size="sm"
-                className="h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary-600 font-semibold text-xs px-4 shadow-lg shadow-primary/30 flex items-center gap-1.5"
-              >
-                {projectId ? (
-                  <>
-                    <Plus className="w-3.5 h-3.5" />
-                    Add to Project
-                  </>
-                ) : (
-                  <>
-                    <FolderPlus className="w-3.5 h-3.5" />
-                    Create Project
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+                                        {/* Selection Indicator */}
+                                        <div className={`absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center transition-opacity ${selectedPreview === index ? 'opacity-100' : 'opacity-0'
+                                            }`}>
+                                            <Check className="w-3 h-3 text-primary-foreground" weight="bold" />
+                                        </div>
+
+                                        {/* Hover Actions */}
+                                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface border border-border rounded-md p-1">
+                                            <Button variant="ghost" size="icon" className="w-7 h-7">
+                                                <MagnifyingGlassPlus className="w-4 h-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="w-7 h-7">
+                                                <Download className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Fixed Floating Action Button */}
+                    {selectedPreview !== null && (
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface border border-border rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-3 z-10">
+                            <span className="text-sm text-text">Variant {selectedPreview + 1} selected</span>
+                            <Button
+                                onClick={handleCreateProject}
+                                size="sm"
+                                className="h-8 rounded-full px-4"
+                            >
+                                {projectId ? (
+                                    <>
+                                        <Plus className="w-4 h-4" />
+                                        Add to Project
+                                    </>
+                                ) : (
+                                    <>
+                                        <FolderPlus className="w-4 h-4" />
+                                        Create Project
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </main>
         </div>
-      </main>
-    </div>
-  );
+    );
 }

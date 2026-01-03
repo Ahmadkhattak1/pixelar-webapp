@@ -10,23 +10,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#0d1117", // Darker background
-        surface: "#13192a", // Surface - Deeper blue-gray
-        "surface-highlight": "#1a2537", // Surface Highlight
-        border: "#243447", // Border - Refined
+        background: "#020617", // Deeper background (slate-950)
+        surface: "#0f172a", // Surface (slate-900)
+        "surface-highlight": "#1e293b", // Surface Highlight (slate-800)
+        border: "#1e293b", // Deep border
         primary: {
-          DEFAULT: "#40F99B", // Neon Cyan-Green
-          50: "#f0fffa",
-          100: "#d0fff5",
-          200: "#a8ffdb",
-          300: "#7dffb3",
-          400: "#40F99B", // Base
-          500: "#2dd97d",
-          600: "#1fb366",
-          700: "#158c4e",
-          800: "#0d6639",
-          900: "#054021",
-          foreground: "#0d1117", // Dark text on bright button
+          DEFAULT: "#10b981", // Emerald 500 - more sophisticated green
+          50: "#ecfdf5",
+          100: "#d1fae5",
+          200: "#a7f3d0",
+          300: "#6ee7b7",
+          400: "#34d399",
+          500: "#10b981",
+          600: "#059669",
+          700: "#047857",
+          800: "#065f46",
+          900: "#064e3b",
+          foreground: "#ffffff",
         },
         secondary: {
           DEFAULT: "#61707D", // Muted Blue-Gray
@@ -63,19 +63,8 @@ const config: Config = {
         "studio-gradient": "linear-gradient(to bottom right, #18181b, #09090b)",
       },
       boxShadow: {
-        "studio": "0 0 0 1px rgba(255,255,255,0.05), 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.15)",
-        "studio-hover": "0 0 0 1px rgba(255,255,255,0.1), 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -2px rgba(0,0,0,0.2)",
-        "glow": "0 0 20px -5px var(--tw-shadow-color)",
-      },
-      animation: {
-        "pulse-slow": "pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "float": "float 6s ease-in-out infinite",
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-20px)' },
-        },
+        "studio": "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
+        "studio-hover": "0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23)",
       },
     },
   },

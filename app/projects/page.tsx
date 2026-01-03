@@ -2,16 +2,14 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Upload, Image as ImageIcon, Map, Pencil, Trash2, Zap } from "lucide-react";
+import { Search, Plus, Upload, Image as ImageIcon, Map, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
-import { ProfileModal } from "@/components/profile-modal";
-import { FloatingDock } from "@/components/navigation/FloatingDock";
-import { BYOKButton } from "@/components/home/BYOKButton";
+import { Sidebar } from "@/components/navigation/Sidebar";
 
 type Project = {
   id: string;
@@ -68,14 +66,12 @@ export default function ProjectsPage() {
 
     setProjects([newProject, ...projects]);
 
-    // Small delay to show loading state
     setTimeout(() => {
       setIsNewProjectOpen(false);
       setNewProjectName("");
       setSelectedType("sprite");
       setIsCreating(false);
 
-      // Navigate to the appropriate generation page based on project type
       if (selectedType === "sprite") {
         router.push(`/sprites?projectId=${newProject.id}`);
       } else {
@@ -92,7 +88,6 @@ export default function ProjectsPage() {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    // Process imported files
     Array.from(files).forEach((file) => {
       const newProject: Project = {
         id: Math.floor(Math.random() * 9000 + 1000).toString(),
@@ -104,222 +99,182 @@ export default function ProjectsPage() {
       setProjects((prev) => [newProject, ...prev]);
     });
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col relative overflow-hidden">
-      {/* Background Animation Layer */}
-      <div className="bg-animation">
-        <div className="grid-overlay"></div>
-        <div className="orb orb-1"></div>
-        <div className="orb orb-2"></div>
-      </div>
+    <div className="min-h-screen w-full flex bg-background selection:bg-primary/30">
+      <Sidebar />
 
-      {/* Top Bar */}
-      <header className="w-full h-20 px-8 flex items-center justify-between z-40 flex-shrink-0 relative">
-        {/* New Brand/Logo */}
-        <div className="flex items-center gap-3 group logo-container cursor-pointer">
-          {/* Custom Pixel Logo */}
-          <div className="w-10 h-10 bg-slate-800/50 rounded-lg border border-white/10 flex items-center justify-center backdrop-blur-sm group-hover:border-primary/50 transition-colors shadow-[0_0_15px_-3px_rgba(64,249,155,0.1)] group-hover:shadow-[0_0_20px_-3px_rgba(64,249,155,0.3)]">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="logo-svg">
-              {/* Stem */}
-              <path d="M6 4H10V20H6V4Z" className="fill-primary" />
-              {/* Top Bar */}
-              <path d="M10 4H18V8H10V4Z" className="fill-white" />
-              {/* Right Bar */}
-              <path d="M14 8H18V12H14V8Z" className="fill-primary/80" />
-              {/* Middle Bar */}
-              <path d="M10 12H18V16H10V12Z" className="fill-white" />
-            </svg>
-          </div>
+      <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
+        <div className="flex-1 overflow-y-auto app-scroll px-4 md:px-12 relative z-10 custom-scrollbar">
+          <div className="max-w-7xl mx-auto pt-8 pb-12 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold mb-1">Projects</h1>
+                <p className="text-sm text-text-muted">Manage your game assets</p>
+              </div>
 
-          <div className="flex flex-col">
-            <span className="text-lg font-bold text-white tracking-wide leading-none group-hover:text-primary transition-colors">Pixelar</span>
-            <span className="text-[10px] text-primary tracking-widest uppercase font-semibold mt-0.5">Studio</span>
-          </div>
-        </div>
-
-        {/* Right Utilities */}
-        <div className="flex items-center gap-4">
-          <BYOKButton />
-
-          <div className="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-lg border border-amber-500/20 shadow-lg backdrop-blur-sm">
-            <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span className="text-sm font-bold text-amber-100">450</span>
-            <span className="text-xs text-slate-500 font-medium ml-1">Credits</span>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-y-auto app-scroll pb-36 px-4 md:px-12 relative z-10 custom-scrollbar">
-        <div className="max-w-7xl mx-auto pt-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold mb-1">Projects</h1>
-              <p className="text-sm text-text-muted">Manage your game assets and scenes</p>
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,.png,.jpg,.jpeg,.gif"
-                multiple
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <Button variant="outline" size="sm" onClick={handleImport}>
-                <Upload className="w-4 h-4" />
-                Import
-              </Button>
-              <Button size="sm" onClick={() => setIsNewProjectOpen(true)}>
-                <Plus className="w-4 h-4" />
-                New Project
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-              <Input
-                type="text"
-                placeholder="Search projects..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            <div className="flex gap-2 p-1 bg-surface-highlight rounded-lg w-fit">
-              <Button
-                onClick={() => setCurrentFilter("all")}
-                variant="ghost"
-                size="sm"
-                className={currentFilter === "all" ? "bg-surface shadow-sm text-primary" : ""}
-              >
-                All
-              </Button>
-              <Button
-                onClick={() => setCurrentFilter("sprite")}
-                variant="ghost"
-                size="sm"
-                className={currentFilter === "sprite" ? "bg-surface shadow-sm text-primary" : ""}
-              >
-                Sprites
-              </Button>
-              <Button
-                onClick={() => setCurrentFilter("scene")}
-                variant="ghost"
-                size="sm"
-                className={currentFilter === "scene" ? "bg-surface shadow-sm text-primary" : ""}
-              >
-                Scenes
-              </Button>
-            </div>
-          </div>
-
-          {filteredProjects.length === 0 ? (
-            <Card className="py-16">
-              <CardContent className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <ImageIcon className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">No projects found</h3>
-                <p className="text-sm text-text-muted mb-4">
-                  Try adjusting your filters or create a new project
-                </p>
-                <Button onClick={() => setIsNewProjectOpen(true)}>
-                  <Plus className="w-4 h-4" />
-                  Create Project
+              <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.png,.jpg,.jpeg,.gif"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <Button variant="outline" size="sm" onClick={handleImport}>
+                  <Upload className="w-4 h-4" />
+                  Import
                 </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              <Card
-                className="group cursor-pointer border-dashed hover:border-primary hover:bg-primary/10 transition-all"
-                onClick={() => setIsNewProjectOpen(true)}
-              >
-                <CardContent className="p-6 flex flex-col items-center justify-center text-center min-h-[220px]">
-                  <div className="w-12 h-12 rounded-xl bg-surface-highlight group-hover:bg-primary/20 flex items-center justify-center mb-3 transition-colors">
-                    <Plus className="w-6 h-6 text-text-muted group-hover:text-primary transition-colors" />
+                <Button size="sm" onClick={() => setIsNewProjectOpen(true)}>
+                  <Plus className="w-4 h-4" />
+                  New Project
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <Input
+                  type="text"
+                  placeholder="Search projects..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="flex gap-2 p-1 bg-surface-highlight rounded-lg w-fit">
+                <Button
+                  onClick={() => setCurrentFilter("all")}
+                  variant="ghost"
+                  size="sm"
+                  className={currentFilter === "all" ? "bg-surface shadow-sm text-primary" : ""}
+                >
+                  All
+                </Button>
+                <Button
+                  onClick={() => setCurrentFilter("sprite")}
+                  variant="ghost"
+                  size="sm"
+                  className={currentFilter === "sprite" ? "bg-surface shadow-sm text-primary" : ""}
+                >
+                  Sprites
+                </Button>
+                <Button
+                  onClick={() => setCurrentFilter("scene")}
+                  variant="ghost"
+                  size="sm"
+                  className={currentFilter === "scene" ? "bg-surface shadow-sm text-primary" : ""}
+                >
+                  Scenes
+                </Button>
+              </div>
+            </div>
+
+            {filteredProjects.length === 0 ? (
+              <Card className="py-16">
+                <CardContent className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                    <ImageIcon className="w-8 h-8 text-primary" />
                   </div>
-                  <h3 className="font-medium text-text-muted group-hover:text-primary transition-colors">
-                    New Project
-                  </h3>
-                  <p className="text-xs text-text-muted mt-1">Create a sprite or scene</p>
+                  <h3 className="text-lg font-semibold mb-2">No projects found</h3>
+                  <p className="text-sm text-text-muted mb-4">
+                    Try adjusting your filters or create a new project
+                  </p>
+                  <Button onClick={() => setIsNewProjectOpen(true)}>
+                    <Plus className="w-4 h-4" />
+                    Create Project
+                  </Button>
                 </CardContent>
               </Card>
-
-              {filteredProjects.map((project) => (
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 <Card
-                  key={project.id}
-                  className="group cursor-pointer hover:shadow-md transition-all overflow-hidden"
-                  onClick={() => router.push(`/projects/${project.id}`)}
+                  className="group cursor-pointer border-dashed hover:border-primary hover:bg-primary/10 transition-colors"
+                  onClick={() => setIsNewProjectOpen(true)}
                 >
-                  <div className={`h-40 ${project.color} grid-pattern relative`}>
-                    <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      {project.type === "sprite" ? (
-                        <ImageIcon className="w-12 h-12 text-white/80" />
-                      ) : (
-                        <Map className="w-12 h-12 text-white/80" />
-                      )}
+                  <CardContent className="p-6 flex flex-col items-center justify-center text-center min-h-[220px]">
+                    <div className="w-12 h-12 rounded-xl bg-surface-highlight group-hover:bg-primary/20 flex items-center justify-center mb-3 transition-colors">
+                      <Plus className="w-6 h-6 text-text-muted group-hover:text-primary transition-colors" />
                     </div>
-                  </div>
-
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
-                          {project.title}
-                        </h3>
-                        <p className="text-xs text-text-muted mt-1">
-                          {new Date(project.date).toLocaleDateString()}
-                        </p>
-                      </div>
-
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteProject(project.id);
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium capitalize">
-                        {project.type}
-                      </span>
-                      <span className="text-xs text-text-muted">#{project.id}</span>
-                    </div>
+                    <h3 className="font-medium text-text-muted group-hover:text-primary transition-colors">
+                      New Project
+                    </h3>
+                    <p className="text-xs text-text-muted mt-1">Create a sprite or scene</p>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          )}
+
+                {filteredProjects.map((project) => (
+                  <Card
+                    key={project.id}
+                    className="group cursor-pointer hover:shadow-md transition-all overflow-hidden"
+                    onClick={() => router.push(`/projects/${project.id}`)}
+                  >
+                    <div className={`h-40 ${project.color} grid-pattern relative`}>
+                      <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors"></div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        {project.type === "sprite" ? (
+                          <ImageIcon className="w-12 h-12 text-white/80" />
+                        ) : (
+                          <Map className="w-12 h-12 text-white/80" />
+                        )}
+                      </div>
+                    </div>
+
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+                            {project.title}
+                          </h3>
+                          <p className="text-xs text-text-muted mt-1">
+                            {new Date(project.date).toLocaleDateString()}
+                          </p>
+                        </div>
+
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteProject(project.id);
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium capitalize">
+                          {project.type}
+                        </span>
+                        <span className="text-xs text-text-muted">#{project.id}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
@@ -399,7 +354,6 @@ export default function ProjectsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <FloatingDock />
     </div>
   );
 }

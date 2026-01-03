@@ -5,20 +5,20 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary-600 hover:shadow-lg hover:shadow-primary/30 active:scale-95",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary-600 hover:shadow-md hover:shadow-secondary/20",
-        outline: "border border-border bg-surface hover:bg-surface-highlight text-text hover:border-primary/50",
-        ghost: "hover:bg-surface-highlight text-text hover:text-primary transition-colors",
-        link: "text-primary underline-offset-4 hover:underline hover:text-primary-300",
+        default: "bg-primary text-primary-foreground hover:bg-primary-600",
+        secondary: "bg-surface-highlight text-text hover:bg-surface-highlight/80",
+        outline: "border border-border bg-transparent hover:bg-surface-highlight text-text hover:border-primary/50",
+        ghost: "hover:bg-surface-highlight text-text-muted hover:text-text transition-colors",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2 text-sm",
         sm: "h-9 px-3 text-sm",
-        lg: "h-11 px-8 text-base",
+        lg: "h-11 px-6 text-sm",
         icon: "h-10 w-10",
       },
     },
