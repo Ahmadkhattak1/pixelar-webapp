@@ -8,14 +8,11 @@ import { Loader2 } from "lucide-react";
 import {
     CaretLeft,
     Upload,
-    Lightning,
     X,
     Check,
     Sparkle,
     MagicWand,
-    GridFour,
     MagnifyingGlassPlus,
-    ArrowsOut,
     Stack,
     Download,
     Command,
@@ -233,22 +230,22 @@ export default function GenerateScenePage() {
                                 <div className="grid grid-cols-2 gap-2">
                                     <button
                                         onClick={() => setSceneType("outdoor")}
-                                        className={`flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${sceneType === "outdoor"
+                                        className={`flex flex-col items-center justify-center gap-1.5 h-16 px-4 rounded-xl text-xs font-semibold transition-all duration-200 border ${sceneType === "outdoor"
                                             ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
-                                            : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.1]"
+                                            : "bg-surface border-white/[0.08] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.15]"
                                             }`}
                                     >
-                                        <Tree className={`w-4 h-4 ${sceneType === "outdoor" ? "text-primary" : "text-text-muted"}`} />
+                                        <Tree className={`w-5 h-5 ${sceneType === "outdoor" ? "text-primary" : "text-text-muted"}`} weight={sceneType === "outdoor" ? "fill" : "regular"} />
                                         Outdoor
                                     </button>
                                     <button
                                         onClick={() => setSceneType("indoor")}
-                                        className={`flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${sceneType === "indoor"
+                                        className={`flex flex-col items-center justify-center gap-1.5 h-16 px-4 rounded-xl text-xs font-semibold transition-all duration-200 border ${sceneType === "indoor"
                                             ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
-                                            : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.1]"
+                                            : "bg-surface border-white/[0.08] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.15]"
                                             }`}
                                     >
-                                        <ImageIcon className={`w-4 h-4 ${sceneType === "indoor" ? "text-primary" : "text-text-muted"}`} />
+                                        <ImageIcon className={`w-5 h-5 ${sceneType === "indoor" ? "text-primary" : "text-text-muted"}`} weight={sceneType === "indoor" ? "fill" : "regular"} />
                                         Indoor
                                     </button>
                                 </div>
@@ -260,8 +257,8 @@ export default function GenerateScenePage() {
                                     <textarea
                                         value={prompt}
                                         onChange={(e) => setPrompt(e.target.value)}
-                                        placeholder={sceneType === "outdoor" ? "Describe your outdoor scene..." : "Describe your indoor scene..."}
-                                        className="w-full h-64 px-4 py-3 text-sm bg-background/50 border border-white/[0.05] rounded-xl resize-none focus:border-primary/50 focus:outline-none transition-all placeholder:text-text-muted pb-14 shadow-inner"
+                                        placeholder={sceneType === "outdoor" ? "e.g. A mystical forest with ancient trees and glowing mushrooms..." : "e.g. A cozy tavern with wooden tables and a warm fireplace..."}
+                                        className="w-full h-64 px-4 py-3 text-sm bg-background/50 border border-white/[0.08] rounded-xl resize-none focus:border-primary/50 focus:outline-none transition-all placeholder:text-text-dim pb-14"
                                     />
 
                                     {/* Prompt Toolbar */}
@@ -561,19 +558,8 @@ export default function GenerateScenePage() {
                 {/* Viewport */}
                 <div className="flex-1 bg-background relative flex flex-col overflow-hidden" ref={mainRef}>
                     {/* Viewport Header */}
-                    <div className="h-10 border-b border-border flex items-center justify-between px-4">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-text-muted">Preview</span>
-                            <div className="px-2 py-0.5 rounded bg-surface border border-border text-xs text-text-muted">100%</div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="w-8 h-8">
-                                <GridFour className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="w-8 h-8">
-                                <ArrowsOut className="w-4 h-4" />
-                            </Button>
-                        </div>
+                    <div className="h-10 border-b border-border flex items-center px-4">
+                        <span className="text-xs text-text-muted">Preview</span>
                     </div>
 
                     {/* Canvas Area */}

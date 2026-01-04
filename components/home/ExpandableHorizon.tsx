@@ -39,13 +39,13 @@ const SLIME_MAP = `
 ................
 ................
 ................
+............SS..
+...........SSSS.
+...........sSSS.
+...........SSSS.
+............SS..
 ................
 ................
-..........SS....
-.........SSSS...
-.........sSSS...
-.........SSSS...
-..........SS....
 ................
 `;
 
@@ -70,8 +70,8 @@ function SpriteAnimation({ isHovered }: { isHovered: boolean }) {
     return (
         <div className="relative w-48 h-48 transition-transform duration-700 ease-out">
             <div className={cn(
-                "absolute inset-0 bg-primary/30 blur-[60px] rounded-full transition-opacity duration-700",
-                isHovered ? "opacity-100" : "opacity-0"
+                "absolute inset-0 bg-primary/20 blur-[80px] rounded-full transition-opacity duration-700",
+                isHovered ? "opacity-60" : "opacity-0"
             )} />
 
             {/* 16x16 Grid */}
@@ -93,7 +93,7 @@ function SpriteAnimation({ isHovered }: { isHovered: boolean }) {
                     // Character pixels
                     switch (pixelType) {
                         case 'H': // Hair
-                            pixelClass = 'bg-primary z-10 shadow-[0_0_8px_rgba(159,222,90,0.5)]';
+                            pixelClass = 'bg-primary z-10';
                             break;
                         case 'F': // Face
                             pixelClass = 'bg-[#ffdbac] z-10';
@@ -120,10 +120,10 @@ function SpriteAnimation({ isHovered }: { isHovered: boolean }) {
 
                     // Slime pixels (overlay)
                     if (slimeType === 'S') {
-                        pixelClass = 'bg-[#9FDE5A] z-10 shadow-[0_0_6px_rgba(159,222,90,0.8)]';
+                        pixelClass = 'bg-[#9FDE5A] z-10';
                         style = { animation: isHovered ? 'slime-bounce 0.8s ease-in-out infinite' : 'none' };
                     } else if (slimeType === 's') {
-                        pixelClass = 'bg-[#c4f084] z-10 shadow-[0_0_6px_rgba(196,240,132,0.8)]';
+                        pixelClass = 'bg-[#c4f084] z-10';
                         style = { animation: isHovered ? 'slime-bounce 0.8s ease-in-out infinite' : 'none' };
                     }
 
@@ -425,40 +425,43 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
                     className={cn(
                         "absolute inset-[1px] rounded-[23px] overflow-hidden backdrop-blur-2xl border z-10 transition-all duration-500",
                         isActive
-                            ? "bg-white/[0.04] border-white/[0.15] shadow-2xl"
-                            : "bg-white/[0.02] border-white/[0.08] shadow-lg group-hover:bg-white/[0.03] group-hover:border-white/[0.12] group-hover:shadow-xl"
+                            ? "bg-white/[0.06] border-white/[0.2] shadow-2xl"
+                            : "bg-white/[0.03] border-white/[0.12] shadow-lg group-hover:bg-white/[0.05] group-hover:border-white/[0.18] group-hover:shadow-xl"
                     )}
                     style={{
                         boxShadow: isActive
-                            ? `0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.2)`
-                            : `0 10px 40px -10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)`
+                            ? `0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.2)`
+                            : `0 10px 40px -10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)`
                     }}
                 >
                     {/* Frosted overlay */}
-                    <div className="absolute inset-0 bg-[#0a0d12]/60" />
+                    <div className="absolute inset-0 bg-[#0a0d12]/50" />
 
                     {/* Inner depth - top highlight */}
-                    <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+                    <div className="absolute inset-x-0 top-0 h-px bg-white/25" />
+
+                    {/* Inner depth - left highlight */}
+                    <div className="absolute inset-y-0 left-0 w-px bg-white/10" />
 
                     {/* Inner depth - bottom shadow */}
-                    <div className="absolute inset-x-0 bottom-0 h-px bg-black/30" />
+                    <div className="absolute inset-x-0 bottom-0 h-px bg-black/40" />
 
                     {/* Corner accents */}
                     <div className={cn(
-                        "absolute top-3 left-3 w-8 h-[1px] bg-white/20 transition-opacity duration-300",
-                        isActive ? "opacity-100" : "opacity-0 group-hover:opacity-60"
+                        "absolute top-3 left-3 w-10 h-[1px] bg-white/25 transition-opacity duration-300",
+                        isActive ? "opacity-100" : "opacity-40 group-hover:opacity-80"
                     )} />
                     <div className={cn(
-                        "absolute top-3 left-3 w-[1px] h-8 bg-white/20 transition-opacity duration-300",
-                        isActive ? "opacity-100" : "opacity-0 group-hover:opacity-60"
+                        "absolute top-3 left-3 w-[1px] h-10 bg-white/25 transition-opacity duration-300",
+                        isActive ? "opacity-100" : "opacity-40 group-hover:opacity-80"
                     )} />
                     <div className={cn(
-                        "absolute bottom-3 right-3 w-8 h-[1px] bg-white/10 transition-opacity duration-300",
-                        isActive ? "opacity-100" : "opacity-0 group-hover:opacity-40"
+                        "absolute bottom-3 right-3 w-10 h-[1px] bg-white/15 transition-opacity duration-300",
+                        isActive ? "opacity-100" : "opacity-20 group-hover:opacity-60"
                     )} />
                     <div className={cn(
-                        "absolute bottom-3 right-3 w-[1px] h-8 bg-white/10 transition-opacity duration-300",
-                        isActive ? "opacity-100" : "opacity-0 group-hover:opacity-40"
+                        "absolute bottom-3 right-3 w-[1px] h-10 bg-white/15 transition-opacity duration-300",
+                        isActive ? "opacity-100" : "opacity-20 group-hover:opacity-60"
                     )} />
 
                     {/* Content */}

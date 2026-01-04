@@ -13,18 +13,14 @@ import {
     Check,
     Sparkle,
     MagicWand,
-    GridFour,
     MagnifyingGlassPlus,
-    ArrowsOut,
     Stack,
     Download,
     Command,
-    Eye,
     Plus,
     FolderPlus,
     User,
     Cube,
-    ArrowsOutCardinal,
     Trash,
     CaretDown,
     CaretRight,
@@ -283,32 +279,32 @@ export default function GenerateSpritePage() {
                                 <div className="grid grid-cols-3 gap-2">
                                     <button
                                         onClick={() => setSpriteType("character")}
-                                        className={`flex items-center justify-center gap-1.5 h-10 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "character"
+                                        className={`flex flex-col items-center justify-center gap-1.5 h-16 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "character"
                                             ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
-                                            : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.1]"
+                                            : "bg-surface border-white/[0.08] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.15]"
                                             }`}
                                     >
-                                        <User className={`w-3.5 h-3.5 ${spriteType === "character" ? "text-primary" : "text-text-muted"}`} />
+                                        <User className={`w-5 h-5 ${spriteType === "character" ? "text-primary" : "text-text-muted"}`} weight={spriteType === "character" ? "fill" : "regular"} />
                                         Character
                                     </button>
                                     <button
                                         onClick={() => setSpriteType("object")}
-                                        className={`flex items-center justify-center gap-1.5 h-10 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "object"
+                                        className={`flex flex-col items-center justify-center gap-1.5 h-16 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "object"
                                             ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
-                                            : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.1]"
+                                            : "bg-surface border-white/[0.08] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.15]"
                                             }`}
                                     >
-                                        <Cube className={`w-3.5 h-3.5 ${spriteType === "object" ? "text-primary" : "text-text-muted"}`} />
+                                        <Cube className={`w-5 h-5 ${spriteType === "object" ? "text-primary" : "text-text-muted"}`} weight={spriteType === "object" ? "fill" : "regular"} />
                                         Object
                                     </button>
                                     <button
                                         onClick={() => setSpriteType("animation")}
-                                        className={`flex items-center justify-center gap-1.5 h-10 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "animation"
+                                        className={`flex flex-col items-center justify-center gap-1.5 h-16 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "animation"
                                             ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
-                                            : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.1]"
+                                            : "bg-surface border-white/[0.08] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.15]"
                                             }`}
                                     >
-                                        <PersonSimple className={`w-3.5 h-3.5 ${spriteType === "animation" ? "text-primary" : "text-text-muted"}`} />
+                                        <PersonSimple className={`w-5 h-5 ${spriteType === "animation" ? "text-primary" : "text-text-muted"}`} weight={spriteType === "animation" ? "fill" : "regular"} />
                                         Animation
                                     </button>
                                 </div>
@@ -321,8 +317,8 @@ export default function GenerateSpritePage() {
                                     <textarea
                                         value={prompt}
                                         onChange={(e) => setPrompt(e.target.value)}
-                                        placeholder={spriteType === "character" ? "Describe your character..." : "Describe your object..."}
-                                        className="w-full h-64 px-4 py-3 text-sm bg-background/50 border border-white/[0.05] rounded-xl resize-none focus:border-primary/50 focus:outline-none transition-all placeholder:text-text-muted pb-14 shadow-inner"
+                                        placeholder={spriteType === "character" ? "e.g. A brave knight with silver armor and a red cape..." : spriteType === "object" ? "e.g. A glowing health potion in a glass bottle..." : "e.g. A wizard casting spells with flowing robes..."}
+                                        className="w-full h-64 px-4 py-3 text-sm bg-background/50 border border-white/[0.08] rounded-xl resize-none focus:border-primary/50 focus:outline-none transition-all placeholder:text-text-dim pb-14"
                                     />
 
                                     {/* Prompt Toolbar */}
@@ -684,19 +680,8 @@ export default function GenerateSpritePage() {
                     ) : (
                         <>
                             {/* Viewport Header */}
-                            <div className="h-10 border-b border-border flex items-center justify-between px-4">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-text-muted">Preview</span>
-                                    <div className="px-2 py-0.5 rounded bg-surface border border-border text-xs text-text-muted">100%</div>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon" className="w-8 h-8">
-                                        <GridFour className="w-4 h-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="w-8 h-8">
-                                        <ArrowsOut className="w-4 h-4" />
-                                    </Button>
-                                </div>
+                            <div className="h-10 border-b border-border flex items-center px-4">
+                                <span className="text-xs text-text-muted">Preview</span>
                             </div>
 
                             {/* Canvas Area */}
