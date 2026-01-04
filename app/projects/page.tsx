@@ -1,45 +1,77 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { Search, Plus, Upload, Image as ImageIcon, Map, Pencil, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef, useTransition } from "react";
+import { Plus, Upload, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { api, Project } from "@/services/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Sidebar } from "@/components/navigation/Sidebar";
+import { Image as ImageIcon, Map, Pencil, Trash2, AlertTriangle } from "lucide-react";
 
-type Project = {
-  id: string;
-  title: string;
-  type: "sprite" | "scene";
-  date: string;
-  color: string;
-};
-
-const mockProjects: Project[] = [
-  { id: "8842", title: "Cyberpunk City", type: "scene", date: "2024-03-10", color: "bg-purple-500" },
-  { id: "9120", title: "Hero Idle Animation", type: "sprite", date: "2024-03-09", color: "bg-blue-500" },
-  { id: "7731", title: "Forest Tileset", type: "sprite", date: "2024-03-08", color: "bg-green-500" },
-  { id: "6654", title: "Dungeon Level 1", type: "scene", date: "2024-03-05", color: "bg-orange-500" },
-  { id: "5521", title: "NPC Merchant", type: "sprite", date: "2024-03-01", color: "bg-pink-500" },
-  { id: "4419", title: "Space Background", type: "scene", date: "2024-02-28", color: "bg-cyan-500" },
+const projectColors = [
+  "bg-blue-500/10 border-blue-500/20 text-blue-500",
+  "bg-purple-500/10 border-purple-500/20 text-purple-500",
+  "bg-green-500/10 border-green-500/20 text-green-500",
+  "bg-amber-500/10 border-amber-500/20 text-amber-500",
+  "bg-pink-500/10 border-pink-500/20 text-pink-500",
+  "bg-cyan-500/10 border-cyan-500/20 text-cyan-500",
 ];
-
-const projectColors = ["bg-purple-500", "bg-blue-500", "bg-green-500", "bg-orange-500", "bg-pink-500", "bg-cyan-500"];
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentFilter, setCurrentFilter] = useState<"all" | "sprite" | "scene">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<"sprite" | "scene">("sprite");
   const [newProjectName, setNewProjectName] = useState("");
+  const [selectedType, setSelectedType] = useState<"sprite" | "scene">("sprite");
   const [isCreating, setIsCreating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Delete modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Rename modal state
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [projectToRename, setProjectToRename] = useState<Project | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchProjects();
+    }
+  }, [user]);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const response = await api.projects.list();
+      if (response && response.projects) {
+        setProjects(response.projects);
+      }
+    } catch (error) {
+      console.error("Failed to fetch projects:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredProjects = projects.filter((p) => {
     const matchesFilter = currentFilter === "all" || p.type === currentFilter;
@@ -47,37 +79,101 @@ export default function ProjectsPage() {
     return matchesFilter && matchesSearch;
   });
 
-  const deleteProject = (id: string) => {
-    setProjects(projects.filter((p) => p.id !== id));
+  // Open delete confirmation modal
+  const handleDeleteClick = (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation();
+    setProjectToDelete(project);
+    setDeleteModalOpen(true);
   };
 
-  const handleCreateProject = () => {
+  // Optimistic delete with rollback
+  const confirmDelete = async () => {
+    if (!projectToDelete) return;
+
+    const projectId = projectToDelete.id;
+    const previousProjects = [...projects];
+
+    // Optimistically remove from UI immediately
+    setProjects(projects.filter((p) => p.id !== projectId));
+    setDeleteModalOpen(false);
+    setIsDeleting(true);
+
+    try {
+      await api.projects.delete(projectId);
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      // Rollback on error
+      setProjects(previousProjects);
+    } finally {
+      setIsDeleting(false);
+      setProjectToDelete(null);
+    }
+  };
+
+  // Open rename modal
+  const handleRenameClick = (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation();
+    setProjectToRename(project);
+    setRenameValue(project.title);
+    setRenameModalOpen(true);
+  };
+
+  // Optimistic rename with rollback
+  const confirmRename = async () => {
+    if (!projectToRename || !renameValue.trim()) return;
+
+    const projectId = projectToRename.id;
+    const previousProjects = [...projects];
+    const newTitle = renameValue.trim();
+
+    // Optimistically update UI immediately
+    setProjects(projects.map((p) =>
+      p.id === projectId ? { ...p, title: newTitle } : p
+    ));
+    setRenameModalOpen(false);
+    setIsRenaming(true);
+
+    try {
+      await api.projects.update(projectId, { title: newTitle });
+    } catch (error) {
+      console.error("Failed to rename project:", error);
+      // Rollback on error
+      setProjects(previousProjects);
+    } finally {
+      setIsRenaming(false);
+      setProjectToRename(null);
+      setRenameValue("");
+    }
+  };
+
+  const handleCreateProject = async () => {
     if (!newProjectName.trim() || isCreating) return;
 
     setIsCreating(true);
+    try {
+      const response = await api.projects.create({
+        title: newProjectName.trim(),
+        type: selectedType,
+        color: projectColors[Math.floor(Math.random() * projectColors.length)],
+        settings: {}, // Default settings
+      });
 
-    const newProject: Project = {
-      id: Math.floor(Math.random() * 9000 + 1000).toString(),
-      title: newProjectName.trim(),
-      type: selectedType,
-      date: new Date().toISOString().split("T")[0],
-      color: projectColors[Math.floor(Math.random() * projectColors.length)],
-    };
+      if (response && response.project) {
+        setProjects([response.project, ...projects]);
+        setIsNewProjectOpen(false);
+        setNewProjectName("");
 
-    setProjects([newProject, ...projects]);
-
-    setTimeout(() => {
-      setIsNewProjectOpen(false);
-      setNewProjectName("");
-      setSelectedType("sprite");
-      setIsCreating(false);
-
-      if (selectedType === "sprite") {
-        router.push(`/sprites?projectId=${newProject.id}`);
-      } else {
-        router.push(`/scenes?projectId=${newProject.id}`);
+        if (selectedType === "sprite") {
+          router.push(`/sprites?projectId=${response.project.id}`);
+        } else {
+          router.push(`/scenes?projectId=${response.project.id}`);
+        }
       }
-    }, 300);
+    } catch (error) {
+      console.error("Failed to create project:", error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleImport = () => {
@@ -85,23 +181,9 @@ export default function ProjectsPage() {
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach((file) => {
-      const newProject: Project = {
-        id: Math.floor(Math.random() * 9000 + 1000).toString(),
-        title: file.name.replace(/\.[^/.]+$/, ""),
-        type: "sprite",
-        date: new Date().toISOString().split("T")[0],
-        color: projectColors[Math.floor(Math.random() * projectColors.length)],
-      };
-      setProjects((prev) => [newProject, ...prev]);
-    });
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    // Import logic would go here. For now it's just a UI placeholder or could create projects from files.
+    // Simplifying for this integration step.
+    console.log("Import not fully implemented with backend yet");
   };
 
   return (
@@ -177,7 +259,11 @@ export default function ProjectsPage() {
               </div>
             </div>
 
-            {filteredProjects.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : filteredProjects.length === 0 ? (
               <Card className="py-16">
                 <CardContent className="flex flex-col items-center text-center">
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -216,7 +302,7 @@ export default function ProjectsPage() {
                     className="group cursor-pointer hover:shadow-md transition-all overflow-hidden"
                     onClick={() => router.push(`/projects/${project.id}`)}
                   >
-                    <div className={`h-40 ${project.color} grid-pattern relative`}>
+                    <div className={`h-40 ${project.color || 'bg-gray-500'} grid-pattern relative`}>
                       <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors"></div>
                       <div className="absolute inset-0 flex items-center justify-center">
                         {project.type === "sprite" ? (
@@ -234,7 +320,7 @@ export default function ProjectsPage() {
                             {project.title}
                           </h3>
                           <p className="text-xs text-text-muted mt-1">
-                            {new Date(project.date).toLocaleDateString()}
+                            {new Date(project.created_at).toLocaleDateString()}
                           </p>
                         </div>
 
@@ -243,20 +329,15 @@ export default function ProjectsPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
+                            onClick={(e) => handleRenameClick(e, project)}
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteProject(project.id);
-                            }}
+                            className="h-8 w-8 hover:bg-red-500/10 hover:text-red-500"
+                            onClick={(e) => handleDeleteClick(e, project)}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -267,7 +348,6 @@ export default function ProjectsPage() {
                         <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium capitalize">
                           {project.type}
                         </span>
-                        <span className="text-xs text-text-muted">#{project.id}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -293,8 +373,8 @@ export default function ProjectsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <Card
                   className={`cursor-pointer transition-all ${selectedType === "sprite"
-                    ? "border-primary bg-primary/10"
-                    : "hover:border-primary/50"
+                      ? "border-primary bg-primary/10"
+                      : "hover:border-primary/50"
                     }`}
                   onClick={() => setSelectedType("sprite")}
                 >
@@ -307,8 +387,8 @@ export default function ProjectsPage() {
 
                 <Card
                   className={`cursor-pointer transition-all ${selectedType === "scene"
-                    ? "border-primary bg-primary/10"
-                    : "hover:border-primary/50"
+                      ? "border-primary bg-primary/10"
+                      : "hover:border-primary/50"
                     }`}
                   onClick={() => setSelectedType("scene")}
                 >
@@ -350,6 +430,77 @@ export default function ProjectsPage() {
               ) : (
                 "Create Project"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+              </div>
+              Delete Project
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete <span className="font-semibold text-text">{projectToDelete?.title}</span>? This action cannot be undone and all associated assets will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Delete Project
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Modal */}
+      <Dialog open={renameModalOpen} onOpenChange={setRenameModalOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Rename Project</DialogTitle>
+            <DialogDescription>
+              Enter a new name for your project
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder="Project name..."
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && renameValue.trim()) {
+                  confirmRename();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setRenameModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmRename}
+              disabled={!renameValue.trim() || renameValue.trim() === projectToRename?.title}
+            >
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from 'react';
 
-// Uncomment when Firebase is configured:
-/*
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
+
+export type { User };
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -21,14 +21,13 @@ export function useAuth() {
     return unsubscribe;
   }, []);
 
-  return { user, loading };
-}
-*/
+  const signOut = async () => {
+    try {
+      await firebaseSignOut(auth);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
-// Placeholder for development
-export function useAuth() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  return { user, loading };
+  return { user, loading, signOut };
 }

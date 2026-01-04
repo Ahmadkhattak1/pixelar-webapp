@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { Loader2 } from "lucide-react";
 import {
     CaretLeft,
     Upload,
-    Lightning,
     X,
     Check,
     Sparkle,
@@ -29,13 +32,13 @@ import {
     PersonSimple,
     Image as ImageIcon,
 } from "@phosphor-icons/react";
+
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import dynamic from "next/dynamic";
 import { ProfileModal } from "@/components/profile-modal";
 import { BYOKButton } from "@/components/home/BYOKButton";
-import Image from "next/image";
+import { useAuth } from "@/hooks/useAuth";
+import { api, Asset } from "@/services/api";
 
 // Dynamically import PoseEditor to avoid SSR issues with Canvas
 const PoseEditor = dynamic(() => import("@/components/pose-editor/PoseEditor"), {
@@ -43,13 +46,29 @@ const PoseEditor = dynamic(() => import("@/components/pose-editor/PoseEditor"), 
     loading: () => <div className="flex items-center justify-center h-full text-text-muted">Loading 3D Editor...</div>
 });
 
-type SpriteType = "character" | "object";
+type SpriteType = "character" | "object" | "animation";
 type Viewpoint = "front" | "back" | "side" | "top_down" | "isometric";
-type Style = "2d_flat" | "pixel_art";
+type Style =
+    | "default"
+    | "retro"
+    | "watercolor"
+    | "textured"
+    | "cartoon"
+    | "character_turnaround"
+    | "isometric_asset"
+    | "topdown_asset"
+    | "classic"
+    | "topdown_item"
+    | "mc_item"
+    | "skill_icon"
+    | "pixel_art" // Legacy fallback
+    | "2d_flat";  // Legacy fallback
 
 export default function GenerateSpritePage() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const projectId = searchParams.get("projectId");
+    const { user } = useAuth();
 
     // State
     const [spriteType, setSpriteType] = useState<SpriteType>("character");
@@ -58,8 +77,10 @@ export default function GenerateSpritePage() {
     const [colors, setColors] = useState<string[]>([]);
     const [customColor, setCustomColor] = useState("");
     const [viewpoint, setViewpoint] = useState<Viewpoint>("front");
-    const [style, setStyle] = useState<Style>("pixel_art");
+    const [style, setStyle] = useState<Style>("default");
     const [dimensions, setDimensions] = useState("64x64");
+    const [quantity, setQuantity] = useState(1);
+    const [removeBg, setRemoveBg] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
     const [previewImages, setPreviewImages] = useState<string[]>([]);
     const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
@@ -68,6 +89,8 @@ export default function GenerateSpritePage() {
     const [isEditingPose, setIsEditingPose] = useState(false);
     const [poseImage, setPoseImage] = useState<string | null>(null);
     const [showBYOKPrompt, setShowBYOKPrompt] = useState(false);
+    const [generatedAssets, setGeneratedAssets] = useState<Asset[]>([]);
+    const [animationStyle, setAnimationStyle] = useState<"four_angle_walking" | "walking_and_idle" | "small_sprites" | "vfx">("four_angle_walking");
     const mainRef = useRef<HTMLDivElement>(null);
 
     const handleReferenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,6 +109,17 @@ export default function GenerateSpritePage() {
         });
     };
 
+    // Auto-set dimensions based on animation style
+    useEffect(() => {
+        if (spriteType === 'animation') {
+            if (animationStyle === 'four_angle_walking' || animationStyle === 'walking_and_idle') {
+                setDimensions("48x48");
+            } else if (animationStyle === 'small_sprites') {
+                setDimensions("32x32");
+            }
+        }
+    }, [spriteType, animationStyle]);
+
     const handleRemoveReferenceImage = (index: number) => {
         setReferenceImages(prev => prev.filter((_, i) => i !== index));
     };
@@ -101,37 +135,112 @@ export default function GenerateSpritePage() {
         setColors(colors.filter((_, i) => i !== index));
     };
 
-    const handleGenerateSprite = () => {
+    const handleGenerateSprite = async () => {
         if (!prompt.trim()) return;
 
-        // Check for API key
+        // Check for API key (BYOK)
         const apiKey = localStorage.getItem("replicate_api_key");
-        if (!apiKey) {
-            setShowBYOKPrompt(true);
-            return;
-        }
 
         setIsGenerating(true);
+        setPreviewImages([]);
+        setGeneratedAssets([]);
+        setSelectedPreview(null);
 
-        setTimeout(() => {
-            const mockImages = [
-                `https://picsum.photos/seed/${Math.random()}/400/400`,
-                `https://picsum.photos/seed/${Math.random()}/400/400`,
-                `https://picsum.photos/seed/${Math.random()}/400/400`,
-                `https://picsum.photos/seed/${Math.random()}/400/400`,
-            ];
-            setPreviewImages(mockImages);
+        try {
+            let result;
+
+            if (spriteType === "animation") {
+                // Direct Animation Generation
+                const [w, h] = dimensions.split('x').map(Number);
+                result = await api.generation.generateDirectAnimation({
+                    prompt,
+                    style: animationStyle,
+                    width: w || 48,
+                    height: h || 48,
+                    quantity,
+                    projectId: projectId || undefined,
+                    apiKey: apiKey || undefined,
+                    return_spritesheet: true,
+                    bypass_prompt_expansion: false
+                });
+            } else {
+                // Standard Sprite Generation
+                result = await api.generation.generateSprite({
+                    prompt,
+                    style,
+                    viewpoint,
+                    colors,
+                    dimensions,
+                    quantity,
+                    referenceImage: referenceImages[0],
+                    poseImage: poseImage || undefined,
+                    projectId: projectId || undefined,
+                    apiKey: apiKey || undefined,
+                    removeBg,
+                    spriteType
+                });
+            }
+
+            if (result.success) {
+                setPreviewImages(result.images);
+                if (result.assets) {
+                    setGeneratedAssets(result.assets);
+                }
+            } else {
+                console.error("Generation failed:", result.error);
+                // TODO: Show error toast
+            }
+        } catch (error: any) {
+            console.error("Generation error:", error);
+            if (error.message && (error.message.includes("No API key configured") || error.message.includes("Invalid or expired token"))) {
+                setShowBYOKPrompt(true);
+            }
+        } finally {
             setIsGenerating(false);
-        }, 2000);
+        }
     };
 
-    const handleCreateProject = () => {
-        if (selectedPreview !== null) {
-            if (projectId) {
-                window.location.href = `/projects/${projectId}`;
-            } else {
-                window.location.href = "/projects";
+    const handleCreateProject = async () => {
+        if (selectedPreview === null) return;
+
+        try {
+            let targetProjectId = projectId;
+
+            // 1. Create project if needed
+            if (!targetProjectId) {
+                const title = "Untitled";
+
+                const projectRes = await api.projects.create({
+                    title,
+                    type: 'sprite', // Always sprite project for this page
+                    description: prompt,
+                    settings: {
+                        style,
+                        dimension: dimensions
+                    }
+                });
+
+                if (projectRes.success && projectRes.project) {
+                    targetProjectId = projectRes.project.id;
+                } else {
+                    console.error("Failed to create project");
+                    return;
+                }
             }
+
+            // 2. Link Asset to Project
+            if (targetProjectId && generatedAssets[selectedPreview]) {
+                const assetId = generatedAssets[selectedPreview].id;
+                await api.assets.update(assetId, {
+                    project_id: targetProjectId
+                });
+            }
+
+            // 3. Navigate
+            router.push(`/projects/${targetProjectId}`);
+
+        } catch (error) {
+            console.error("Error creating project:", error);
         }
     };
 
@@ -171,26 +280,36 @@ export default function GenerateSpritePage() {
                             {/* Sprite Type Selector */}
                             <div className="p-4 rounded-xl bg-surface-highlight/40 space-y-3">
                                 <Label className="studio-field-label">Sprite Type</Label>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-3 gap-2">
                                     <button
                                         onClick={() => setSpriteType("character")}
-                                        className={`flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${spriteType === "character"
+                                        className={`flex items-center justify-center gap-1.5 h-10 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "character"
                                             ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
                                             : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.1]"
                                             }`}
                                     >
-                                        <User className={`w-4 h-4 ${spriteType === "character" ? "text-primary" : "text-text-muted"}`} />
+                                        <User className={`w-3.5 h-3.5 ${spriteType === "character" ? "text-primary" : "text-text-muted"}`} />
                                         Character
                                     </button>
                                     <button
                                         onClick={() => setSpriteType("object")}
-                                        className={`flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold transition-all duration-200 border ${spriteType === "object"
+                                        className={`flex items-center justify-center gap-1.5 h-10 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "object"
                                             ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
                                             : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.1]"
                                             }`}
                                     >
-                                        <Cube className={`w-4 h-4 ${spriteType === "object" ? "text-primary" : "text-text-muted"}`} />
+                                        <Cube className={`w-3.5 h-3.5 ${spriteType === "object" ? "text-primary" : "text-text-muted"}`} />
                                         Object
+                                    </button>
+                                    <button
+                                        onClick={() => setSpriteType("animation")}
+                                        className={`flex items-center justify-center gap-1.5 h-10 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "animation"
+                                            ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
+                                            : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.1]"
+                                            }`}
+                                    >
+                                        <PersonSimple className={`w-3.5 h-3.5 ${spriteType === "animation" ? "text-primary" : "text-text-muted"}`} />
+                                        Animation
                                     </button>
                                 </div>
                             </div>
@@ -261,81 +380,173 @@ export default function GenerateSpritePage() {
                             <div className="p-4 rounded-xl bg-surface-highlight/40 space-y-4">
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1.5">
-                                        <Label className="text-[11px] font-medium text-text-muted ml-1">Dimensions</Label>
+                                        <div className="flex items-center gap-1.5 ml-1">
+                                            <Label className="text-[11px] font-medium text-text-muted">Dimensions</Label>
+                                        </div>
                                         <div className="relative">
                                             <select
                                                 value={dimensions}
                                                 onChange={(e) => setDimensions(e.target.value)}
                                                 className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
+                                                disabled={spriteType === 'animation' && animationStyle !== 'vfx'}
                                             >
-                                                <option value="32x32">32x32</option>
-                                                <option value="64x64">64x64</option>
-                                                <option value="128x128">128x128</option>
-                                                <option value="256x256">256x256</option>
+                                                {spriteType === 'animation' ? (
+                                                    <>
+                                                        <option value="32x32">32x32</option>
+                                                        <option value="48x48">48x48</option>
+                                                        <option value="64x64">64x64</option>
+                                                        <option value="96x96">96x96</option>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <option value="32x32">32x32</option>
+                                                        <option value="64x64">64x64</option>
+                                                        <option value="128x128">128x128</option>
+                                                        <option value="256x256">256x256</option>
+                                                        <option value="384x384">384x384 (Max)</option>
+                                                    </>
+                                                )}
                                             </select>
                                             <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
                                         </div>
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <Label className="text-[11px] font-medium text-text-muted ml-1">Viewpoint</Label>
-                                        <div className="relative">
-                                            <select
-                                                value={viewpoint}
-                                                onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
-                                                className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="front">Front</option>
-                                                <option value="back">Back</option>
-                                                <option value="side">Side</option>
-                                                <option value="top_down">Top Down</option>
-                                                <option value="isometric">Isometric</option>
-                                            </select>
-                                            <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+
+                                    {spriteType === "animation" ? (
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-1.5 ml-1">
+                                                <Label className="text-[11px] font-medium text-text-muted">Anim Style</Label>
+                                            </div>
+                                            <div className="relative">
+                                                <select
+                                                    value={animationStyle}
+                                                    onChange={(e) => setAnimationStyle(e.target.value as any)}
+                                                    className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
+                                                >
+                                                    <option value="four_angle_walking">4-Angle Walk</option>
+                                                    <option value="walking_and_idle">Walk + Idle</option>
+                                                    <option value="small_sprites">Small Sprites</option>
+                                                    <option value="vfx">VFX</option>
+                                                </select>
+                                                <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+                                            </div>
                                         </div>
+                                    ) : (
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-1.5 ml-1">
+                                                <Label className="text-[11px] font-medium text-text-muted">Viewpoint</Label>
+                                                <div className="group relative">
+                                                    <div className="w-3 h-3 rounded-full border border-text-dim flex items-center justify-center cursor-help text-[8px] text-text-dim">?</div>
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-popover border border-border rounded-lg shadow-xl text-[10px] text-text-muted leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                                        Perspective angle of the sprite (e.g., Side view for platformers, Top Down for RPGs).
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="relative">
+                                                <select
+                                                    value={viewpoint}
+                                                    onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
+                                                    className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
+                                                >
+                                                    <option value="front">Front</option>
+                                                    <option value="back">Back</option>
+                                                    <option value="side">Side</option>
+                                                    <option value="top_down">Top Down</option>
+                                                    <option value="isometric">Isometric</option>
+                                                </select>
+                                                <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[11px] font-medium text-text-muted ml-1">Quantity</Label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {[1, 2, 3, 4].map((n) => (
+                                            <button
+                                                key={n}
+                                                onClick={() => setQuantity(n)}
+                                                className={`h-9 rounded-lg text-xs font-semibold transition-all border ${quantity === n
+                                                    ? "bg-primary text-white border-primary shadow-sm"
+                                                    : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text"
+                                                    }`}
+                                            >
+                                                {n}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 
                                 {/* Advanced Options Toggle */}
-                                <div className="pt-1">
-                                    <button
-                                        onClick={() => setShowAdvanced(!showAdvanced)}
-                                        className="flex items-center gap-2.5 text-[11px] font-semibold text-text-muted hover:text-white transition-all group"
-                                    >
-                                        <div className="p-1 rounded-lg bg-background/50 border border-white/[0.05] group-hover:border-primary/30 transition-all shadow-sm group-active:scale-95">
-                                            {showAdvanced ? (
-                                                <CaretDown className="w-3 h-3" />
-                                            ) : (
-                                                <CaretRight className="w-3 h-3" />
-                                            )}
-                                        </div>
-                                        Advanced Options
-                                    </button>
-                                </div>
+                                {spriteType !== "animation" && (
+                                    <div className="pt-1">
+                                        <button
+                                            onClick={() => setShowAdvanced(!showAdvanced)}
+                                            className="flex items-center gap-2.5 text-[11px] font-semibold text-text-muted hover:text-white transition-all group"
+                                        >
+                                            <div className="p-1 rounded-lg bg-background/50 border border-white/[0.05] group-hover:border-primary/30 transition-all shadow-sm group-active:scale-95">
+                                                {showAdvanced ? (
+                                                    <CaretDown className="w-3 h-3" />
+                                                ) : (
+                                                    <CaretRight className="w-3 h-3" />
+                                                )}
+                                            </div>
+                                            Advanced Options
+                                        </button>
+                                    </div>
+                                )}
 
                                 {/* Collapsible Content */}
-                                {showAdvanced && (
+                                {showAdvanced && spriteType !== "animation" && (
                                     <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
                                         {/* Style */}
                                         <div className="space-y-2">
-                                            <Label className="text-[11px] text-text-muted ml-1">Style</Label>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {[
-                                                    { value: "pixel_art", label: "Pixel Art", icon: GridFour },
-                                                    { value: "2d_flat", label: "2D Flat", icon: Stack },
-                                                ].map(({ value, label, icon: Icon }) => (
-                                                    <button
-                                                        key={value}
-                                                        onClick={() => setStyle(value as Style)}
-                                                        className={`flex items-center justify-center gap-2 h-9 px-3 rounded-xl text-[11px] font-semibold transition-all duration-200 border ${style === value
-                                                            ? "bg-primary/10 border-primary/50 text-primary shadow-sm"
-                                                            : "bg-background/40 border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text"
-                                                            }`}
-                                                    >
-                                                        <Icon className={`w-3.5 h-3.5 ${style === value ? "text-primary" : "text-text-muted"}`} />
-                                                        {label}
-                                                    </button>
-                                                ))}
+                                            <div className="flex items-center gap-1.5 ml-1">
+                                                <Label className="text-[11px] text-text-muted">Style</Label>
+                                                <div className="group relative">
+                                                    <div className="w-3 h-3 rounded-full border border-text-dim flex items-center justify-center cursor-help text-[8px] text-text-dim">?</div>
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-popover border border-border rounded-lg shadow-xl text-[10px] text-text-muted leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                                        Artistic rendering style. 'Pixel Art' enforces strict grid alignment, while 'Retro' allows more organic shapes.
+                                                    </div>
+                                                </div>
                                             </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                                                    {[
+                                                        { value: "default", label: "Default" },
+                                                        { value: "retro", label: "Retro (PC98)" },
+                                                        { value: "classic", label: "Classic" },
+                                                        { value: "cartoon", label: "Cartoon" },
+                                                        { value: "mc_item", label: "Minecraft Item" },
+                                                        { value: "skill_icon", label: "Skill Icon" },
+                                                        { value: "isometric_asset", label: "Isometric" },
+                                                        { value: "topdown_asset", label: "Top-Down" },
+                                                        { value: "character_turnaround", label: "Turnaround" },
+                                                        { value: "watercolor", label: "Watercolor" },
+                                                    ].map(({ value, label }) => (
+                                                        <button
+                                                            key={value}
+                                                            onClick={() => setStyle(value as Style)}
+                                                            className={`flex items-center justify-center gap-2 h-8 px-2 rounded-lg text-[10px] font-semibold transition-all duration-200 border ${style === value
+                                                                ? "bg-primary/10 border-primary/50 text-primary shadow-sm"
+                                                                : "bg-background/40 border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text"
+                                                                }`}
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Remove Background Toggle */}
+                                        <div className="flex items-center justify-between px-1">
+                                            <Label className="text-[11px] text-text-muted">Remove Background</Label>
+                                            <button
+                                                onClick={() => setRemoveBg(!removeBg)}
+                                                className={`w-8 h-4 rounded-full transition-colors relative ${removeBg ? "bg-primary" : "bg-surface-highlight border border-border"}`}
+                                            >
+                                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${removeBg ? "translate-x-4" : "translate-x-0"}`} />
+                                            </button>
                                         </div>
 
                                         {/* Colors */}
@@ -436,35 +647,22 @@ export default function GenerateSpritePage() {
 
                     <div className="flex items-center gap-4">
                         {/* BYOK Button */}
-                        <BYOKButton />
-
-                        {/* Credits Badge */}
-                        <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] hover:border-white/[0.15] transition-colors cursor-pointer group">
-                            <div className="w-5 h-5 rounded-full bg-amber-400/10 flex items-center justify-center shadow-sm">
-                                <Lightning className="w-3 h-3 text-amber-400" weight="fill" />
-                            </div>
-                            <div className="flex items-baseline gap-1.5">
-                                <span className="text-sm font-bold text-white tracking-tight">450</span>
-                                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Credits</span>
-                            </div>
-                        </div>
-
-                        <div className="h-6 w-[1px] bg-white/[0.08] hidden md:block" />
+                        <BYOKButton open={showBYOKPrompt} onOpenChange={setShowBYOKPrompt} />
 
                         {/* Profile Section */}
                         <ProfileModal>
                             <div className="flex items-center gap-3 px-1 py-1 pl-3 bg-white/[0.03] hover:bg-white/[0.08] rounded-full border border-white/[0.08] hover:border-white/[0.15] cursor-pointer transition-all duration-200 active:scale-[0.98]">
                                 <div className="hidden md:flex flex-col items-end">
-                                    <span className="text-xs font-bold text-white tracking-wide">Alex Design</span>
-                                    <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Pro Member</span>
+                                    <span className="text-xs font-bold text-white tracking-wide">{user?.displayName || "User"}</span>
+                                    <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Free Plan</span>
                                 </div>
                                 <div className="relative">
                                     <img
-                                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                        alt="User"
+                                        src={user?.photoURL || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                                        alt={user?.displayName || "User"}
                                         className="w-8 h-8 rounded-full border-2 border-surface-highlight bg-surface-highlight shadow-inner"
                                     />
-                                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-primary border-2 border-background rounded-full shadow-sm" />
+                                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-background rounded-full shadow-sm" />
                                 </div>
                             </div>
                         </ProfileModal>
@@ -502,8 +700,27 @@ export default function GenerateSpritePage() {
                             </div>
 
                             {/* Canvas Area */}
-                            <div className="flex-1 overflow-auto flex items-center justify-center relative">
-                                {previewImages.length === 0 ? (
+                            <div className="flex-1 overflow-auto flex items-center justify-center relative bg-[url('/grid-pattern.svg')] bg-center">
+                                {/* Loading State */}
+                                {isGenerating ? (
+                                    <div className="grid grid-cols-2 gap-6 p-8 max-w-3xl mx-auto animate-in fade-in duration-500">
+                                        {[...Array(quantity)].map((_, index) => (
+                                            <div
+                                                key={index}
+                                                className="aspect-square bg-surface/50 rounded-lg border border-border border-dashed flex flex-col items-center justify-center relative overflow-hidden"
+                                            >
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" style={{ transform: 'skewX(-20deg) translateX(-150%)' }} />
+                                                <div className="flex flex-col items-center gap-3 z-10">
+                                                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                                                    <div className="space-y-1 text-center">
+                                                        <span className="text-xs font-semibold text-text-muted">Generating...</span>
+                                                        <span className="text-[10px] text-text-dim block">{dimensions}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : previewImages.length === 0 ? (
                                     <div className="text-center space-y-4 max-w-xs">
                                         <div className="w-16 h-16 rounded-xl bg-surface border border-border flex items-center justify-center mx-auto">
                                             <Command className="w-6 h-6 text-text-muted" />
@@ -511,7 +728,7 @@ export default function GenerateSpritePage() {
                                         <p className="text-sm text-text-muted">Configure settings and generate to see results</p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-2 gap-6 p-8 w-full max-w-3xl">
+                                    <div className="grid grid-cols-2 gap-6 p-8 max-w-3xl mx-auto">
                                         {previewImages.map((img, index) => (
                                             <div
                                                 key={index}

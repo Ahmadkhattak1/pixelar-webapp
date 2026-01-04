@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
 import {
     CaretLeft,
     Upload,
@@ -26,18 +29,31 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
 import { ProfileModal } from "@/components/profile-modal";
 import { BYOKButton } from "@/components/home/BYOKButton";
-import Image from "next/image";
+import { useAuth } from "@/hooks/useAuth";
+import { api, Asset } from "@/services/api";
 
 type SceneType = "indoor" | "outdoor";
 type Viewpoint = "front" | "back" | "side" | "top_down" | "isometric";
-type Style = "2d_flat" | "pixel_art";
+type Style =
+    | "environment"
+    | "isometric"
+    | "topdown_map"
+    | "textured"
+    | "watercolor"
+    | "low_res"
+    | "mc_texture"
+    | "retro"
+    | "default"
+    | "pixel_art" // Legacy
+    | "2d_flat";  // Legacy
 
 export default function GenerateScenePage() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const projectId = searchParams.get("projectId");
+    const { user } = useAuth();
 
     // State
     const [sceneType, setSceneType] = useState<SceneType>("outdoor");
@@ -46,10 +62,14 @@ export default function GenerateScenePage() {
     const [colors, setColors] = useState<string[]>([]);
     const [customColor, setCustomColor] = useState("");
     const [viewpoint, setViewpoint] = useState<Viewpoint>("isometric");
-    const [style, setStyle] = useState<Style>("pixel_art");
-    const [dimensions, setDimensions] = useState("512x512");
+    const [style, setStyle] = useState<Style>("environment");
+    const [dimensions, setDimensions] = useState("256x256");
+    const [quantity, setQuantity] = useState(1);
+    const [tileX, setTileX] = useState(false);
+    const [tileY, setTileY] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [previewImages, setPreviewImages] = useState<string[]>([]);
+    const [generatedAssets, setGeneratedAssets] = useState<Asset[]>([]);
     const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -87,37 +107,90 @@ export default function GenerateScenePage() {
         setColors(colors.filter((_, i) => i !== index));
     };
 
-    const handleGenerateScene = () => {
+    const handleGenerateScene = async () => {
         if (!prompt.trim()) return;
 
-        // Check for API key
+        // Check for API key (BYOK)
         const apiKey = localStorage.getItem("replicate_api_key");
-        if (!apiKey) {
-            setShowBYOKPrompt(true);
-            return;
-        }
+        // Backend handles credit deduction if no key.
 
         setIsGenerating(true);
+        setPreviewImages([]);
+        setGeneratedAssets([]);
+        setSelectedPreview(null);
 
-        setTimeout(() => {
-            const mockImages = [
-                `https://picsum.photos/seed/${Math.random()}/800/600`,
-                `https://picsum.photos/seed/${Math.random()}/800/600`,
-                `https://picsum.photos/seed/${Math.random()}/800/600`,
-                `https://picsum.photos/seed/${Math.random()}/800/600`,
-            ];
-            setPreviewImages(mockImages);
+        try {
+            const result = await api.generation.generateScene({
+                prompt,
+                style,
+                viewpoint,
+                colors,
+                dimensions,
+                quantity,
+                referenceImage: referenceImages[0],
+                projectId: projectId || undefined,
+                apiKey: apiKey || undefined,
+                tileX, // Passing new param
+                tileY  // Passing new param
+            });
+
+            if (result.success) {
+                setPreviewImages(result.images);
+                if (result.assets) {
+                    setGeneratedAssets(result.assets);
+                }
+            } else {
+                console.error("Generation failed:", result.error);
+                // TODO: Show toast
+            }
+        } catch (error) {
+            console.error("Scene generation error:", error);
+        } finally {
             setIsGenerating(false);
-        }, 2000);
+        }
     };
 
-    const handleCreateProject = () => {
-        if (selectedPreview !== null) {
-            if (projectId) {
-                window.location.href = `/scenes/preview?projectId=${projectId}`;
-            } else {
-                window.location.href = "/projects";
+    const handleCreateProject = async () => {
+        if (selectedPreview === null) return;
+
+        try {
+            let targetProjectId = projectId;
+
+            // 1. Create project if needed
+            if (!targetProjectId) {
+                const title = "Untitled";
+
+                const projectRes = await api.projects.create({
+                    title,
+                    type: 'scene',
+                    description: prompt,
+                    settings: {
+                        style,
+                        dimension: dimensions
+                    }
+                });
+
+                if (projectRes.success && projectRes.project) {
+                    targetProjectId = projectRes.project.id;
+                } else {
+                    console.error("Failed to create project");
+                    return;
+                }
             }
+
+            // 2. Link Asset to Project
+            if (targetProjectId && generatedAssets[selectedPreview]) {
+                const assetId = generatedAssets[selectedPreview].id;
+                await api.assets.update(assetId, {
+                    project_id: targetProjectId
+                });
+            }
+
+            // 3. Navigate
+            router.push(`/projects/${targetProjectId}`);
+
+        } catch (error) {
+            console.error("Error creating project:", error);
         }
     };
 
@@ -244,9 +317,9 @@ export default function GenerateScenePage() {
                                                 onChange={(e) => setDimensions(e.target.value)}
                                                 className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
                                             >
+                                                <option value="128x128">128x128</option>
                                                 <option value="256x256">256x256</option>
-                                                <option value="512x512">512x512</option>
-                                                <option value="1024x1024">1024x1024</option>
+                                                <option value="384x384">384x384 (Max)</option>
                                             </select>
                                             <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
                                         </div>
@@ -266,6 +339,24 @@ export default function GenerateScenePage() {
                                                 <option value="isometric">Isometric</option>
                                             </select>
                                             <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[11px] font-medium text-text-muted ml-1">Quantity</Label>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {[1, 2, 3, 4].map((n) => (
+                                                <button
+                                                    key={n}
+                                                    onClick={() => setQuantity(n)}
+                                                    className={`h-9 rounded-lg text-xs font-semibold transition-all border ${quantity === n
+                                                        ? "bg-primary text-white border-primary shadow-sm"
+                                                        : "bg-surface border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text"
+                                                        }`}
+                                                >
+                                                    {n}
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
@@ -294,22 +385,54 @@ export default function GenerateScenePage() {
                                         <div className="space-y-2">
                                             <Label className="text-[11px] text-text-muted ml-1">Style</Label>
                                             <div className="grid grid-cols-2 gap-2">
-                                                {[
-                                                    { value: "pixel_art", label: "Pixel Art", icon: GridFour },
-                                                    { value: "2d_flat", label: "2D Flat", icon: Stack },
-                                                ].map(({ value, label, icon: Icon }) => (
+                                                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                                                    {[
+                                                        { value: "environment", label: "Environment" },
+                                                        { value: "isometric", label: "Isometric" },
+                                                        { value: "topdown_map", label: "Top-Down Map" },
+                                                        { value: "textured", label: "Textured" },
+                                                        { value: "watercolor", label: "Watercolor" },
+                                                        { value: "low_res", label: "Low Res" },
+                                                        { value: "mc_texture", label: "Minecraft Texture" },
+                                                        { value: "retro", label: "Retro (PC98)" },
+                                                    ].map(({ value, label }) => (
+                                                        <button
+                                                            key={value}
+                                                            onClick={() => setStyle(value as Style)}
+                                                            className={`flex items-center justify-center gap-2 h-8 px-2 rounded-lg text-[10px] font-semibold transition-all duration-200 border ${style === value
+                                                                ? "bg-primary/10 border-primary/50 text-primary shadow-sm"
+                                                                : "bg-background/40 border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text"
+                                                                }`}
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Tiling Toggles */}
+                                        <div className="space-y-2 pt-2 border-t border-white/[0.05]">
+                                            <Label className="text-[11px] text-text-muted ml-1">Seamless Tiling</Label>
+                                            <div className="flex gap-4">
+                                                <div className="flex items-center justify-between flex-1 px-1">
+                                                    <Label className="text-[10px] text-text-dim">Horizontal (X)</Label>
                                                     <button
-                                                        key={value}
-                                                        onClick={() => setStyle(value as Style)}
-                                                        className={`flex items-center justify-center gap-2 h-9 px-3 rounded-xl text-[11px] font-semibold transition-all duration-200 border ${style === value
-                                                            ? "bg-primary/10 border-primary/50 text-primary shadow-sm"
-                                                            : "bg-background/40 border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text"
-                                                            }`}
+                                                        onClick={() => setTileX(!tileX)}
+                                                        className={`w-8 h-4 rounded-full transition-colors relative ${tileX ? "bg-primary" : "bg-surface-highlight border border-border"}`}
                                                     >
-                                                        <Icon className={`w-3.5 h-3.5 ${style === value ? "text-primary" : "text-text-muted"}`} />
-                                                        {label}
+                                                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${tileX ? "translate-x-4" : "translate-x-0"}`} />
                                                     </button>
-                                                ))}
+                                                </div>
+                                                <div className="flex items-center justify-between flex-1 px-1">
+                                                    <Label className="text-[10px] text-text-dim">Vertical (Y)</Label>
+                                                    <button
+                                                        onClick={() => setTileY(!tileY)}
+                                                        className={`w-8 h-4 rounded-full transition-colors relative ${tileY ? "bg-primary" : "bg-surface-highlight border border-border"}`}
+                                                    >
+                                                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${tileY ? "translate-x-4" : "translate-x-0"}`} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -414,33 +537,21 @@ export default function GenerateScenePage() {
                         {/* BYOK Button */}
                         <BYOKButton />
 
-                        {/* Credits Badge */}
-                        <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] hover:border-white/[0.15] transition-colors cursor-pointer group">
-                            <div className="w-5 h-5 rounded-full bg-amber-400/10 flex items-center justify-center shadow-sm">
-                                <Lightning className="w-3 h-3 text-amber-400" weight="fill" />
-                            </div>
-                            <div className="flex items-baseline gap-1.5">
-                                <span className="text-sm font-bold text-white tracking-tight">450</span>
-                                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Credits</span>
-                            </div>
-                        </div>
-
-                        <div className="h-6 w-[1px] bg-white/[0.08] hidden md:block" />
 
                         {/* Profile Section */}
                         <ProfileModal>
                             <div className="flex items-center gap-3 px-1 py-1 pl-3 bg-white/[0.03] hover:bg-white/[0.08] rounded-full border border-white/[0.08] hover:border-white/[0.15] cursor-pointer transition-all duration-200 active:scale-[0.98]">
                                 <div className="hidden md:flex flex-col items-end">
-                                    <span className="text-xs font-bold text-white tracking-wide">Alex Design</span>
-                                    <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Pro Member</span>
+                                    <span className="text-xs font-bold text-white tracking-wide">{user?.displayName || "User"}</span>
+                                    <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Free Plan</span>
                                 </div>
                                 <div className="relative">
                                     <img
-                                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                        alt="User"
+                                        src={user?.photoURL || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                                        alt={user?.displayName || "User"}
                                         className="w-8 h-8 rounded-full border-2 border-surface-highlight bg-surface-highlight shadow-inner"
                                     />
-                                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-primary border-2 border-background rounded-full shadow-sm" />
+                                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-background rounded-full shadow-sm" />
                                 </div>
                             </div>
                         </ProfileModal>
@@ -466,8 +577,26 @@ export default function GenerateScenePage() {
                     </div>
 
                     {/* Canvas Area */}
-                    <div className="flex-1 overflow-auto flex items-center justify-center relative">
-                        {previewImages.length === 0 ? (
+                    <div className="flex-1 overflow-auto flex items-center justify-center relative bg-[url('/grid-pattern.svg')] bg-center">
+                        {isGenerating ? (
+                            <div className="grid grid-cols-2 gap-6 p-8 max-w-4xl mx-auto animate-in fade-in duration-500">
+                                {[...Array(quantity)].map((_, index) => (
+                                    <div
+                                        key={index}
+                                        className="aspect-video bg-surface/50 rounded-lg border border-border border-dashed flex flex-col items-center justify-center relative overflow-hidden"
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" style={{ transform: 'skewX(-20deg) translateX(-150%)' }} />
+                                        <div className="flex flex-col items-center gap-3 z-10">
+                                            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                                            <div className="space-y-1 text-center">
+                                                <span className="text-xs font-semibold text-text-muted">Generating...</span>
+                                                <span className="text-[10px] text-text-dim block">{dimensions}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : previewImages.length === 0 ? (
                             <div className="text-center space-y-4 max-w-xs">
                                 <div className="w-16 h-16 rounded-xl bg-surface border border-border flex items-center justify-center mx-auto">
                                     <Command className="w-6 h-6 text-text-muted" />
@@ -475,7 +604,7 @@ export default function GenerateScenePage() {
                                 <p className="text-sm text-text-muted">Configure settings and generate to see results</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 gap-6 p-8 w-full max-w-4xl">
+                            <div className="grid grid-cols-2 gap-6 p-8 max-w-4xl mx-auto">
                                 {previewImages.map((img, index) => (
                                     <div
                                         key={index}

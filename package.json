@@ -18,6 +18,7 @@
     "@types/gif.js": "^0.2.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "firebase": "^12.7.0",
     "framer-motion": "^12.23.26",
     "gif.js": "^0.2.0",
     "lottie-react": "^2.4.1",

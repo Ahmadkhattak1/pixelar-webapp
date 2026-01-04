@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Zap } from "lucide-react";
 import { ProfileModal } from "@/components/profile-modal";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface HeaderProps {
     title?: string;
@@ -12,6 +12,8 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle, children }: HeaderProps) {
+    const { user } = useAuthContext();
+
     return (
         <header className="border-b border-primary/15 bg-surface/50 backdrop-blur-md px-6 py-3 z-50 sticky top-0">
             <div className="flex items-center justify-between gap-6">
@@ -41,26 +43,16 @@ export function Header({ title, subtitle, children }: HeaderProps) {
                 <div className="flex items-center gap-4">
                     {children}
 
-                    <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface-highlight border border-primary/15">
-                        <div className="flex items-center gap-1.5">
-                            <Zap className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                            <span className="text-xs font-mono font-semibold text-text">450</span>
-                        </div>
-                        <div className="w-[1px] h-4 bg-primary/20" />
-                        <span className="text-xs text-text-muted">Credits</span>
-                    </div>
-
                     <ProfileModal>
                         <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-surface-highlight rounded-lg border border-primary/15 cursor-pointer hover:bg-surface-highlight/80 transition-colors">
                             <div className="text-right">
-                                <div className="text-xs font-medium text-text">Alex Design</div>
-                                <div className="text-[10px] text-text-muted">Pro Plan</div>
+                                <div className="text-xs font-medium text-text">{user?.displayName || "User"}</div>
                             </div>
                             <div className="w-6 h-6 rounded-md bg-primary p-[0.5px]">
                                 <img
-                                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                    alt="User"
-                                    className="w-full h-full rounded-[3px] bg-black"
+                                    src={user?.photoURL || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                                    alt={user?.displayName || "User"}
+                                    className="w-full h-full rounded-[3px] bg-black object-cover"
                                 />
                             </div>
                         </div>
@@ -69,9 +61,9 @@ export function Header({ title, subtitle, children }: HeaderProps) {
                     <ProfileModal>
                         <div className="w-8 h-8 rounded-md bg-primary p-[1px] sm:hidden cursor-pointer hover:opacity-80 transition-opacity">
                             <img
-                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                alt="User"
-                                className="w-full h-full rounded-[5px] bg-black"
+                                src={user?.photoURL || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                                alt={user?.displayName || "User"}
+                                className="w-full h-full rounded-[5px] bg-black object-cover"
                             />
                         </div>
                     </ProfileModal>

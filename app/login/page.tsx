@@ -5,34 +5,36 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
-// Uncomment when Firebase is configured:
-/*
 import { auth, googleProvider } from "@/lib/firebase";
 import { signInWithPopup } from "firebase/auth";
-*/
+import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { syncUserWithBackend } = useAuthContext();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      router.push('/home');
+    }
+  }, [user, router]);
+
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Uncomment when Firebase is configured:
-      /*
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      // Redirect to projects page after successful login
-      router.push('/projects');
-      */
-
-      // For development without Firebase:
-      // Simulate a delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Sync user with backend
+      await syncUserWithBackend(user);
 
       // Redirect to home page
       router.push('/home');

@@ -1,9 +1,14 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Sparkle, Image as ImageIcon, FilmStrip, Plus, Square } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import { Sparkle, Image as ImageIcon, FilmStrip, Plus, Square, Clock, FolderOpen } from "@phosphor-icons/react";
+import { Map } from "lucide-react";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { ExpandableHorizon } from "@/components/home/ExpandableHorizon";
+import { useAuth } from "@/hooks/useAuth";
+import { api, Project } from "@/services/api";
 
 // --- Enhanced Global Styles & Keyframes ---
 const customStyles = `
@@ -207,6 +212,31 @@ function TemplateCard({ title, type, colorClass, delay }: { title: string, type:
 }
 
 export default function HomePage() {
+    const router = useRouter();
+    const { user } = useAuth();
+    const [recentProjects, setRecentProjects] = useState<Project[]>([]);
+    const [loadingProjects, setLoadingProjects] = useState(true);
+
+    useEffect(() => {
+        if (user) {
+            const fetchRecentProjects = async () => {
+                try {
+                    const response = await api.projects.list({ limit: 6 });
+                    if (response?.projects) {
+                        setRecentProjects(response.projects.slice(0, 6));
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch recent projects:", error);
+                } finally {
+                    setLoadingProjects(false);
+                }
+            };
+            fetchRecentProjects();
+        } else {
+            setLoadingProjects(false);
+        }
+    }, [user]);
+
     return (
         <div className="min-h-screen w-full flex bg-background selection:bg-primary/30 overflow-hidden relative">
             <style jsx global>{customStyles}</style>
@@ -228,11 +258,85 @@ export default function HomePage() {
                             </p>
                         </div>
 
-                        <div className="mb-24 animate-enter-2">
+                        <div className="mb-16 animate-enter-2">
                             <ExpandableHorizon />
                         </div>
 
-                        {/* Recent / Templates Section */}
+                        {/* Recent Projects Section */}
+                        {user && (
+                            <div className="mb-16 animate-enter-3">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <Clock weight="fill" className="w-5 h-5 text-text-muted" />
+                                        <h2 className="text-xl font-bold text-white tracking-tight">Recent Projects</h2>
+                                    </div>
+                                    <Link
+                                        href="/projects"
+                                        className="text-sm font-medium text-primary hover:text-primary-hover transition-colors"
+                                    >
+                                        View all
+                                    </Link>
+                                </div>
+
+                                {loadingProjects ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                        {[...Array(6)].map((_, i) => (
+                                            <div
+                                                key={i}
+                                                className="h-32 rounded-xl bg-white/[0.02] border border-white/[0.05] animate-pulse"
+                                            />
+                                        ))}
+                                    </div>
+                                ) : recentProjects.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-12 px-4 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+                                        <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center mb-4">
+                                            <FolderOpen className="w-6 h-6 text-text-muted" />
+                                        </div>
+                                        <p className="text-text-muted text-sm mb-4">No projects yet</p>
+                                        <Link
+                                            href="/projects"
+                                            className="text-sm font-medium text-primary hover:text-primary-hover transition-colors"
+                                        >
+                                            Create your first project
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                        {recentProjects.map((project) => (
+                                            <div
+                                                key={project.id}
+                                                onClick={() => router.push(`/projects/${project.id}`)}
+                                                className="group relative h-32 rounded-xl overflow-hidden cursor-pointer bg-[#0f111a]/80 backdrop-blur-md border border-white/[0.05] hover:border-white/[0.2] transition-all duration-300 hover:-translate-y-1"
+                                            >
+                                                <div className={`absolute inset-0 ${project.color?.split(' ')[0] || 'bg-primary/10'} opacity-30 group-hover:opacity-50 transition-opacity duration-300`} />
+                                                <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                                                    <div className="flex justify-between items-start">
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-bold text-white bg-white/10 border border-white/10">
+                                                            {project.type}
+                                                        </span>
+                                                        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
+                                                            {project.type === "sprite" ? (
+                                                                <ImageIcon className="w-3 h-3 text-white/70" />
+                                                            ) : (
+                                                                <Map className="w-3 h-3 text-white/70" />
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-white truncate">{project.title}</h3>
+                                                        <p className="text-[10px] text-white/50 mt-0.5">
+                                                            {new Date(project.updated_at || project.created_at).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Templates Section */}
                         <div className="animate-enter-4">
                             <div className="flex items-center justify-between mb-8">
                                 <div className="flex items-center gap-3">

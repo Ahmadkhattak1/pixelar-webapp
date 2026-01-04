@@ -1,8 +1,3 @@
-// Firebase configuration will be initialized here
-// Install: npm install firebase
-
-// Uncomment when Firebase credentials are available:
-/*
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
@@ -18,8 +13,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
-*/
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
 
-// Placeholder exports for development
-export const auth = null;
-export const googleProvider = null;

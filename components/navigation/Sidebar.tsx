@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { House, FolderOpen, List, X, Lightning } from "@phosphor-icons/react";
+import { usePathname, useRouter } from "next/navigation";
+import { House, FolderOpen, List, X, Images } from "@phosphor-icons/react";
 import { ProfileModal } from "@/components/profile-modal";
 import { Logo } from "@/components/layout/Logo";
 import { BYOKButton } from "@/components/home/BYOKButton";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 export function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { user } = useAuthContext();
 
     // Close mobile menu when pathname changes
     useEffect(() => {
@@ -18,7 +21,15 @@ export function Sidebar() {
     const navItems = [
         { href: "/home", label: "Home", icon: House },
         { href: "/projects", label: "Projects", icon: FolderOpen },
+        { href: "/library", label: "Library", icon: Images },
     ];
+
+    // Prefetch all nav routes on mount for instant navigation
+    useEffect(() => {
+        navItems.forEach((item) => {
+            router.prefetch(item.href);
+        });
+    }, [router]);
 
     return (
         <>
@@ -72,6 +83,7 @@ export function Sidebar() {
                             <Link
                                 key={item.href}
                                 href={item.href}
+                                prefetch={true}
                                 className={`
                                     relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
                                     ${isActive
@@ -96,37 +108,23 @@ export function Sidebar() {
                     })}
                 </nav>
 
-                {/* Bottom Section: BYOK, Credits, Profile */}
+                {/* Bottom Section: BYOK, Profile */}
                 <div className="p-4 border-t border-white/[0.05] space-y-3">
                     {/* BYOK Button */}
                     <BYOKButton />
-
-                    {/* Compact Credits Display - Only show if no API key */}
-                    {typeof window !== 'undefined' && !localStorage.getItem('openai_api_key') && (
-                        <div className="flex items-center justify-between px-3 py-2 bg-white/[0.02] border border-white/[0.05] rounded-xl">
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full bg-amber-400/10 flex items-center justify-center">
-                                    <Lightning size={12} weight="fill" className="text-amber-400" />
-                                </div>
-                                <span className="text-xs font-bold text-white">450</span>
-                            </div>
-                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Credits</span>
-                        </div>
-                    )}
 
                     <ProfileModal>
                         <button className="w-full flex items-center gap-3 p-2 bg-white/[0.03] hover:bg-white/[0.08] rounded-2xl border border-white/[0.08] hover:border-white/[0.15] transition-all duration-200 group relative">
                             <div className="relative shrink-0">
                                 <img
-                                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                    alt="User"
+                                    src={user?.photoURL || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                                    alt={user?.displayName || "User"}
                                     className="w-10 h-10 rounded-xl bg-surface-highlight border border-white/[0.08]"
                                 />
                                 <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-primary border-2 border-background rounded-full shadow-sm" />
                             </div>
                             <div className="flex flex-col items-start min-w-0">
-                                <span className="text-sm font-bold text-white tracking-wide truncate w-full text-left">Alex Design</span>
-                                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Pro Member</span>
+                                <span className="text-sm font-bold text-white tracking-wide truncate w-full text-left">{user?.displayName || "User"}</span>
                             </div>
                         </button>
                     </ProfileModal>

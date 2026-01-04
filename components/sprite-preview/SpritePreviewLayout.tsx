@@ -1,10 +1,9 @@
 import { ReactNode } from "react";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { BYOKButton } from "@/components/home/BYOKButton";
-import { FloatingDock } from "@/components/navigation/FloatingDock";
 
 interface SpritePreviewLayoutProps {
     children: ReactNode;
@@ -72,12 +71,6 @@ export function SpritePreviewLayout({ children, title, projectId, backLink = "/p
                     )}
 
                     <BYOKButton />
-
-                    <div className="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-lg border border-amber-500/20 shadow-lg backdrop-blur-sm">
-                        <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                        <span className="text-sm font-bold text-amber-100">450</span>
-                        <span className="text-xs text-slate-500 font-medium ml-1">Credits</span>
-                    </div>
                 </div>
             </header>
 
@@ -85,9 +78,6 @@ export function SpritePreviewLayout({ children, title, projectId, backLink = "/p
             <main className="flex-1 w-full flex flex-col overflow-hidden relative z-10">
                 {children}
             </main>
-
-            {/* Navigation Dock */}
-            <FloatingDock />
         </div>
     );
 }
