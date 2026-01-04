@@ -48,6 +48,41 @@ const customStyles = `
     0%, 49.99% { opacity: 0; }
     50%, 100% { opacity: 1; }
 }
+@keyframes arm-swing {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-1px); }
+}
+
+/* Scene Animations */
+@keyframes twinkle-star {
+    0%, 100% { opacity: 0.9; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.8); }
+}
+@keyframes pulse-sun {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 12px rgba(251,191,36,0.8); }
+    50% { transform: scale(1.15); box-shadow: 0 0 20px rgba(251,191,36,1); }
+}
+@keyframes float-cloud {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(3px); }
+}
+@keyframes sway-tree {
+    0%, 100% { transform: skewX(0deg); }
+    25% { transform: skewX(2deg); }
+    75% { transform: skewX(-2deg); }
+}
+@keyframes wave-water {
+    0%, 100% { opacity: 1; transform: translateY(0); }
+    50% { opacity: 0.7; transform: translateY(-1px); }
+}
+@keyframes fly-bird {
+    0% { left: -20px; }
+    100% { left: calc(100% + 20px); }
+}
+@keyframes flap-wing {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-2px) rotate(-15deg); }
+}
 
 @keyframes pan-bg {
   0% { transform: translateX(0) scale(0.9); }
@@ -247,18 +282,9 @@ export default function HomePage() {
                 <RetroBackground />
 
                 <div className="flex-1 overflow-y-auto app-scroll px-6 md:px-12 relative z-30 custom-scrollbar">
-                    <div className="max-w-7xl mx-auto pt-20 pb-20">
+                    <div className="max-w-7xl mx-auto pt-8 pb-20">
 
                         <div className="mb-12 animate-enter-1">
-                            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-3 drop-shadow-lg">
-                                Studio
-                            </h1>
-                            <p className="text-white/70 text-base max-w-xl drop-shadow-md">
-                                Create professional game assets with specialized AI engines.
-                            </p>
-                        </div>
-
-                        <div className="mb-16 animate-enter-2">
                             <ExpandableHorizon />
                         </div>
 

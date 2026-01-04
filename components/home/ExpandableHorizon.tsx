@@ -9,7 +9,64 @@ import { cn } from "@/lib/utils";
 
 // --- Animation Components ---
 
+// 16x16 sprite pixel map - each character represents a pixel type
+// . = empty, H = hair, F = face, E = eye, B = body, A = arm, L = leg frame 1, l = leg frame 2, S = slime, s = slime highlight
+const SPRITE_MAP = `
+................
+................
+.....HHHH.......
+....HHHHHH......
+....FFFFFF......
+....FEEFEF......
+....FFFFFF......
+.....FFFF.......
+....BBBBBB......
+...ABBBBBBA.....
+...ABBBBBBA.....
+....BBBBBB......
+.....BBBB.......
+....Ll..lL......
+....Ll..lL......
+................
+`;
+
+const SLIME_MAP = `
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+..........SS....
+.........SSSS...
+.........sSSS...
+.........SSSS...
+..........SS....
+................
+`;
+
 function SpriteAnimation({ isHovered }: { isHovered: boolean }) {
+    const spriteRows = SPRITE_MAP.trim().split('\n');
+    const slimeRows = SLIME_MAP.trim().split('\n');
+
+    const getPixelType = (row: number, col: number): string => {
+        if (row < spriteRows.length && col < spriteRows[row].length) {
+            return spriteRows[row][col];
+        }
+        return '.';
+    };
+
+    const getSlimeType = (row: number, col: number): string => {
+        if (row < slimeRows.length && col < slimeRows[row].length) {
+            return slimeRows[row][col];
+        }
+        return '.';
+    };
+
     return (
         <div className="relative w-48 h-48 transition-transform duration-700 ease-out">
             <div className={cn(
@@ -17,40 +74,65 @@ function SpriteAnimation({ isHovered }: { isHovered: boolean }) {
                 isHovered ? "opacity-100" : "opacity-0"
             )} />
 
-            {/* 10x10 Grid */}
+            {/* 16x16 Grid */}
             <div className={cn(
-                "absolute inset-0 grid grid-cols-10 grid-rows-10 gap-[3px] transition-all duration-500",
+                "absolute inset-0 grid gap-[1px] transition-all duration-500",
                 isHovered ? "opacity-100 scale-105" : "opacity-70 scale-100"
-            )}>
-                {[...Array(100)].map((_, i) => {
-                    const row = Math.floor(i / 10);
-                    const col = i % 10;
-                    const isHead = (row === 2 && col >= 4 && col <= 5) || (row === 3 && col >= 4 && col <= 5);
-                    const isTorso = (row >= 4 && row <= 6) && (col >= 3 && col <= 6);
-                    const isLegsF1 = (row === 7 && (col === 2 || col === 7)) || (row === 8 && (col === 2 || col === 7));
-                    const isLegsF2 = (row === 7 && (col === 4 || col === 5)) || (row === 8 && (col === 4 || col === 5));
-                    const isPet = (row >= 7 && row <= 8) && (col >= 8 && col <= 9);
+            )}
+            style={{ gridTemplateColumns: 'repeat(16, 1fr)', gridTemplateRows: 'repeat(16, 1fr)' }}
+            >
+                {[...Array(256)].map((_, i) => {
+                    const row = Math.floor(i / 16);
+                    const col = i % 16;
+                    const pixelType = getPixelType(row, col);
+                    const slimeType = getSlimeType(row, col);
 
-                    let pixelClass = 'bg-white/[0.04]';
+                    let pixelClass = 'bg-white/[0.03]';
                     let style: React.CSSProperties = {};
 
-                    if (isHead) pixelClass = 'bg-primary z-10 shadow-[0_0_12px_rgba(16,185,129,0.6)]';
-                    else if (isTorso) pixelClass = 'bg-primary/90 z-10';
-                    else if (isLegsF1) {
-                        pixelClass = 'bg-primary/80 z-10';
-                        style = { animation: isHovered ? 'toggle-visibility 0.8s steps(1) infinite' : 'none' };
+                    // Character pixels
+                    switch (pixelType) {
+                        case 'H': // Hair
+                            pixelClass = 'bg-primary z-10 shadow-[0_0_8px_rgba(159,222,90,0.5)]';
+                            break;
+                        case 'F': // Face
+                            pixelClass = 'bg-[#ffdbac] z-10';
+                            break;
+                        case 'E': // Eyes
+                            pixelClass = 'bg-[#2d3748] z-10';
+                            break;
+                        case 'B': // Body
+                            pixelClass = 'bg-primary/90 z-10';
+                            break;
+                        case 'A': // Arms
+                            pixelClass = 'bg-primary/70 z-10';
+                            style = { animation: isHovered ? 'arm-swing 0.6s ease-in-out infinite alternate' : 'none' };
+                            break;
+                        case 'L': // Leg frame 1
+                            pixelClass = 'bg-[#4a5568] z-10';
+                            style = { animation: isHovered ? 'toggle-visibility 0.5s steps(1) infinite' : 'none' };
+                            break;
+                        case 'l': // Leg frame 2
+                            pixelClass = 'bg-[#4a5568] z-10';
+                            style = { opacity: 0, animation: isHovered ? 'toggle-visibility-reverse 0.5s steps(1) infinite' : 'none' };
+                            break;
                     }
-                    else if (isLegsF2) {
-                        pixelClass = 'bg-primary/80 z-10';
-                        style = { opacity: 0, animation: isHovered ? 'toggle-visibility-reverse 0.8s steps(1) infinite' : 'none' };
-                    }
-                    if (isPet) {
-                        pixelClass = 'bg-[#b4e86b] z-10 shadow-[0_0_10px_rgba(159,222,90,0.9)]';
-                        style = { animation: isHovered ? 'slime-bounce 1s ease-in-out infinite' : 'none' };
+
+                    // Slime pixels (overlay)
+                    if (slimeType === 'S') {
+                        pixelClass = 'bg-[#9FDE5A] z-10 shadow-[0_0_6px_rgba(159,222,90,0.8)]';
+                        style = { animation: isHovered ? 'slime-bounce 0.8s ease-in-out infinite' : 'none' };
+                    } else if (slimeType === 's') {
+                        pixelClass = 'bg-[#c4f084] z-10 shadow-[0_0_6px_rgba(196,240,132,0.8)]';
+                        style = { animation: isHovered ? 'slime-bounce 0.8s ease-in-out infinite' : 'none' };
                     }
 
                     return (
-                        <div key={i} className={`rounded-[1px] transition-all duration-300 ${pixelClass}`} style={style} />
+                        <div
+                            key={i}
+                            className={`rounded-[1px] transition-all duration-300 ${pixelClass}`}
+                            style={style}
+                        />
                     );
                 })}
             </div>
@@ -58,74 +140,162 @@ function SpriteAnimation({ isHovered }: { isHovered: boolean }) {
     );
 }
 
+// 16x12 pixel art scene map
+// . = sky, * = star, S = sun, C = cloud, M = mountain back, m = mountain front, T = tree trunk, t = tree leaves, G = grass, W = water, w = water highlight
+const SCENE_MAP = `
+...*...S...*....
+....C.....*.....
+...CCC..........
+................
+.MMM..MMMMMM....
+MMMMMMMMMMMMMM..
+mmmmttmmmmttmmmm
+GGGGTtGGGGTtGGGG
+GGGGTTGGGGTTGGGG
+GGGGGGGGGGGGwwww
+wwwwwwwwwwwWWWWW
+WWWWWWWWWWWWwwww
+`;
+
 function SceneAnimation({ isHovered }: { isHovered: boolean }) {
+    const sceneRows = SCENE_MAP.trim().split('\n');
+
+    const getScenePixel = (row: number, col: number): string => {
+        if (row < sceneRows.length && col < sceneRows[row].length) {
+            return sceneRows[row][col];
+        }
+        return '.';
+    };
+
     return (
-        <div className="relative w-64 h-48 perspective-[1000px] flex items-center justify-center">
+        <div className="relative w-56 h-44 flex items-center justify-center">
+            {/* Glow */}
             <div className={cn(
                 "absolute inset-0 bg-teal-500/20 blur-[60px] rounded-full transition-opacity duration-500 pointer-events-none",
                 isHovered ? "opacity-100" : "opacity-0"
             )} />
 
-            {/* Sky Background */}
+            {/* Pixel Grid Container */}
             <div className={cn(
-                "absolute inset-0 rounded-2xl bg-[#0a1220] border border-white/[0.08] overflow-hidden transition-all duration-500",
-                isHovered ? "scale-100 shadow-2xl" : "scale-[0.97] shadow-lg"
+                "absolute inset-0 rounded-2xl overflow-hidden border transition-all duration-500",
+                isHovered
+                    ? "border-white/[0.15] shadow-2xl scale-100"
+                    : "border-white/[0.08] shadow-lg scale-[0.97]"
             )}>
-                {/* Static Stars */}
-                <div className="absolute inset-0 opacity-50">
-                    <div className="absolute top-3 left-8 w-1 h-1 bg-white rounded-full" />
-                    <div className="absolute top-7 right-10 w-0.5 h-0.5 bg-white/80 rounded-full" />
-                    <div className="absolute top-5 left-1/3 w-1 h-1 bg-teal-200/60 rounded-full" />
-                    <div className="absolute top-10 left-12 w-0.5 h-0.5 bg-white/60 rounded-full" />
+                {/* Sky base */}
+                <div className="absolute inset-0 bg-[#0c1929]" />
+
+                {/* 16x12 Pixel Grid */}
+                <div
+                    className={cn(
+                        "absolute inset-0 grid gap-[1px] transition-all duration-500",
+                        isHovered ? "opacity-100" : "opacity-80"
+                    )}
+                    style={{ gridTemplateColumns: 'repeat(16, 1fr)', gridTemplateRows: 'repeat(12, 1fr)' }}
+                >
+                    {[...Array(192)].map((_, i) => {
+                        const row = Math.floor(i / 16);
+                        const col = i % 16;
+                        const pixelType = getScenePixel(row, col);
+
+                        let pixelClass = 'bg-transparent';
+                        let style: React.CSSProperties = {};
+
+                        switch (pixelType) {
+                            case '*': // Stars
+                                pixelClass = 'bg-white/90 rounded-full';
+                                style = {
+                                    boxShadow: '0 0 4px rgba(255,255,255,0.8)',
+                                    animation: isHovered ? 'twinkle-star 2s ease-in-out infinite' : 'none',
+                                    animationDelay: `${(col * 0.3) % 2}s`
+                                };
+                                break;
+                            case 'S': // Sun
+                                pixelClass = 'bg-amber-300 rounded-full';
+                                style = {
+                                    boxShadow: isHovered ? '0 0 12px rgba(251,191,36,0.8)' : '0 0 6px rgba(251,191,36,0.5)',
+                                    animation: isHovered ? 'pulse-sun 3s ease-in-out infinite' : 'none'
+                                };
+                                break;
+                            case 'C': // Clouds
+                                pixelClass = 'bg-white/30 rounded-sm';
+                                style = {
+                                    animation: isHovered ? 'float-cloud 4s ease-in-out infinite' : 'none',
+                                    animationDelay: `${col * 0.1}s`
+                                };
+                                break;
+                            case 'M': // Mountain back
+                                pixelClass = 'bg-teal-800/80';
+                                break;
+                            case 'm': // Mountain front
+                                pixelClass = 'bg-teal-700/90';
+                                break;
+                            case 'T': // Tree trunk
+                                pixelClass = 'bg-amber-900';
+                                break;
+                            case 't': // Tree leaves
+                                pixelClass = 'bg-emerald-500';
+                                style = {
+                                    animation: isHovered ? 'sway-tree 2s ease-in-out infinite' : 'none',
+                                    animationDelay: `${col * 0.2}s`
+                                };
+                                break;
+                            case 'G': // Grass
+                                pixelClass = 'bg-emerald-600';
+                                break;
+                            case 'W': // Water deep
+                                pixelClass = 'bg-cyan-600';
+                                style = {
+                                    animation: isHovered ? 'wave-water 1.5s ease-in-out infinite' : 'none',
+                                    animationDelay: `${col * 0.1}s`
+                                };
+                                break;
+                            case 'w': // Water highlight
+                                pixelClass = 'bg-cyan-400';
+                                style = {
+                                    animation: isHovered ? 'wave-water 1.5s ease-in-out infinite' : 'none',
+                                    animationDelay: `${col * 0.1 + 0.2}s`
+                                };
+                                break;
+                        }
+
+                        return (
+                            <div
+                                key={i}
+                                className={`transition-all duration-300 ${pixelClass}`}
+                                style={style}
+                            />
+                        );
+                    })}
                 </div>
 
-                {/* Sun/Moon */}
+                {/* Animated birds */}
                 <div className={cn(
-                    "absolute top-3 right-6 w-8 h-8 rounded-full bg-primary/40 transition-all duration-700",
-                    isHovered ? "opacity-100 scale-110" : "opacity-40 scale-100"
+                    "absolute top-6 transition-all duration-700",
+                    isHovered ? "opacity-100" : "opacity-0"
                 )}
-                    style={{ animation: isHovered ? 'pulse 3s ease-in-out infinite' : 'none', boxShadow: isHovered ? '0 0 20px rgba(45, 212, 191, 0.5)' : 'none' }}
-                />
-            </div>
+                style={{ animation: isHovered ? 'fly-bird 6s linear infinite' : 'none' }}
+                >
+                    <div className="flex gap-[2px]">
+                        <div className="w-1 h-1 bg-slate-700 rounded-full" style={{ animation: isHovered ? 'flap-wing 0.3s ease-in-out infinite' : 'none' }} />
+                        <div className="w-1.5 h-1 bg-slate-800 rounded-full" />
+                        <div className="w-1 h-1 bg-slate-700 rounded-full" style={{ animation: isHovered ? 'flap-wing 0.3s ease-in-out infinite reverse' : 'none' }} />
+                    </div>
+                </div>
 
-            {/* Mountains */}
-            <div className={cn(
-                "absolute bottom-0 left-0 right-0 h-24 rounded-b-2xl overflow-hidden transition-all duration-500",
-                isHovered ? "translate-y-0" : "translate-y-1"
-            )}>
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 256 100" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="mountainGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#0d9488" stopOpacity="0.5" />
-                            <stop offset="100%" stopColor="#042f2e" stopOpacity="0.9" />
-                        </linearGradient>
-                        <linearGradient id="mountainGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#064e3b" stopOpacity="0.6" />
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 100 L0 60 Q30 30, 60 50 Q90 70, 120 40 Q150 10, 180 50 Q210 90, 256 60 L256 100 Z" fill="url(#mountainGrad2)" />
-                    <path d="M0 100 L0 80 Q40 50, 80 70 Q120 90, 160 60 Q200 30, 256 70 L256 100 Z" fill="url(#mountainGrad1)" />
-                </svg>
-            </div>
-
-            {/* Foreground */}
-            <div className={cn(
-                "absolute bottom-3 inset-x-4 h-14 bg-white/5 backdrop-blur-md rounded-xl border border-white/10 shadow-xl transition-all duration-500 flex items-center justify-center",
-                isHovered ? "translate-y-0 bg-white/10 border-teal-500/30" : "translate-y-2"
-            )}>
-                <ImageIcon weight="duotone" className={cn(
-                    "w-7 h-7 text-teal-400/70 transition-all duration-500",
-                    isHovered ? "scale-110 text-teal-300" : "scale-100"
-                )} />
-            </div>
-
-            {/* Clouds */}
-            <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                <div className={cn("absolute top-5 w-14 h-4 bg-white/10 blur-lg rounded-full transition-opacity duration-500", isHovered ? "opacity-100" : "opacity-0")}
-                    style={{ animation: isHovered ? 'scene-cloud-drift 8s ease-in-out infinite' : 'none', left: '-16px' }} />
-                <div className={cn("absolute top-12 w-16 h-5 bg-white/5 blur-lg rounded-full transition-opacity duration-500", isHovered ? "opacity-100" : "opacity-0")}
-                    style={{ animation: isHovered ? 'scene-cloud-drift-reverse 10s ease-in-out infinite' : 'none', right: '-20px', animationDelay: '1s' }} />
+                {/* Second bird */}
+                <div className={cn(
+                    "absolute top-10 transition-all duration-700",
+                    isHovered ? "opacity-100" : "opacity-0"
+                )}
+                style={{ animation: isHovered ? 'fly-bird 8s linear infinite' : 'none', animationDelay: '2s' }}
+                >
+                    <div className="flex gap-[1px] scale-75">
+                        <div className="w-1 h-1 bg-slate-600 rounded-full" style={{ animation: isHovered ? 'flap-wing 0.25s ease-in-out infinite' : 'none' }} />
+                        <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                        <div className="w-1 h-1 bg-slate-600 rounded-full" style={{ animation: isHovered ? 'flap-wing 0.25s ease-in-out infinite reverse' : 'none' }} />
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -205,7 +375,11 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
                 initial={false}
-                animate={{ flexGrow: isActive ? 2.5 : 1 }}
+                animate={{
+                    flexGrow: isActive ? 2.5 : 1,
+                    y: isActive ? -4 : 0,
+                    scale: isActive ? 1.01 : 1
+                }}
                 transition={{
                     flexGrow: {
                         type: "spring",
@@ -218,6 +392,16 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
                         stiffness: 300,
                         damping: 30,
                         mass: 0.8
+                    },
+                    y: {
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 25
+                    },
+                    scale: {
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 25
                     }
                 }}
             >
@@ -237,15 +421,45 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
                 />
 
                 {/* Glass Card - FROSTED GLASS */}
-                <div className="absolute inset-[1px] rounded-[23px] overflow-hidden backdrop-blur-2xl bg-white/[0.03] border border-white/[0.1] z-10">
+                <div
+                    className={cn(
+                        "absolute inset-[1px] rounded-[23px] overflow-hidden backdrop-blur-2xl border z-10 transition-all duration-500",
+                        isActive
+                            ? "bg-white/[0.04] border-white/[0.15] shadow-2xl"
+                            : "bg-white/[0.02] border-white/[0.08] shadow-lg group-hover:bg-white/[0.03] group-hover:border-white/[0.12] group-hover:shadow-xl"
+                    )}
+                    style={{
+                        boxShadow: isActive
+                            ? `0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.2)`
+                            : `0 10px 40px -10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)`
+                    }}
+                >
                     {/* Frosted overlay */}
-                    <div className="absolute inset-0 bg-[#0a0d12]/50" />
+                    <div className="absolute inset-0 bg-[#0a0d12]/60" />
 
-                    {/* Glass shine - top edge */}
-                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+                    {/* Inner depth - top highlight */}
+                    <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
 
-                    {/* Glass shine - left edge */}
-                    <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-white/15 via-transparent to-transparent" />
+                    {/* Inner depth - bottom shadow */}
+                    <div className="absolute inset-x-0 bottom-0 h-px bg-black/30" />
+
+                    {/* Corner accents */}
+                    <div className={cn(
+                        "absolute top-3 left-3 w-8 h-[1px] bg-white/20 transition-opacity duration-300",
+                        isActive ? "opacity-100" : "opacity-0 group-hover:opacity-60"
+                    )} />
+                    <div className={cn(
+                        "absolute top-3 left-3 w-[1px] h-8 bg-white/20 transition-opacity duration-300",
+                        isActive ? "opacity-100" : "opacity-0 group-hover:opacity-60"
+                    )} />
+                    <div className={cn(
+                        "absolute bottom-3 right-3 w-8 h-[1px] bg-white/10 transition-opacity duration-300",
+                        isActive ? "opacity-100" : "opacity-0 group-hover:opacity-40"
+                    )} />
+                    <div className={cn(
+                        "absolute bottom-3 right-3 w-[1px] h-8 bg-white/10 transition-opacity duration-300",
+                        isActive ? "opacity-100" : "opacity-0 group-hover:opacity-40"
+                    )} />
 
                     {/* Content */}
                     <div className="absolute inset-0 flex flex-col p-6 md:p-8 z-10">
