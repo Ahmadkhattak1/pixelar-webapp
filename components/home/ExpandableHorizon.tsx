@@ -45,7 +45,7 @@ function SpriteAnimation({ isHovered }: { isHovered: boolean }) {
                         style = { opacity: 0, animation: isHovered ? 'toggle-visibility-reverse 0.8s steps(1) infinite' : 'none' };
                     }
                     if (isPet) {
-                        pixelClass = 'bg-emerald-300 z-10 shadow-[0_0_10px_rgba(52,211,153,0.9)]';
+                        pixelClass = 'bg-[#b4e86b] z-10 shadow-[0_0_10px_rgba(159,222,90,0.9)]';
                         style = { animation: isHovered ? 'slime-bounce 1s ease-in-out infinite' : 'none' };
                     }
 
@@ -68,7 +68,7 @@ function SceneAnimation({ isHovered }: { isHovered: boolean }) {
 
             {/* Sky Background */}
             <div className={cn(
-                "absolute inset-0 rounded-2xl bg-gradient-to-b from-[#0a1628] via-[#0f2027] to-[#0a1a1a] border border-white/[0.08] overflow-hidden transition-all duration-500",
+                "absolute inset-0 rounded-2xl bg-[#0a1220] border border-white/[0.08] overflow-hidden transition-all duration-500",
                 isHovered ? "scale-100 shadow-2xl" : "scale-[0.97] shadow-lg"
             )}>
                 {/* Static Stars */}
@@ -81,7 +81,7 @@ function SceneAnimation({ isHovered }: { isHovered: boolean }) {
 
                 {/* Sun/Moon */}
                 <div className={cn(
-                    "absolute top-3 right-6 w-8 h-8 rounded-full bg-gradient-to-br from-teal-400/50 to-cyan-300/30 transition-all duration-700",
+                    "absolute top-3 right-6 w-8 h-8 rounded-full bg-primary/40 transition-all duration-700",
                     isHovered ? "opacity-100 scale-110" : "opacity-40 scale-100"
                 )}
                     style={{ animation: isHovered ? 'pulse 3s ease-in-out infinite' : 'none', boxShadow: isHovered ? '0 0 20px rgba(45, 212, 191, 0.5)' : 'none' }}
@@ -149,7 +149,7 @@ function MotionAnimation({ isHovered }: { isHovered: boolean }) {
                 "relative z-10 w-24 h-24 rounded-2xl border bg-violet-500/20 flex items-center justify-center shadow-2xl backdrop-blur-xl transition-all duration-500",
                 isHovered ? "scale-110 border-violet-400/50 shadow-[0_0_40px_rgba(139,92,246,0.4)]" : "scale-100 border-white/10"
             )}>
-                <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/30 to-fuchsia-500/10 rounded-2xl" />
+                <div className="absolute inset-0 bg-violet-500/20 rounded-2xl" />
                 <Play weight="fill" className={cn("w-10 h-10 transition-all duration-300 relative z-10 drop-shadow-md", isHovered ? "text-white" : "text-violet-300")} />
             </div>
         </div>
@@ -251,7 +251,7 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
                                         : "bg-white/5 border-white/5 group-hover:bg-white/10"
                                 )}
                                 style={isActive ? {
-                                    background: `linear-gradient(135deg, ${accentColor}40, ${accentColor}20)`,
+                                    background: `${accentColor}30`,
                                     boxShadow: `0 0 25px ${accentColor}40, inset 0 1px 0 rgba(255,255,255,0.1)`
                                 } : {}}
                             >
@@ -314,8 +314,8 @@ export function ExpandableHorizon() {
                 title="New Sprite"
                 href="/sprites"
                 icon={Sparkle}
-                accentColor="#10b981"
-                glowColor="#10b98180"
+                accentColor="#9FDE5A"
+                glowColor="#9FDE5A80"
                 isActive={focusedPanel === "sprite"}
                 onHover={setFocusedPanel}
             >

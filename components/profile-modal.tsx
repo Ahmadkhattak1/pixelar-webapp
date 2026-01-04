@@ -77,14 +77,14 @@ export function ProfileModal({ children }: { children: React.ReactNode }) {
                 {children}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden gap-0">
-                <div className="h-32 bg-gradient-to-br from-primary/20 to-secondary/20 w-full relative">
+                <div className="h-32 bg-primary/20 w-full relative">
                     <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
                 </div>
 
                 <div className="px-6 pb-6 -mt-12 relative z-10">
                     <div className="flex flex-col items-center text-center">
                         <div className="w-24 h-24 rounded-xl bg-background p-1 shadow-lg mb-4">
-                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-primary to-secondary p-[1px]">
+                            <div className="w-full h-full rounded-lg bg-primary p-[1px]">
                                 <img
                                     src={user.avatarUrl}
                                     alt={user.name}

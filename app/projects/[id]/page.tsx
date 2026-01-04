@@ -104,7 +104,7 @@ export default function ProjectPage() {
                 </div>
 
                 {/* Center: Main Preview Stage */}
-                <div className="flex-1 p-4 lg:p-8 flex items-center justify-center min-w-0 bg-gradient-to-br from-background via-background to-surface/20 overflow-auto">
+                <div className="flex-1 p-4 lg:p-8 flex items-center justify-center min-w-0 bg-background overflow-auto">
                     <div className="w-full max-w-4xl aspect-video">
                         <SpriteViewer
                             imageUrl={currentAnimation.thumbnailUrl}

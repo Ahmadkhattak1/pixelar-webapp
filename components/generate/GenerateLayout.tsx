@@ -26,7 +26,7 @@ export function GenerateLayout({ children, projectId }: GenerateLayoutProps) {
 
                         <div className="hidden sm:block h-5 w-[1px] bg-primary/20 flex-shrink-0" />
 
-                        <div className="hidden md:flex items-center gap-3 flex-shrink-0">
+                        <Link href="/home" className="hidden md:flex items-center gap-3 flex-shrink-0 hover:opacity-80 transition-opacity">
                             <Image
                                 src="/logo.svg"
                                 alt="Pixelar"
@@ -34,7 +34,7 @@ export function GenerateLayout({ children, projectId }: GenerateLayoutProps) {
                                 height={32}
                                 priority
                             />
-                        </div>
+                        </Link>
 
                         <div className="hidden sm:block h-5 w-[1px] bg-primary/20 flex-shrink-0" />
 
@@ -61,7 +61,7 @@ export function GenerateLayout({ children, projectId }: GenerateLayoutProps) {
                                     <div className="text-xs font-medium text-text">Alex Design</div>
                                     <div className="text-[10px] text-text-muted">Pro Plan</div>
                                 </div>
-                                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+                                <div className="w-6 h-6 rounded-md bg-primary p-[0.5px]">
                                     <img
                                         src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
                                         alt="User"
@@ -72,7 +72,7 @@ export function GenerateLayout({ children, projectId }: GenerateLayoutProps) {
                         </ProfileModal>
 
                         <ProfileModal>
-                            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] sm:hidden cursor-pointer hover:opacity-80 transition-opacity">
+                            <div className="w-8 h-8 rounded-md bg-primary p-[1px] sm:hidden cursor-pointer hover:opacity-80 transition-opacity">
                                 <img
                                     src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
                                     alt="User"

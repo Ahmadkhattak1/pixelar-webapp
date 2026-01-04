@@ -71,7 +71,7 @@
 }
 
 .template-card {
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%);
+  background: rgba(31, 31, 31, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: border-color 0.2s ease;
 }

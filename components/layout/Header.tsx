@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Zap } from "lucide-react";
 import { ProfileModal } from "@/components/profile-modal";
 
@@ -16,15 +17,15 @@ export function Header({ title, subtitle, children }: HeaderProps) {
             <div className="flex items-center justify-between gap-6">
                 {/* Left Section */}
                 <div className="flex items-center gap-4 flex-1">
-                    <div className="flex items-center gap-3">
+                    <Link href="/home" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                         <Image
                             src="/logo.svg"
                             alt="Pixelar"
-                            width={100}
-                            height={32}
+                            width={80}
+                            height={26}
                             priority
                         />
-                    </div>
+                    </Link>
                     {(title || subtitle) && (
                         <>
                             <div className="h-5 w-[1px] bg-primary/20" />
@@ -55,7 +56,7 @@ export function Header({ title, subtitle, children }: HeaderProps) {
                                 <div className="text-xs font-medium text-text">Alex Design</div>
                                 <div className="text-[10px] text-text-muted">Pro Plan</div>
                             </div>
-                            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-secondary p-[0.5px]">
+                            <div className="w-6 h-6 rounded-md bg-primary p-[0.5px]">
                                 <img
                                     src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
                                     alt="User"
@@ -66,7 +67,7 @@ export function Header({ title, subtitle, children }: HeaderProps) {
                     </ProfileModal>
 
                     <ProfileModal>
-                        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-secondary p-[1px] sm:hidden cursor-pointer hover:opacity-80 transition-opacity">
+                        <div className="w-8 h-8 rounded-md bg-primary p-[1px] sm:hidden cursor-pointer hover:opacity-80 transition-opacity">
                             <img
                                 src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
                                 alt="User"

@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { ArrowLeft, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Image from "next/image";
 import { BYOKButton } from "@/components/home/BYOKButton";
 import { FloatingDock } from "@/components/navigation/FloatingDock";
 
@@ -35,21 +36,22 @@ export function SpritePreviewLayout({ children, title, projectId, backLink = "/p
                     <div className="h-5 w-[1px] bg-slate-700" />
 
                     {/* Logo */}
-                    <div className="flex items-center gap-3 group logo-container cursor-pointer">
-                        <div className="w-10 h-10 bg-slate-800/50 rounded-lg border border-white/10 flex items-center justify-center backdrop-blur-sm group-hover:border-primary/50 transition-colors shadow-[0_0_15px_-3px_rgba(64,249,155,0.1)] group-hover:shadow-[0_0_20px_-3px_rgba(64,249,155,0.3)]">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="logo-svg">
-                                <path d="M6 4H10V20H6V4Z" className="fill-primary" />
-                                <path d="M10 4H18V8H10V4Z" className="fill-white" />
-                                <path d="M14 8H18V12H14V8Z" className="fill-primary/80" />
-                                <path d="M10 12H18V16H10V12Z" className="fill-white" />
-                            </svg>
+                    <Link href="/home" className="flex items-center gap-3 group logo-container cursor-pointer hover:opacity-80 transition-opacity">
+                        <div className="w-10 h-10 flex items-center justify-center">
+                            <Image
+                                src="/logo.svg"
+                                alt="Pixelar Logo"
+                                width={40}
+                                height={40}
+                                className="object-contain"
+                            />
                         </div>
 
                         <div className="flex flex-col">
                             <span className="text-lg font-bold text-white tracking-wide leading-none group-hover:text-primary transition-colors">Pixelar</span>
                             <span className="text-[10px] text-primary tracking-widest uppercase font-semibold mt-0.5">Studio</span>
                         </div>
-                    </div>
+                    </Link>
 
                     <div className="h-5 w-[1px] bg-slate-700" />
 

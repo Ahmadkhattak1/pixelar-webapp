@@ -171,7 +171,7 @@ export default function ScenePreviewPage() {
                 </div>
 
                 {/* Center: Main Preview Stage */}
-                <div className="flex-1 p-4 lg:p-8 flex items-center justify-center min-w-0 bg-gradient-to-br from-background via-background to-slate-900/20 overflow-auto relative">
+                <div className="flex-1 p-4 lg:p-8 flex items-center justify-center min-w-0 bg-background overflow-auto relative">
                     {/* Subtle Grid Background */}
                     <div className="absolute inset-0 opacity-[0.02]"
                         style={{

@@ -65,6 +65,29 @@ const customStyles = `
   100% { transform: translateX(0); opacity: 0.2; }
 }
 
+/* Floating Pixel Dust Animation */
+@keyframes float-dust {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--dust-opacity);
+  }
+  90% {
+    opacity: var(--dust-opacity);
+  }
+  100% {
+    transform: translateY(-100vh) translateX(var(--dust-drift));
+    opacity: 0;
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: var(--dust-opacity); }
+  50% { opacity: calc(var(--dust-opacity) * 0.3); }
+}
+
 .animate-enter-1 { animation: enter-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.1s; }
 .animate-enter-2 { animation: enter-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.2s; }
 .animate-enter-3 { animation: enter-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.3s; }
@@ -80,36 +103,79 @@ const customStyles = `
     animation: scroll-bg linear infinite;
     background-repeat: repeat-x;
 }
+
+/* Pixel Dust Particle */
+.pixel-dust {
+    position: absolute;
+    image-rendering: pixelated;
+    animation: float-dust var(--dust-duration) linear infinite, twinkle var(--twinkle-duration) ease-in-out infinite;
+    animation-delay: var(--dust-delay);
+}
 `;
 
-// --- Static Pixel Art Background ---
+// Dust particle configuration - generates deterministic positions
+const dustParticles = Array.from({ length: 50 }, (_, i) => {
+    // Use index to create pseudo-random but consistent values
+    const seed = (i * 7919) % 100; // Prime number for distribution
+    const seed2 = (i * 6997) % 100;
+    const seed3 = (i * 5449) % 100;
+
+    return {
+        id: i,
+        left: `${seed}%`,
+        bottom: `${-5 - (seed2 % 20)}%`, // Start below viewport
+        size: 2 + (seed3 % 3), // 2-4px pixelated squares
+        duration: 15 + (seed % 20), // 15-35 seconds to float up
+        delay: (seed2 / 100) * 20, // 0-20s staggered start
+        drift: ((seed3 % 40) - 20), // -20px to +20px horizontal drift
+        opacity: 0.12 + (seed % 25) / 100, // 0.12-0.37 opacity (slightly more subtle)
+        twinkleDuration: 2 + (seed % 4), // 2-6 seconds twinkle cycle
+        // Grey-ish color palette for better harmony
+        color: seed % 4 === 0
+            ? 'rgba(148, 163, 184, VAR_OPACITY)' // Slate-400 (cool grey)
+            : seed % 4 === 1
+                ? 'rgba(203, 213, 225, VAR_OPACITY)' // Slate-300 (light grey)
+                : seed % 4 === 2
+                    ? 'rgba(100, 116, 139, VAR_OPACITY)' // Slate-500 (medium grey)
+                    : 'rgba(226, 232, 240, VAR_OPACITY)', // Slate-200 (bright grey)
+    };
+});
+
+// --- Floating Pixel Dust Background ---
 function RetroBackground() {
     return (
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-            {/* Background Image - with subtle blur and desaturation */}
-            <div
-                className="absolute inset-0 bg-no-repeat bg-bottom"
-                style={{
-                    backgroundImage: 'url("/background.webp")',
-                    backgroundSize: '100% auto',
-                    filter: 'blur(2px) saturate(0.7)',
-                }}
-            />
+            {/* Base dark background */}
+            <div className="absolute inset-0 bg-[#0a0d11]" />
 
-            {/* Dark overlay with slight teal tint */}
-            <div className="absolute inset-0 bg-[#0a1015]/50" />
+            {/* Solid dark background */}
+            <div className="absolute inset-0 bg-[#0a0a0a]" />
 
-            {/* Brand color tint - very subtle */}
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/10 via-transparent to-teal-900/10" />
-
-            {/* Gradient fade at top */}
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#0a0d11] to-transparent" />
-
-            {/* Gradient fade at bottom */}
-            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0d11] to-transparent" />
+            {/* Floating Pixel Dust Particles */}
+            <div className="absolute inset-0">
+                {dustParticles.map((particle) => (
+                    <div
+                        key={particle.id}
+                        className="pixel-dust"
+                        style={{
+                            left: particle.left,
+                            bottom: particle.bottom,
+                            width: `${particle.size}px`,
+                            height: `${particle.size}px`,
+                            backgroundColor: particle.color.replace('VAR_OPACITY', particle.opacity.toString()),
+                            boxShadow: `0 0 ${particle.size * 2}px ${particle.color.replace('VAR_OPACITY', (particle.opacity * 0.5).toString())}`,
+                            '--dust-duration': `${particle.duration}s`,
+                            '--dust-delay': `${particle.delay}s`,
+                            '--dust-drift': `${particle.drift}px`,
+                            '--dust-opacity': particle.opacity,
+                            '--twinkle-duration': `${particle.twinkleDuration}s`,
+                        } as React.CSSProperties}
+                    />
+                ))}
+            </div>
 
             {/* Soft vignette */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,#0a0d11_100%)] opacity-50" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,#0a0d11_100%)] opacity-60" />
         </div>
     );
 }
@@ -122,10 +188,10 @@ function TemplateCard({ title, type, colorClass, delay }: { title: string, type:
             className="group relative h-40 rounded-2xl overflow-hidden cursor-pointer bg-[#0f111a]/80 backdrop-blur-md border border-white/[0.05] hover:border-white/[0.2] transition-all duration-300 hover:-translate-y-1 animate-enter-4"
             style={{ animationDelay: delay }}
         >
-            <div className={`absolute inset-0 bg-gradient-to-br ${colorClass} opacity-10 group-hover:opacity-30 transition-opacity duration-500`} />
+            <div className={`absolute inset-0 ${colorClass.replace('from-', 'bg-').split(' ')[0]} opacity-10 group-hover:opacity-25 transition-opacity duration-500`} />
             <div className="absolute inset-0 p-5 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-white/70 bg-white/5 border border-white/5 group-hover:bg-white/10 group-hover:text-white transition-colors">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-white bg-white/10 border border-white/10 group-hover:bg-white/15 transition-colors">
                         {type}
                     </span>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0 duration-300">
@@ -134,7 +200,7 @@ function TemplateCard({ title, type, colorClass, delay }: { title: string, type:
                         </div>
                     </div>
                 </div>
-                <h3 className="text-lg font-bold text-white/90 group-hover:text-white transition-colors">{title}</h3>
+                <h3 className="text-lg font-bold text-white transition-colors">{title}</h3>
             </div>
         </div>
     );
@@ -194,7 +260,7 @@ export default function HomePage() {
                                 <TemplateCard
                                     title="Mystic Forest"
                                     type="Scene"
-                                    colorClass="from-emerald-500 to-teal-800"
+                                    colorClass="from-lime-400 to-green-700"
                                     delay="0.5s"
                                 />
                                 <TemplateCard

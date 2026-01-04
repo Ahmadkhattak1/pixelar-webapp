@@ -51,8 +51,14 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-10">
           {/* Logo */}
           <div className="flex flex-col items-start space-y-3">
-            <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-              <span className="font-mono font-bold text-2xl text-white">Px</span>
+            <div className="w-14 h-14 flex items-center justify-center">
+              <Image
+                src="/logo.svg"
+                alt="Pixelar Logo"
+                width={56}
+                height={56}
+                priority
+              />
             </div>
             <div>
               <h1 className="text-4xl font-bold text-text tracking-tight">Pixelar</h1>
@@ -126,7 +132,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right Side - Visual Showcase */}
-      <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-gradient-to-br from-surface via-surface-highlight to-surface relative overflow-hidden">
+      <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-surface relative overflow-hidden">
         {/* Animated Background Pattern */}
         <div className="absolute inset-0 opacity-[0.05]"
           style={{
@@ -137,8 +143,8 @@ export default function LoginPage() {
 
         {/* Main Illustration */}
         <div className="relative w-full max-w-2xl aspect-square z-10">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl blur-3xl animate-pulse-slow"></div>
-          <div className="relative w-full h-full rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-gradient-to-br from-surface/50 to-black/40 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-primary/15 rounded-3xl blur-3xl animate-pulse-slow"></div>
+          <div className="relative w-full h-full rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-surface/50 backdrop-blur-sm">
             <Image
               src="/login_sprite_illustration.png"
               alt="Game Asset Showcase"
@@ -150,7 +156,7 @@ export default function LoginPage() {
         </div>
 
         {/* Floating Asset 1 - Top Left */}
-        <div className="absolute top-20 left-20 w-48 h-48 rounded-2xl overflow-hidden border border-white/10 shadow-xl bg-gradient-to-br from-primary/10 to-transparent backdrop-blur-sm animate-float">
+        <div className="absolute top-20 left-20 w-48 h-48 rounded-2xl overflow-hidden border border-white/10 shadow-xl bg-primary/10 backdrop-blur-sm animate-float">
           <Image
             src="/login_asset_characters.png"
             alt="Character Assets"
@@ -160,7 +166,7 @@ export default function LoginPage() {
         </div>
 
         {/* Floating Asset 2 - Bottom Right */}
-        <div className="absolute bottom-20 right-20 w-40 h-40 rounded-2xl overflow-hidden border border-white/10 shadow-xl bg-gradient-to-br from-secondary/10 to-transparent backdrop-blur-sm animate-float delay-1000">
+        <div className="absolute bottom-20 right-20 w-40 h-40 rounded-2xl overflow-hidden border border-white/10 shadow-xl bg-secondary/10 backdrop-blur-sm animate-float delay-1000">
           <Image
             src="/login_asset_ui_elements.png"
             alt="UI Elements"

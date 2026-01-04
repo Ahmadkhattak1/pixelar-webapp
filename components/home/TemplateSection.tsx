@@ -10,28 +10,28 @@ const templates = [
         title: "Cyberpunk Character",
         image: "/templates/cyberpunk.png",
         prompt: "Cyberpunk street samurai, neon armor, glowing katana, pixel art style",
-        color: "from-pink-500/20 to-purple-500/20",
+        color: "bg-pink-500/20",
     },
     {
         id: "t2",
         title: "Fantasy Landscape",
         image: "/templates/fantasy.png",
         prompt: "Magical forest clearing, ancient ruins, floating crystals, ethereal lighting",
-        color: "from-green-500/20 to-emerald-500/20",
+        color: "bg-primary/20",
     },
     {
         id: "t3",
         title: "Space Station",
         image: "/templates/space.png",
         prompt: "Sci-fi space station interior, metallic walls, control panels, holographic displays",
-        color: "from-blue-500/20 to-cyan-500/20",
+        color: "bg-blue-500/20",
     },
     {
         id: "t4",
         title: "Dungeon Boss",
         image: "/templates/boss.png",
         prompt: "Menacing dungeon boss, dark armor, flaming sword, red eyes, pixel art",
-        color: "from-red-500/20 to-orange-500/20",
+        color: "bg-red-500/20",
     },
 ];
 
@@ -64,14 +64,14 @@ export function TemplateSection() {
                             className="group relative aspect-[4/5] overflow-hidden rounded-xl border border-border bg-surface cursor-pointer hover:border-primary transition-colors duration-150"
                         >
                             {/* Placeholder for Image - In real app, use actual images */}
-                            <div className={`absolute inset-0 bg-gradient-to-br ${template.color} opacity-50 group-hover:opacity-70 transition-opacity duration-150`} />
+                            <div className={`absolute inset-0 ${template.color} opacity-50 group-hover:opacity-70 transition-opacity duration-150`} />
 
                             {/* Content Overlay */}
-                            <div className="absolute inset-0 p-4 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+                            <div className="absolute inset-0 p-4 flex flex-col justify-end bg-black/60">
                                 <h3 className="font-semibold text-white mb-1">
                                     {template.title}
                                 </h3>
-                                <p className="text-xs text-white/70 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                <p className="text-xs text-white/80 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                                     {template.prompt}
                                 </p>
                             </div>
