@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Sparkle, Image as ImageIcon, FilmStrip, Plus, Square } from "@phosphor-icons/react";
 import { Sidebar } from "@/components/navigation/Sidebar";
-import { useState, useRef, useEffect } from "react";
 import { ExpandableHorizon } from "@/components/home/ExpandableHorizon";
 
 // --- Enhanced Global Styles & Keyframes ---
@@ -83,66 +82,34 @@ const customStyles = `
 }
 `;
 
-// --- Crossfading Video Player (Reveal Strategy) ---
+// --- Static Pixel Art Background ---
 function RetroBackground() {
-    const [videoError, setVideoError] = useState(false);
-    const videoRef1 = useRef<HTMLVideoElement>(null);
-    const videoRef2 = useRef<HTMLVideoElement>(null);
-    const [topIndex, setTopIndex] = useState<1 | 2>(1);
-    const [isFadingOut, setIsFadingOut] = useState(false);
-
-    useEffect(() => {
-        if (videoError) return;
-        const v1 = videoRef1.current;
-        const v2 = videoRef2.current;
-        if (!v1 || !v2) return;
-
-        const FADE_DURATION = 3;
-        const SAFETY_BUFFER = 0.5;
-        const TRIGGER_OFFSET = FADE_DURATION + SAFETY_BUFFER;
-
-        const handleTimeUpdate = () => {
-            const topVideo = topIndex === 1 ? v1 : v2;
-            const bottomVideo = topIndex === 1 ? v2 : v1;
-            if (!topVideo.duration) return;
-
-            const timeLeft = topVideo.duration - topVideo.currentTime;
-
-            if (timeLeft <= TRIGGER_OFFSET && !isFadingOut) {
-                setIsFadingOut(true);
-                bottomVideo.currentTime = 0;
-                bottomVideo.play().catch(e => console.error(e));
-                setTimeout(() => {
-                    setTopIndex(prev => prev === 1 ? 2 : 1);
-                    setIsFadingOut(false);
-                    topVideo.pause();
-                }, FADE_DURATION * 1000);
-            }
-        };
-
-        const activeEl = topIndex === 1 ? v1 : v2;
-        activeEl.addEventListener('timeupdate', handleTimeUpdate);
-        return () => { activeEl.removeEventListener('timeupdate', handleTimeUpdate); };
-    }, [topIndex, isFadingOut, videoError]);
-
     return (
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-[#1a1c2c]">
-            {!videoError ? (
-                <>
-                    <video ref={videoRef1} muted playsInline autoPlay={true} className="absolute inset-0 w-full h-full object-cover transition-opacity ease-linear duration-[3000ms]" style={{ zIndex: topIndex === 1 ? 2 : 1, opacity: (topIndex === 1 && isFadingOut) ? 0 : 0.6 }} onError={() => setVideoError(true)}><source src="/pixel-landscape.mp4" type="video/mp4" /></video>
-                    <video ref={videoRef2} muted playsInline className="absolute inset-0 w-full h-full object-cover transition-opacity ease-linear duration-[3000ms]" style={{ zIndex: topIndex === 2 ? 2 : 1, opacity: (topIndex === 2 && isFadingOut) ? 0 : 0.6 }}><source src="/pixel-landscape.mp4" type="video/mp4" /></video>
-                </>
-            ) : (
-                /* Fallback */
-                <>
-                    <div className="absolute inset-0 bg-gradient-to-b from-[#3b82f6] to-[#60a5fa] opacity-20" />
-                    <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-scrolling opacity-30" style={{ backgroundImage: 'linear-gradient(transparent 50%, #1e3a8a 100%), radial-gradient(circle at 50% 100%, #1e3a8a 0%, transparent 50%)', backgroundSize: '50% 100%', animationDuration: '60s' }} />
-                    <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-scrolling opacity-40" style={{ backgroundImage: 'linear-gradient(transparent 60%, #065f46 100%), radial-gradient(circle at 20% 100%, #064e3b 0%, transparent 30%), radial-gradient(circle at 80% 100%, #064e3b 0%, transparent 40%)', backgroundSize: '30% 100%', animationDuration: '30s' }} />
-                    <div className="absolute bottom-[-50px] left-0 right-0 h-[200px] bg-scrolling opacity-50 blur-[1px]" style={{ backgroundImage: 'radial-gradient(circle at 10% 0%, #10b981 0%, transparent 20%), radial-gradient(circle at 90% 10%, #10b981 0%, transparent 20%)', backgroundSize: '20% 100%', animationDuration: '15s' }} />
-                </>
-            )}
-            <div className="absolute inset-0 bg-background/80 md:bg-[radial-gradient(circle_at_center,theme('colors.background')_0%,theme('colors.background')_100%)] opacity-90 mix-blend-multiply z-20" />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent z-20" />
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+            {/* Background Image - with subtle blur and desaturation */}
+            <div
+                className="absolute inset-0 bg-no-repeat bg-bottom"
+                style={{
+                    backgroundImage: 'url("/background.webp")',
+                    backgroundSize: '100% auto',
+                    filter: 'blur(2px) saturate(0.7)',
+                }}
+            />
+
+            {/* Dark overlay with slight teal tint */}
+            <div className="absolute inset-0 bg-[#0a1015]/50" />
+
+            {/* Brand color tint - very subtle */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/10 via-transparent to-teal-900/10" />
+
+            {/* Gradient fade at top */}
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#0a0d11] to-transparent" />
+
+            {/* Gradient fade at bottom */}
+            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0d11] to-transparent" />
+
+            {/* Soft vignette */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,#0a0d11_100%)] opacity-50" />
         </div>
     );
 }
