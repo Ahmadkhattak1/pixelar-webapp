@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { House, FolderOpen, List, X, Images } from "@phosphor-icons/react";
+import { House, FolderOpen, List, X, Images, UploadSimple } from "@phosphor-icons/react";
 import { ProfileModal } from "@/components/profile-modal";
 import { Logo } from "@/components/layout/Logo";
 import { BYOKButton } from "@/components/home/BYOKButton";
+import { ImportAssetModal } from "@/components/import/ImportAssetModal";
 import { useState, useEffect, useCallback } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 
@@ -11,6 +12,7 @@ export function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const { user } = useAuthContext();
 
     // Close mobile menu when pathname changes
@@ -108,8 +110,17 @@ export function Sidebar() {
                     })}
                 </nav>
 
-                {/* Bottom Section: BYOK, Profile */}
+                {/* Bottom Section: Import, BYOK, Profile */}
                 <div className="p-4 border-t border-white/[0.05] space-y-3">
+                    {/* Import Asset Button */}
+                    <button
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-muted hover:text-white bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] hover:border-white/[0.1] transition-all duration-200"
+                    >
+                        <UploadSimple size={20} weight="regular" />
+                        <span className="font-semibold tracking-wide">Import Asset</span>
+                    </button>
+
                     {/* BYOK Button */}
                     <BYOKButton />
 
@@ -135,6 +146,15 @@ export function Sidebar() {
             <div className="hidden lg:block w-64 shrink-0" />
             {/* Content Spacer for Mobile */}
             <div className="lg:hidden h-16 shrink-0" />
+
+            {/* Import Asset Modal */}
+            <ImportAssetModal
+                open={isImportModalOpen}
+                onOpenChange={setIsImportModalOpen}
+                onSuccess={(projectId) => {
+                    router.push(`/projects/${projectId}`);
+                }}
+            />
         </>
     );
 }

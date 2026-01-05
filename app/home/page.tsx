@@ -334,7 +334,18 @@ export default function HomePage() {
                                                 onClick={() => router.push(`/projects/${project.id}`)}
                                                 className="group relative h-32 rounded-xl overflow-hidden cursor-pointer bg-[#0f111a]/80 backdrop-blur-md border border-white/[0.05] hover:border-white/[0.2] transition-all duration-300 hover:-translate-y-1"
                                             >
-                                                <div className={`absolute inset-0 ${project.color?.split(' ')[0] || 'bg-primary/10'} opacity-30 group-hover:opacity-50 transition-opacity duration-300`} />
+                                                {project.thumbnail_url ? (
+                                                    <>
+                                                        <img
+                                                            src={project.thumbnail_url}
+                                                            alt={project.title}
+                                                            className="absolute inset-0 w-full h-full object-cover pixelated opacity-60 group-hover:opacity-80 transition-opacity duration-300"
+                                                        />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                                                    </>
+                                                ) : (
+                                                    <div className={`absolute inset-0 ${project.color?.split(' ')[0] || 'bg-primary/10'} opacity-30 group-hover:opacity-50 transition-opacity duration-300`} />
+                                                )}
                                                 <div className="absolute inset-0 p-4 flex flex-col justify-between">
                                                     <div className="flex justify-between items-start">
                                                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-bold text-white bg-white/10 border border-white/10">

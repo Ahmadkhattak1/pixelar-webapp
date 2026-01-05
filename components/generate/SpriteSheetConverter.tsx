@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, Save, Settings2, Grid3X3, Clock, Move, Wand2, Loader2 } from "lucide-react";
+import { Play, Pause, Save, Settings2, Grid3X3, Clock, Move, Wand2, Loader2, Download, Rows3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -646,6 +646,11 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
     const [currentFrame, setCurrentFrame] = useState(0);
     const [isExporting, setIsExporting] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
+    const [selectedRows, setSelectedRows] = useState<number[]>([]); // Empty = all selected
+    const [startFrame, setStartFrame] = useState(1);
+    const [endFrame, setEndFrame] = useState(1); // Will be updated when grid changes
+    const [direction, setDirection] = useState<'forward' | 'reverse' | 'pingpong'>('forward');
+    const [pingPongForward, setPingPongForward] = useState(true); // Internal state for pingpong
 
     // Dragging state
     const [isDragging, setIsDragging] = useState(false);
@@ -656,7 +661,7 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement | null>(null);
-    const animationRef = useRef<number>();
+    const animationRef = useRef<number | undefined>(undefined);
 
     // Load Image & Auto Detect
     useEffect(() => {
@@ -668,6 +673,11 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
             imageRef.current = img;
             autoDetectGrid(img);
             setImageLoaded(true);
+        };
+        img.onerror = (err) => {
+            console.error("Failed to load image:", err);
+            // Try loading without CORS as fallback (might fail canvas export but allows viewing) - or just alert
+            alert("Failed to load image. It might be due to CORS restrictions or an invalid URL.");
         };
     }, [spriteSheetUrl]);
 
@@ -751,8 +761,13 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         }
 
         // Fallbacks
-        setRows(Math.max(1, detectedRows));
-        setCols(Math.max(1, detectedCols));
+        const r = Math.max(1, detectedRows);
+        const c = Math.max(1, detectedCols);
+        setRows(r);
+        setCols(c);
+        setSelectedRows([]); // Reset to all selected on new detection
+        setStartFrame(1);
+        setEndFrame(r * c);
 
         // Set offsets based on content bounds
         // setOffsetTop(minY);
@@ -895,7 +910,49 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         let lastTime = 0;
         const animate = (time: number) => {
             if (time - lastTime >= delay) {
-                setCurrentFrame((prev) => (prev + 1) % (rows * cols));
+                setCurrentFrame((prev) => {
+                    // Get frames for selected rows only
+                    const activeRows = selectedRows.length > 0 ? selectedRows : [...Array(rows)].map((_, i) => i);
+                    const totalFrames = activeRows.length * cols;
+
+                    // Effective range constrained by total available frames
+                    const effectiveStart = Math.max(0, startFrame - 1);
+                    const effectiveEnd = Math.min(totalFrames - 1, endFrame - 1);
+
+                    // If range is invalid (start > end), just use start
+                    if (effectiveStart > effectiveEnd) return effectiveStart;
+
+                    let nextFrame;
+
+                    if (direction === 'forward') {
+                        nextFrame = prev + 1;
+                        if (nextFrame > effectiveEnd || nextFrame < effectiveStart) {
+                            nextFrame = effectiveStart;
+                        }
+                    } else if (direction === 'reverse') {
+                        nextFrame = prev - 1;
+                        if (nextFrame < effectiveStart || nextFrame > effectiveEnd) {
+                            nextFrame = effectiveEnd;
+                        }
+                    } else {
+                        // Ping Pong
+                        if (pingPongForward) {
+                            nextFrame = prev + 1;
+                            if (nextFrame >= effectiveEnd) {
+                                nextFrame = effectiveEnd;
+                                setPingPongForward(false);
+                            }
+                        } else {
+                            nextFrame = prev - 1;
+                            if (nextFrame <= effectiveStart) {
+                                nextFrame = effectiveStart;
+                                setPingPongForward(true);
+                            }
+                        }
+                    }
+
+                    return nextFrame;
+                });
                 lastTime = time;
             }
             animationRef.current = requestAnimationFrame(animate);
@@ -905,7 +962,7 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         return () => {
             if (animationRef.current) cancelAnimationFrame(animationRef.current);
         };
-    }, [isPlaying, rows, cols, delay]);
+    }, [isPlaying, rows, cols, delay, selectedRows, startFrame, endFrame, direction, pingPongForward]);
 
     // Render Preview Frame
     useEffect(() => {
@@ -923,15 +980,18 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         canvas.width = frameWidth;
         canvas.height = frameHeight;
 
-        // Calculate current frame position
-        const row = Math.floor(currentFrame / cols);
-        const col = currentFrame % cols;
+        // Map current frame index to actual row/col considering selected rows
+        const activeRows = selectedRows.length > 0 ? selectedRows : [...Array(rows)].map((_, i) => i);
+        const frameInActiveGrid = currentFrame % (activeRows.length * cols);
+        const activeRowIndex = Math.floor(frameInActiveGrid / cols);
+        const row = activeRows[activeRowIndex];
+        const col = frameInActiveGrid % cols;
         const sx = Math.floor(offsetLeft + col * frameWidth);
         const sy = Math.floor(offsetTop + row * frameHeight);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, sx, sy, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
-    }, [currentFrame, rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight]);
+    }, [currentFrame, rows, cols, offsetTop, offsetBottom, offsetLeft, offsetRight, selectedRows]);
 
     // Global mouseup handler for dragging
     useEffect(() => {
@@ -1045,6 +1105,44 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
         }
     };
 
+    // Export selected rows as a PNG spritesheet
+    const handleExportSpritesheet = () => {
+        const img = imageRef.current;
+        if (!img) return;
+
+        const frameWidth = Math.floor((img.width - offsetLeft - offsetRight) / cols);
+        const frameHeight = Math.floor((img.height - offsetTop - offsetBottom) / rows);
+        const activeRows = selectedRows.length > 0 ? selectedRows : [...Array(rows)].map((_, i) => i);
+
+        // Create canvas for the cropped spritesheet
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = frameWidth * cols;
+        exportCanvas.height = frameHeight * activeRows.length;
+        const ctx = exportCanvas.getContext('2d');
+        if (!ctx) return;
+
+        // Draw each selected row
+        activeRows.forEach((rowIndex, yOffset) => {
+            const sy = offsetTop + rowIndex * frameHeight;
+            ctx.drawImage(
+                img,
+                offsetLeft, sy, frameWidth * cols, frameHeight,
+                0, yOffset * frameHeight, frameWidth * cols, frameHeight
+            );
+        });
+
+        // Download
+        exportCanvas.toBlob((blob) => {
+            if (!blob) return;
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `spritesheet-${Date.now()}.png`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }, 'image/png');
+    };
+
     const handleSave = async () => {
         const img = imageRef.current;
         if (!img) return;
@@ -1059,7 +1157,7 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
             console.log('Starting GIF export...', { frameWidth, frameHeight, rows, cols, totalFrames: rows * cols });
 
             // Prepare frames data
-            const frames = [];
+            const frameList: { data: ImageData, delay: number }[] = [];
             const tempCanvas = document.createElement("canvas");
             tempCanvas.width = frameWidth;
             tempCanvas.height = frameHeight;
@@ -1069,74 +1167,59 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
                 throw new Error('Failed to get canvas context');
             }
 
-            for (let i = 0; i < rows * cols; i++) {
-                const row = Math.floor(i / cols);
-                const col = i % cols;
-                const sx = Math.floor(offsetLeft + col * frameWidth);
-                const sy = Math.floor(offsetTop + row * frameHeight);
+            const activeRows = selectedRows.length > 0 ? selectedRows : [...Array(rows)].map((_, i) => i);
+            const totalFrames = activeRows.length * cols;
 
-                ctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-                ctx.drawImage(img, sx, sy, frameWidth, frameHeight, 0, 0, tempCanvas.width, tempCanvas.height);
+            // Effective range
+            const effectiveStart = Math.max(0, startFrame - 1);
+            const effectiveEnd = Math.min(totalFrames - 1, endFrame - 1);
 
-                // Get image data
-                const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-                frames.push({
-                    data: imageData,
-                    delay: Math.floor(delay)
-                });
+            // Generate sequence of indices based on direction
+            const indices: number[] = [];
+
+            if (direction === 'forward') {
+                for (let i = effectiveStart; i <= effectiveEnd; i++) indices.push(i);
+            } else if (direction === 'reverse') {
+                for (let i = effectiveEnd; i >= effectiveStart; i--) indices.push(i);
+            } else {
+                // Ping Pong: Start -> End -> Start-1 (so it loops nicely)
+                for (let i = effectiveStart; i <= effectiveEnd; i++) indices.push(i);
+                for (let i = effectiveEnd - 1; i > effectiveStart; i--) indices.push(i);
             }
 
-            console.log('All frames prepared, encoding with worker...');
+            indices.forEach(globalIndex => {
+                // Map global index back to row/col
+                const activeRowIndex = Math.floor(globalIndex / cols);
+                const row = activeRows[activeRowIndex];
+                const col = globalIndex % cols;
 
-            // Use worker to encode
-            const worker = new Worker(workerUrl);
+                const sx = offsetLeft + col * frameWidth;
+                const sy = offsetTop + row * frameHeight;
 
-            worker.onmessage = (ev) => {
-                if (ev.data.type === 'finished') {
-                    console.log('GIF finished encoding!');
-
-                    const blob = new Blob([ev.data.data], { type: 'image/gif' });
-                    const url = URL.createObjectURL(blob);
-
-                    // Download the GIF
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `animation-${Date.now()}.gif`;
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
-                    link.click();
-
-                    // Cleanup
-                    setTimeout(() => {
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                    }, 100);
-
-                    // Call onSave
-                    onSave(url);
-
-                    console.log('GIF downloaded successfully!');
-                    setIsExporting(false);
-                    worker.terminate();
-                }
-            };
-
-            worker.onerror = (error) => {
-                console.error('Worker error:', error);
-                setIsExporting(false);
-                alert('Failed to encode GIF');
-                worker.terminate();
-            };
+                ctx.clearRect(0, 0, frameWidth, frameHeight);
+                ctx.drawImage(img, sx, sy, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
+                frameList.push({
+                    data: ctx.getImageData(0, 0, frameWidth, frameHeight),
+                    delay: delay
+                });
+            });
 
             // Send data to worker
             worker.postMessage({
                 width: frameWidth,
                 height: frameHeight,
-                frames: frames,
+                frames: frameList,
                 repeat: 0,
                 quality: 10,
                 transparent: null
             });
+
+            // Only include frames from selected rows
+
+
+            console.log('All frames prepared, encoding with worker...');
+
+
 
         } catch (error) {
             console.error('Failed to start GIF rendering:', error);
@@ -1232,7 +1315,138 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
                         </div>
                     </div>
 
-                    {/* Timing */}
+                    {/* Row Selection - only show if multiple rows */}
+                    {rows > 1 && (
+                        <div className="space-y-3 sm:space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[11px] sm:text-xs font-medium text-text flex items-center gap-2">
+                                    <Rows3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
+                                    Row Selection
+                                </h3>
+                                <div className="flex gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 text-[9px] px-1.5"
+                                        onClick={() => setSelectedRows([])}
+                                    >
+                                        All
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 text-[9px] px-1.5"
+                                        onClick={() => setSelectedRows([0])}
+                                    >
+                                        First
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {[...Array(rows)].map((_, rowIndex) => {
+                                    const isSelected = selectedRows.length === 0 || selectedRows.includes(rowIndex);
+                                    return (
+                                        <button
+                                            key={rowIndex}
+                                            onClick={() => {
+                                                if (selectedRows.length === 0) {
+                                                    // First click: select only this row
+                                                    setSelectedRows([rowIndex]);
+                                                } else if (selectedRows.includes(rowIndex)) {
+                                                    // Deselect (unless it's the last one)
+                                                    if (selectedRows.length > 1) {
+                                                        setSelectedRows(prev => prev.filter(r => r !== rowIndex));
+                                                    } else {
+                                                        // If last one, reset to all
+                                                        setSelectedRows([]);
+                                                    }
+                                                } else {
+                                                    // Add to selection
+                                                    setSelectedRows(prev => [...prev, rowIndex].sort((a, b) => a - b));
+                                                }
+                                            }}
+                                            className={`px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-medium transition-all ${isSelected
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-surface-highlight text-text-muted hover:bg-surface-highlight/80'
+                                                }`}
+                                        >
+                                            Row {rowIndex + 1}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-[9px] sm:text-[10px] text-text-muted">
+                                {selectedRows.length === 0
+                                    ? 'All rows will be animated and exported'
+                                    : `${selectedRows.length} row${selectedRows.length > 1 ? 's' : ''} selected`
+                                }
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Frame Selection & Direction */}
+                    <div className="space-y-3 sm:space-y-4">
+                        <h3 className="text-[11px] sm:text-xs font-medium text-text flex items-center gap-2">
+                            <Move className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
+                            Animation Settings
+                        </h3>
+
+                        {/* Frame Range */}
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                            <div className="space-y-1.5 sm:space-y-2">
+                                <Label className="text-[10px] sm:text-xs text-text-muted">Start Frame</Label>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    max={endFrame}
+                                    value={startFrame}
+                                    onChange={(e) => {
+                                        const val = Math.max(1, Math.min(Number(e.target.value), endFrame));
+                                        setStartFrame(val);
+                                    }}
+                                    className="h-8 text-xs sm:text-sm"
+                                />
+                            </div>
+                            <div className="space-y-1.5 sm:space-y-2">
+                                <Label className="text-[10px] sm:text-xs text-text-muted">End Frame</Label>
+                                <Input
+                                    type="number"
+                                    min={startFrame}
+                                    max={rows * cols}
+                                    value={endFrame}
+                                    onChange={(e) => {
+                                        const val = Math.max(startFrame, Math.min(Number(e.target.value), rows * cols));
+                                        setEndFrame(val);
+                                    }}
+                                    className="h-8 text-xs sm:text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Direction */}
+                        <div className="space-y-1.5 sm:space-y-2">
+                            <Label className="text-[10px] sm:text-xs text-text-muted">Direction</Label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { value: 'forward', label: 'Forward' },
+                                    { value: 'reverse', label: 'Reverse' },
+                                    { value: 'pingpong', label: 'Ping-Pong' }
+                                ].map((opt) => (
+                                    <button
+                                        key={opt.value}
+                                        onClick={() => setDirection(opt.value as any)}
+                                        className={`px-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${direction === opt.value
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-surface-highlight text-text-muted hover:bg-surface-highlight/80'
+                                            }`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="space-y-3 sm:space-y-4">
                         <h3 className="text-[11px] sm:text-xs font-medium text-text flex items-center gap-2">
                             <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
@@ -1306,20 +1520,42 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
                     </div>
                 </div>
 
-                <div className="p-4 sm:p-6 border-t border-primary/10 bg-surface/50 flex-shrink-0">
-                    <Button className="w-full" size="lg" onClick={handleSave} disabled={isExporting}>
-                        {isExporting ? (
-                            <>
-                                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 animate-spin" />
-                                <span className="text-xs sm:text-sm">Rendering GIF...</span>
-                            </>
-                        ) : (
-                            <>
-                                <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
-                                <span className="text-xs sm:text-sm">Save Animation</span>
-                            </>
-                        )}
-                    </Button>
+                <div className="p-4 sm:p-6 border-t border-primary/10 bg-surface/50 flex-shrink-0 space-y-2">
+                    <div className="flex gap-2">
+                        <Button
+                            className="flex-1"
+                            size="lg"
+                            onClick={handleSave}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? (
+                                <>
+                                    <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 animate-spin" />
+                                    <span className="text-xs sm:text-sm">Rendering...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
+                                    <span className="text-xs sm:text-sm">Export GIF</span>
+                                </>
+                            )}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            onClick={handleExportSpritesheet}
+                            disabled={isExporting}
+                            title="Export as PNG spritesheet"
+                        >
+                            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </Button>
+                    </div>
+                    <p className="text-[9px] sm:text-[10px] text-text-muted text-center">
+                        {selectedRows.length > 0 && selectedRows.length < rows
+                            ? `Only ${selectedRows.length} selected row${selectedRows.length > 1 ? 's' : ''} will be exported`
+                            : 'All rows will be exported'
+                        }
+                    </p>
                 </div>
             </div>
         </div>

@@ -21,16 +21,19 @@ import { api, Asset } from "@/services/api";
 
 export default function LibraryPage() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
 
     const [assets, setAssets] = useState<Asset[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [isCreatingProject, setIsCreatingProject] = useState(false);
 
-    // Fetch unassigned assets on mount
+    // Fetch unassigned assets on mount or when user becomes available
     useEffect(() => {
         const fetchAssets = async () => {
+            if (authLoading) return; // Wait for auth to initialize
+            if (!user) return; // Wait for user
+
             setIsLoading(true);
             try {
                 const result = await api.assets.list({ unassigned: true });
@@ -43,8 +46,14 @@ export default function LibraryPage() {
                 setIsLoading(false);
             }
         };
-        fetchAssets();
-    }, []);
+
+        if (!authLoading && user) {
+            fetchAssets();
+        } else if (!authLoading && !user) {
+            // Not logged in? maybe redirect or just show empty state
+            setIsLoading(false);
+        }
+    }, [user, authLoading]);
 
     const handleCreateProject = async (asset: Asset) => {
         setIsCreatingProject(true);
@@ -182,8 +191,8 @@ export default function LibraryPage() {
                                         key={asset.id}
                                         onClick={() => setSelectedAsset(asset)}
                                         className={`group relative aspect-square bg-surface rounded-xl border transition-all cursor-pointer overflow-hidden ${selectedAsset?.id === asset.id
-                                                ? 'border-primary ring-2 ring-primary/20'
-                                                : 'border-border hover:border-primary/50'
+                                            ? 'border-primary ring-2 ring-primary/20'
+                                            : 'border-border hover:border-primary/50'
                                             }`}
                                     >
                                         {/* Image */}

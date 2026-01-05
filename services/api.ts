@@ -16,7 +16,7 @@ export interface Project {
     created_at: string;
     updated_at: string;
     asset_count?: number;
-    thumbnail_url?: string;
+    thumbnail_url?: string | null;
 }
 
 export interface Asset {
@@ -67,6 +67,8 @@ export interface GenerationResult {
     success: boolean;
     images: string[];
     assets: Asset[];
+    project?: any;
+    projectId?: string;
     creditsUsed: number;
     remainingCredits: number;
     error?: string;
@@ -90,17 +92,24 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
         }
     }
 
+    console.log(`[API] ${options.method || 'GET'} ${endpoint}`);
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
     });
 
+    console.log(`[API] Response status: ${response.status} ${response.statusText}`);
+
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error(`[API] Error response:`, errorData);
         throw new Error(errorData.error || `API Error: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log(`[API] Response data:`, data);
+    return data;
 }
 
 export const api = {
@@ -182,6 +191,12 @@ export const api = {
         delete: async (id: string) => {
             return fetchWithAuth(`/assets/${id}`, {
                 method: "DELETE",
+            });
+        },
+        upload: async (data: { name: string; type: 'sprite' | 'scene'; image: string; createProject?: boolean; projectId?: string }) => {
+            return fetchWithAuth('/assets/upload', {
+                method: "POST",
+                body: JSON.stringify(data),
             });
         }
     }

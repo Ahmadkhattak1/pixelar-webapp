@@ -79,7 +79,7 @@ function SpriteAnimation({ isHovered }: { isHovered: boolean }) {
                 "absolute inset-0 grid gap-[1px] transition-all duration-500",
                 isHovered ? "opacity-100 scale-105" : "opacity-70 scale-100"
             )}
-            style={{ gridTemplateColumns: 'repeat(16, 1fr)', gridTemplateRows: 'repeat(16, 1fr)' }}
+                style={{ gridTemplateColumns: 'repeat(16, 1fr)', gridTemplateRows: 'repeat(16, 1fr)' }}
             >
                 {[...Array(256)].map((_, i) => {
                     const row = Math.floor(i / 16);
@@ -206,7 +206,10 @@ function SceneAnimation({ isHovered }: { isHovered: boolean }) {
                                 pixelClass = 'bg-white/90 rounded-full';
                                 style = {
                                     boxShadow: '0 0 4px rgba(255,255,255,0.8)',
-                                    animation: isHovered ? 'twinkle-star 2s ease-in-out infinite' : 'none',
+                                    animationName: isHovered ? 'twinkle-star' : 'none',
+                                    animationDuration: '2s',
+                                    animationTimingFunction: 'ease-in-out',
+                                    animationIterationCount: 'infinite',
                                     animationDelay: `${(col * 0.3) % 2}s`
                                 };
                                 break;
@@ -220,7 +223,10 @@ function SceneAnimation({ isHovered }: { isHovered: boolean }) {
                             case 'C': // Clouds
                                 pixelClass = 'bg-white/30 rounded-sm';
                                 style = {
-                                    animation: isHovered ? 'float-cloud 4s ease-in-out infinite' : 'none',
+                                    animationName: isHovered ? 'float-cloud' : 'none',
+                                    animationDuration: '4s',
+                                    animationTimingFunction: 'ease-in-out',
+                                    animationIterationCount: 'infinite',
                                     animationDelay: `${col * 0.1}s`
                                 };
                                 break;
@@ -236,7 +242,10 @@ function SceneAnimation({ isHovered }: { isHovered: boolean }) {
                             case 't': // Tree leaves
                                 pixelClass = 'bg-emerald-500';
                                 style = {
-                                    animation: isHovered ? 'sway-tree 2s ease-in-out infinite' : 'none',
+                                    animationName: isHovered ? 'sway-tree' : 'none',
+                                    animationDuration: '2s',
+                                    animationTimingFunction: 'ease-in-out',
+                                    animationIterationCount: 'infinite',
                                     animationDelay: `${col * 0.2}s`
                                 };
                                 break;
@@ -246,14 +255,20 @@ function SceneAnimation({ isHovered }: { isHovered: boolean }) {
                             case 'W': // Water deep
                                 pixelClass = 'bg-cyan-600';
                                 style = {
-                                    animation: isHovered ? 'wave-water 1.5s ease-in-out infinite' : 'none',
+                                    animationName: isHovered ? 'wave-water' : 'none',
+                                    animationDuration: '1.5s',
+                                    animationTimingFunction: 'ease-in-out',
+                                    animationIterationCount: 'infinite',
                                     animationDelay: `${col * 0.1}s`
                                 };
                                 break;
                             case 'w': // Water highlight
                                 pixelClass = 'bg-cyan-400';
                                 style = {
-                                    animation: isHovered ? 'wave-water 1.5s ease-in-out infinite' : 'none',
+                                    animationName: isHovered ? 'wave-water' : 'none',
+                                    animationDuration: '1.5s',
+                                    animationTimingFunction: 'ease-in-out',
+                                    animationIterationCount: 'infinite',
                                     animationDelay: `${col * 0.1 + 0.2}s`
                                 };
                                 break;
@@ -274,7 +289,7 @@ function SceneAnimation({ isHovered }: { isHovered: boolean }) {
                     "absolute top-6 transition-all duration-700",
                     isHovered ? "opacity-100" : "opacity-0"
                 )}
-                style={{ animation: isHovered ? 'fly-bird 6s linear infinite' : 'none' }}
+                    style={{ animation: isHovered ? 'fly-bird 6s linear infinite' : 'none' }}
                 >
                     <div className="flex gap-[2px]">
                         <div className="w-1 h-1 bg-slate-700 rounded-full" style={{ animation: isHovered ? 'flap-wing 0.3s ease-in-out infinite' : 'none' }} />
@@ -288,7 +303,13 @@ function SceneAnimation({ isHovered }: { isHovered: boolean }) {
                     "absolute top-10 transition-all duration-700",
                     isHovered ? "opacity-100" : "opacity-0"
                 )}
-                style={{ animation: isHovered ? 'fly-bird 8s linear infinite' : 'none', animationDelay: '2s' }}
+                    style={{
+                        animationName: isHovered ? 'fly-bird' : 'none',
+                        animationDuration: '8s',
+                        animationTimingFunction: 'linear',
+                        animationIterationCount: 'infinite',
+                        animationDelay: '2s'
+                    }}
                 >
                     <div className="flex gap-[1px] scale-75">
                         <div className="w-1 h-1 bg-slate-600 rounded-full" style={{ animation: isHovered ? 'flap-wing 0.25s ease-in-out infinite' : 'none' }} />

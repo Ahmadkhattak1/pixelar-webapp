@@ -132,7 +132,15 @@ export default function GenerateScenePage() {
             });
 
             if (result.success) {
-                setPreviewImages(result.images);
+                let imagesToShow = result.images || [];
+
+                // Fallback to assets if images array is empty but assets exist
+                if (imagesToShow.length === 0 && result.assets && result.assets.length > 0) {
+                    imagesToShow = result.assets.map((a: any) => a.blob_url);
+                }
+
+                setPreviewImages(imagesToShow);
+
                 if (result.assets) {
                     setGeneratedAssets(result.assets);
                 }
@@ -384,14 +392,8 @@ export default function GenerateScenePage() {
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
                                                     {[
-                                                        { value: "environment", label: "Environment" },
-                                                        { value: "isometric", label: "Isometric" },
-                                                        { value: "topdown_map", label: "Top-Down Map" },
-                                                        { value: "textured", label: "Textured" },
-                                                        { value: "watercolor", label: "Watercolor" },
-                                                        { value: "low_res", label: "Low Res" },
-                                                        { value: "mc_texture", label: "Minecraft Texture" },
-                                                        { value: "retro", label: "Retro (PC98)" },
+                                                        { value: "pixel_art", label: "Pixel Art" },
+                                                        { value: "2d_flat", label: "2D Flat" },
                                                     ].map(({ value, label }) => (
                                                         <button
                                                             key={value}
@@ -565,11 +567,11 @@ export default function GenerateScenePage() {
                     {/* Canvas Area */}
                     <div className="flex-1 overflow-auto flex items-center justify-center relative bg-[url('/grid-pattern.svg')] bg-center">
                         {isGenerating ? (
-                            <div className="grid grid-cols-2 gap-6 p-8 max-w-4xl mx-auto animate-in fade-in duration-500">
+                            <div className="grid grid-cols-2 gap-6 p-8 w-full max-w-4xl animate-in fade-in duration-500">
                                 {[...Array(quantity)].map((_, index) => (
                                     <div
                                         key={index}
-                                        className="aspect-video bg-surface/50 rounded-lg border border-border border-dashed flex flex-col items-center justify-center relative overflow-hidden"
+                                        className="aspect-video min-w-[200px] bg-surface/50 rounded-lg border border-border border-dashed flex flex-col items-center justify-center relative overflow-hidden"
                                     >
                                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" style={{ transform: 'skewX(-20deg) translateX(-150%)' }} />
                                         <div className="flex flex-col items-center gap-3 z-10">

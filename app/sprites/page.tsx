@@ -87,6 +87,8 @@ export default function GenerateSpritePage() {
     const [showBYOKPrompt, setShowBYOKPrompt] = useState(false);
     const [generatedAssets, setGeneratedAssets] = useState<Asset[]>([]);
     const [animationStyle, setAnimationStyle] = useState<"four_angle_walking" | "walking_and_idle" | "small_sprites" | "vfx">("four_angle_walking");
+    const [generationError, setGenerationError] = useState<string | null>(null);
+    const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
     const mainRef = useRef<HTMLDivElement>(null);
 
     const handleReferenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,6 +143,8 @@ export default function GenerateSpritePage() {
         setPreviewImages([]);
         setGeneratedAssets([]);
         setSelectedPreview(null);
+        setGenerationError(null);
+        setCreatedProjectId(null);
 
         try {
             let result;
@@ -177,66 +181,68 @@ export default function GenerateSpritePage() {
                 });
             }
 
+            console.log("Generation Result:", result); // DEBUG Log
+            console.log("Images from result:", result.images);
+            console.log("Assets from result:", result.assets);
+            console.log("Project from result:", result.project, result.projectId);
+
             if (result.success) {
-                setPreviewImages(result.images);
-                if (result.assets) {
+                // Get images from result, filtering out any empty/invalid URLs
+                let imagesToShow = (result.images || []).filter((img: string) => img && img.trim() !== '');
+
+                console.log("Filtered images:", imagesToShow);
+
+                // Fallback to assets if images array is empty but assets exist
+                if (imagesToShow.length === 0 && result.assets && result.assets.length > 0) {
+                    console.log("Falling back to asset blob_urls");
+                    imagesToShow = result.assets
+                        .map((a: any) => a.blob_url)
+                        .filter((url: string) => url && url.trim() !== '');
+                    console.log("Asset blob_urls:", imagesToShow);
+                }
+
+                if (imagesToShow.length > 0) {
+                    console.log("Setting preview images:", imagesToShow);
+                    setPreviewImages(imagesToShow);
+                    // Auto-select first image if none selected
+                    setSelectedPreview(0);
+                } else {
+                    console.error("No valid images found in result");
+                    setGenerationError("Generation completed but no images were returned. Please try again.");
+                }
+
+                if (result.assets && result.assets.length > 0) {
+                    console.log("Setting generated assets:", result.assets);
                     setGeneratedAssets(result.assets);
+                }
+
+                // Store the auto-created project ID for navigation
+                if (result.projectId) {
+                    setCreatedProjectId(result.projectId);
                 }
             } else {
                 console.error("Generation failed:", result.error);
-                // TODO: Show error toast
+                setGenerationError(result.error || "Generation failed. Please try again.");
             }
         } catch (error: any) {
             console.error("Generation error:", error);
-            if (error.message && (error.message.includes("No API key configured") || error.message.includes("Invalid or expired token"))) {
+            const errorMessage = error?.message || error?.error || "An unexpected error occurred. Please try again.";
+
+            if (errorMessage.includes("No API key configured") || errorMessage.includes("Invalid or expired token")) {
                 setShowBYOKPrompt(true);
+            } else {
+                setGenerationError(errorMessage);
             }
         } finally {
             setIsGenerating(false);
         }
     };
 
-    const handleCreateProject = async () => {
-        if (selectedPreview === null) return;
-
-        try {
-            let targetProjectId = projectId;
-
-            // 1. Create project if needed
-            if (!targetProjectId) {
-                const title = "Untitled";
-
-                const projectRes = await api.projects.create({
-                    title,
-                    type: 'sprite', // Always sprite project for this page
-                    description: prompt,
-                    settings: {
-                        style,
-                        dimension: dimensions
-                    }
-                });
-
-                if (projectRes.success && projectRes.project) {
-                    targetProjectId = projectRes.project.id;
-                } else {
-                    console.error("Failed to create project");
-                    return;
-                }
-            }
-
-            // 2. Link Asset to Project
-            if (targetProjectId && generatedAssets[selectedPreview]) {
-                const assetId = generatedAssets[selectedPreview].id;
-                await api.assets.update(assetId, {
-                    project_id: targetProjectId
-                });
-            }
-
-            // 3. Navigate
+    const handleViewProject = () => {
+        // Navigate to the auto-created project
+        const targetProjectId = createdProjectId || projectId;
+        if (targetProjectId) {
             router.push(`/projects/${targetProjectId}`);
-
-        } catch (error) {
-            console.error("Error creating project:", error);
         }
     };
 
@@ -509,15 +515,8 @@ export default function GenerateSpritePage() {
                                                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
                                                     {[
                                                         { value: "default", label: "Default" },
-                                                        { value: "retro", label: "Retro (PC98)" },
-                                                        { value: "classic", label: "Classic" },
-                                                        { value: "cartoon", label: "Cartoon" },
-                                                        { value: "mc_item", label: "Minecraft Item" },
-                                                        { value: "skill_icon", label: "Skill Icon" },
-                                                        { value: "isometric_asset", label: "Isometric" },
-                                                        { value: "topdown_asset", label: "Top-Down" },
-                                                        { value: "character_turnaround", label: "Turnaround" },
-                                                        { value: "watercolor", label: "Watercolor" },
+                                                        { value: "pixel_art", label: "Pixel Art" },
+                                                        { value: "2d_flat", label: "2D Flat" },
                                                     ].map(({ value, label }) => (
                                                         <button
                                                             key={value}
@@ -688,11 +687,15 @@ export default function GenerateSpritePage() {
                             <div className="flex-1 overflow-auto flex items-center justify-center relative bg-[url('/grid-pattern.svg')] bg-center">
                                 {/* Loading State */}
                                 {isGenerating ? (
-                                    <div className="grid grid-cols-2 gap-6 p-8 max-w-3xl mx-auto animate-in fade-in duration-500">
+                                    <div className={`${quantity === 1
+                                        ? 'flex items-center justify-center p-8 w-full'
+                                        : 'grid grid-cols-2 gap-6 p-8 w-full max-w-3xl'
+                                        } animate-in fade-in duration-500`}>
                                         {[...Array(quantity)].map((_, index) => (
                                             <div
                                                 key={index}
-                                                className="aspect-square bg-surface/50 rounded-lg border border-border border-dashed flex flex-col items-center justify-center relative overflow-hidden"
+                                                className={`aspect-square bg-surface/50 rounded-lg border border-border border-dashed flex flex-col items-center justify-center relative overflow-hidden ${quantity === 1 ? 'w-72 h-72' : 'min-w-[200px] w-full'
+                                                    }`}
                                             >
                                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" style={{ transform: 'skewX(-20deg) translateX(-150%)' }} />
                                                 <div className="flex flex-col items-center gap-3 z-10">
@@ -705,6 +708,23 @@ export default function GenerateSpritePage() {
                                             </div>
                                         ))}
                                     </div>
+                                ) : generationError ? (
+                                    <div className="text-center space-y-4 max-w-md p-8">
+                                        <div className="w-16 h-16 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
+                                            <X className="w-6 h-6 text-red-400" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-medium text-red-400">Generation Failed</p>
+                                            <p className="text-xs text-text-muted">{generationError}</p>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setGenerationError(null)}
+                                        >
+                                            Try Again
+                                        </Button>
+                                    </div>
                                 ) : previewImages.length === 0 ? (
                                     <div className="text-center space-y-4 max-w-xs">
                                         <div className="w-16 h-16 rounded-xl bg-surface border border-border flex items-center justify-center mx-auto">
@@ -713,18 +733,55 @@ export default function GenerateSpritePage() {
                                         <p className="text-sm text-text-muted">Configure settings and generate to see results</p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-2 gap-6 p-8 max-w-3xl mx-auto">
+                                    <div className={`p-8 mx-auto ${previewImages.length === 1
+                                        ? 'flex items-center justify-center'
+                                        : 'grid grid-cols-2 gap-6 max-w-3xl'
+                                        }`}>
                                         {previewImages.map((img, index) => (
                                             <div
                                                 key={index}
                                                 onClick={() => setSelectedPreview(index)}
-                                                className={`group relative aspect-square bg-surface rounded-lg border transition-colors cursor-pointer ${selectedPreview === index
-                                                    ? 'border-primary'
-                                                    : 'border-border hover:border-primary/50'
+                                                className={`group relative aspect-square bg-surface rounded-lg border transition-colors cursor-pointer ${previewImages.length === 1 ? 'w-80 h-80' : 'min-w-[200px]'
+                                                    } ${selectedPreview === index
+                                                        ? 'border-primary ring-2 ring-primary/20'
+                                                        : 'border-border hover:border-primary/50'
                                                     }`}
                                             >
                                                 <div className="absolute inset-4 flex items-center justify-center">
-                                                    <img src={img} alt="Generated Sprite" className="w-full h-full object-contain pixelated" />
+                                                    {/* Loading placeholder */}
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-surface/50 image-loading-placeholder">
+                                                        <Loader2 className="w-6 h-6 text-text-muted animate-spin" />
+                                                    </div>
+                                                    <img
+                                                        src={img}
+                                                        alt={`Generated Sprite ${index + 1}`}
+                                                        className="w-full h-full object-contain pixelated relative z-10"
+                                                        onError={(e) => {
+                                                            console.error(`Failed to load image ${index}:`, img);
+                                                            const target = e.target as HTMLImageElement;
+                                                            const parent = target.parentElement;
+                                                            // Hide loading placeholder and show error
+                                                            if (parent) {
+                                                                const placeholder = parent.querySelector('.image-loading-placeholder');
+                                                                if (placeholder) {
+                                                                    placeholder.innerHTML = '<span class="text-xs text-red-400">Failed to load</span>';
+                                                                }
+                                                            }
+                                                            target.style.display = 'none';
+                                                        }}
+                                                        onLoad={(e) => {
+                                                            console.log(`Image ${index} loaded successfully`);
+                                                            const target = e.target as HTMLImageElement;
+                                                            const parent = target.parentElement;
+                                                            // Hide loading placeholder
+                                                            if (parent) {
+                                                                const placeholder = parent.querySelector('.image-loading-placeholder');
+                                                                if (placeholder) {
+                                                                    (placeholder as HTMLElement).style.display = 'none';
+                                                                }
+                                                            }
+                                                        }}
+                                                    />
                                                 </div>
 
                                                 {/* Selection Indicator */}
@@ -738,7 +795,22 @@ export default function GenerateSpritePage() {
                                                     <Button variant="ghost" size="icon" className="w-7 h-7">
                                                         <MagnifyingGlassPlus className="w-4 h-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="w-7 h-7">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="w-7 h-7"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // Download the image
+                                                            const link = document.createElement('a');
+                                                            link.href = img;
+                                                            link.download = `sprite_${index + 1}.png`;
+                                                            link.target = '_blank';
+                                                            document.body.appendChild(link);
+                                                            link.click();
+                                                            document.body.removeChild(link);
+                                                        }}
+                                                    >
                                                         <Download className="w-4 h-4" />
                                                     </Button>
                                                 </div>
@@ -749,25 +821,16 @@ export default function GenerateSpritePage() {
                             </div>
 
                             {/* Fixed Floating Action Button */}
-                            {selectedPreview !== null && (
+                            {selectedPreview !== null && (createdProjectId || projectId) && (
                                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface border border-border rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-3 z-10">
                                     <span className="text-sm text-text">Variant {selectedPreview + 1} selected</span>
                                     <Button
-                                        onClick={handleCreateProject}
+                                        onClick={handleViewProject}
                                         size="sm"
                                         className="h-8 rounded-full px-4"
                                     >
-                                        {projectId ? (
-                                            <>
-                                                <Plus className="w-4 h-4" />
-                                                Add to Project
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FolderPlus className="w-4 h-4" />
-                                                Create Project
-                                            </>
-                                        )}
+                                        <FolderPlus className="w-4 h-4" />
+                                        View Project
                                     </Button>
                                 </div>
                             )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Plus, Download, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Download, Sparkles, Loader2, Upload } from "lucide-react";
 import { ArrowLeft, Trash, PencilSimple } from "@phosphor-icons/react";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { api, Project, Asset } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { ProfileModal } from "@/components/profile-modal";
+import { ImportAssetModal } from "@/components/import/ImportAssetModal";
 
 export default function ProjectPage() {
     const params = useParams();
@@ -22,6 +23,7 @@ export default function ProjectPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isImportOpen, setIsImportOpen] = useState(false);
 
     // Fetch project and assets
     useEffect(() => {
@@ -161,6 +163,16 @@ export default function ProjectPage() {
                     >
                         <Plus className="w-3.5 h-3.5 mr-1" />
                         New Project
+                        New Project
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => setIsImportOpen(true)}
+                    >
+                        <Upload className="w-3.5 h-3.5 mr-1" />
+                        Import
                     </Button>
                     <Button
                         size="sm"
@@ -208,8 +220,8 @@ export default function ProjectPage() {
                                     key={asset.id}
                                     onClick={() => setSelectedAssetId(asset.id)}
                                     className={`group relative aspect-square bg-background rounded-lg border cursor-pointer transition-all overflow-hidden ${selectedAssetId === asset.id
-                                            ? 'border-primary ring-1 ring-primary/20'
-                                            : 'border-border hover:border-primary/50'
+                                        ? 'border-primary ring-1 ring-primary/20'
+                                        : 'border-border hover:border-primary/50'
                                         }`}
                                 >
                                     <img
@@ -313,11 +325,55 @@ export default function ProjectPage() {
                     <div className="p-4 border-t border-border space-y-2">
                         <Button size="sm" className="w-full" onClick={handleExport} disabled={!selectedAsset}>
                             <Download className="w-4 h-4 mr-2" />
-                            Download
+                            Download PNG
                         </Button>
+
+                        {/* Show GIF converter for animation assets */}
+                        {selectedAsset?.asset_type === 'animation' && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => {
+                                    // Open in GIF converter by passing the asset URL
+                                    router.push(`/tools/gif-converter?asset=${encodeURIComponent(selectedAsset.blob_url!)}`);
+                                }}
+                            >
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                Open in GIF Converter
+                            </Button>
+                        )}
+
+                        {/* Always show option to convert to GIF */}
+                        {selectedAsset && selectedAsset.asset_type !== 'scene' && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="w-full text-xs text-text-muted"
+                                onClick={() => {
+                                    router.push(`/tools/gif-converter?asset=${encodeURIComponent(selectedAsset.blob_url!)}`);
+                                }}
+                            >
+                                Convert to GIF
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
+
+            <ImportAssetModal
+                open={isImportOpen}
+                onOpenChange={setIsImportOpen}
+                projectId={projectId}
+                onSuccess={(newAsset) => {
+                    // Check if newAsset is a string (legacy/error) or Asset object
+                    if (typeof newAsset !== 'string') {
+                        setAssets(prev => [newAsset as Asset, ...prev]);
+                        setSelectedAssetId((newAsset as Asset).id);
+                    }
+                    setIsImportOpen(false);
+                }}
+            />
         </div>
     );
 }

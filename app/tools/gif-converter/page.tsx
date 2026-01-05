@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Upload, ArrowLeft, Image as ImageIcon, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,17 @@ import { SpriteSheetConverter } from "@/components/generate/SpriteSheetConverter
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function GifConverterPage() {
+    const searchParams = useSearchParams();
     const [selectedFile, setSelectedFile] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Auto-load asset from query param
+    useEffect(() => {
+        const assetUrl = searchParams.get('asset');
+        if (assetUrl) {
+            setSelectedFile(decodeURIComponent(assetUrl));
+        }
+    }, [searchParams]);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
