@@ -5,7 +5,7 @@ import { ProfileModal } from "@/components/profile-modal";
 import { Logo } from "@/components/layout/Logo";
 import { BYOKButton } from "@/components/home/BYOKButton";
 import { ImportAssetModal } from "@/components/import/ImportAssetModal";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 export function Sidebar() {

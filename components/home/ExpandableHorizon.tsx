@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Sparkle, Image as ImageIcon, FilmStrip, ArrowRight, Play, Cube, Mountains, Lightning } from "@phosphor-icons/react";
+import { Sparkle, FilmStrip, ArrowRight, Mountains, Lightning, UploadSimple } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 
@@ -322,10 +322,10 @@ function SceneAnimation({ isHovered }: { isHovered: boolean }) {
     );
 }
 
-function MotionAnimation({ isHovered }: { isHovered: boolean }) {
+function AnimateAssetAnimation({ isHovered }: { isHovered: boolean }) {
     return (
         <div className="relative w-full h-40 flex items-center justify-center overflow-hidden">
-            {/* Film Strips */}
+            {/* Film strip frames behind */}
             <div className={cn("absolute inset-y-0 left-0 flex gap-3 h-20 top-10 w-[200%] transition-opacity duration-500", isHovered ? "opacity-50" : "opacity-20")}
                 style={{ animation: isHovered ? 'slide-strip 10s linear infinite' : 'none' }}>
                 {[...Array(12)].map((_, i) => (
@@ -335,13 +335,14 @@ function MotionAnimation({ isHovered }: { isHovered: boolean }) {
                 ))}
             </div>
 
-            {/* Play Button */}
+            {/* Upload + Animate icon */}
             <div className={cn(
-                "relative z-10 w-24 h-24 rounded-2xl border bg-violet-500/20 flex items-center justify-center shadow-2xl backdrop-blur-xl transition-all duration-500",
+                "relative z-10 w-24 h-24 rounded-2xl border bg-violet-500/20 flex flex-col items-center justify-center gap-2 shadow-2xl backdrop-blur-xl transition-all duration-500",
                 isHovered ? "scale-110 border-violet-400/50 shadow-[0_0_40px_rgba(139,92,246,0.4)]" : "scale-100 border-white/10"
             )}>
                 <div className="absolute inset-0 bg-violet-500/20 rounded-2xl" />
-                <Play weight="fill" className={cn("w-10 h-10 transition-all duration-300 relative z-10 drop-shadow-md", isHovered ? "text-white" : "text-violet-300")} />
+                <UploadSimple weight="bold" className={cn("w-7 h-7 transition-all duration-300 relative z-10 drop-shadow-md", isHovered ? "text-white" : "text-violet-300")} />
+                <FilmStrip weight="fill" className={cn("w-5 h-5 transition-all duration-300 relative z-10 drop-shadow-md", isHovered ? "text-violet-200" : "text-violet-400")} />
             </div>
         </div>
     );
@@ -358,10 +359,11 @@ interface PanelProps {
     glowColor: string;
     isActive: boolean;
     onHover: (id: string | null) => void;
+    onClick?: () => void;
     children: React.ReactNode;
 }
 
-function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, onHover, children }: PanelProps) {
+function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, onHover, onClick, children }: PanelProps) {
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [isHovering, setIsHovering] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
@@ -382,8 +384,13 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
         onHover(null);
     };
 
+    const Wrapper = onClick ? 'div' : Link;
+    const wrapperProps = onClick
+        ? { className: "contents", onClick: (e: React.MouseEvent) => { e.preventDefault(); onClick(); } }
+        : { href, className: "contents" };
+
     return (
-        <Link href={href} className="contents">
+        <Wrapper {...wrapperProps as any}>
             <motion.div
                 ref={cardRef}
                 layout
@@ -546,7 +553,7 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
                     </div>
                 </div>
             </motion.div>
-        </Link>
+        </Wrapper>
     );
 }
 
@@ -582,16 +589,16 @@ export function ExpandableHorizon() {
             </Panel>
 
             <Panel
-                id="motion"
-                title="Sprite Sheet to GIF"
+                id="animate"
+                title="Animate Asset"
                 href="/tools/gif-converter"
                 icon={Lightning}
                 accentColor="#8b5cf6"
                 glowColor="#8b5cf680"
-                isActive={focusedPanel === "motion"}
+                isActive={focusedPanel === "animate"}
                 onHover={setFocusedPanel}
             >
-                <MotionAnimation isHovered={focusedPanel === "motion"} />
+                <AnimateAssetAnimation isHovered={focusedPanel === "animate"} />
             </Panel>
         </div>
     );

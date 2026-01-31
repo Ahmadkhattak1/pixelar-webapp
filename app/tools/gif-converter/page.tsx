@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Upload, ArrowLeft, Image as ImageIcon, X } from "lucide-react";
 import Link from "next/link";
@@ -9,10 +9,20 @@ import { Header } from "@/components/layout/Header";
 import { SpriteSheetConverter } from "@/components/generate/SpriteSheetConverter";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function GifConverterPage() {
+function GifConverterContent() {
     const searchParams = useSearchParams();
     const [selectedFile, setSelectedFile] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Frame metadata from spritesheet (passed from project page)
+    const paramFw = searchParams.get('fw');
+    const paramFh = searchParams.get('fh');
+    const paramFc = searchParams.get('fc');
+    const frameHint = paramFw && paramFh && paramFc ? {
+        frameWidth: parseInt(paramFw),
+        frameHeight: parseInt(paramFh),
+        frameCount: parseInt(paramFc),
+    } : undefined;
 
     // Auto-load asset from query param
     useEffect(() => {
@@ -112,6 +122,7 @@ export default function GifConverterPage() {
                     <div className="flex-1 w-full h-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <SpriteSheetConverter
                             spriteSheetUrl={selectedFile}
+                            frameHint={frameHint}
                             onSave={(gifUrl) => {
                                 const link = document.createElement('a');
                                 link.href = gifUrl;
@@ -123,5 +134,13 @@ export default function GifConverterPage() {
                 )}
             </main>
         </div>
+    );
+}
+
+export default function GifConverterPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-text-muted">Loading...</div>}>
+            <GifConverterContent />
+        </Suspense>
     );
 }

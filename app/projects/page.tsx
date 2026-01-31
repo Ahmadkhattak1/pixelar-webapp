@@ -302,15 +302,23 @@ export default function ProjectsPage() {
                     className="group cursor-pointer hover:shadow-md transition-all overflow-hidden"
                     onClick={() => router.push(`/projects/${project.id}`)}
                   >
-                    <div className={`h-40 ${project.color || 'bg-gray-500'} grid-pattern relative`}>
+                    <div className={`h-40 ${project.thumbnail_url ? 'bg-background' : project.color || 'bg-gray-500'} grid-pattern relative overflow-hidden`}>
                       <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors"></div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        {project.type === "sprite" ? (
-                          <ImageIcon className="w-12 h-12 text-white/80" />
-                        ) : (
-                          <Map className="w-12 h-12 text-white/80" />
-                        )}
-                      </div>
+                      {project.thumbnail_url ? (
+                        <img
+                          src={project.thumbnail_url}
+                          alt={project.title}
+                          className="absolute inset-0 w-full h-full object-contain p-4 pixelated"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          {project.type === "sprite" ? (
+                            <ImageIcon className="w-12 h-12 text-white/80" />
+                          ) : (
+                            <Map className="w-12 h-12 text-white/80" />
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <CardContent className="p-4">
@@ -457,7 +465,7 @@ export default function ProjectsPage() {
               Cancel
             </Button>
             <Button
-              variant="destructive"
+              variant="default"
               onClick={confirmDelete}
               className="bg-red-500 hover:bg-red-600"
             >

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Upload, X, Loader2, Image as ImageIcon, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,16 +20,26 @@ interface ImportAssetModalProps {
     onOpenChange: (open: boolean) => void;
     projectId?: string; // Optional: if provided, import into this project
     onSuccess?: (result: string | any) => void; // string=projectId (legacy), object=asset
+    defaultAnimateMode?: boolean; // If true, auto-navigate to project with animations tab
 }
 
-export function ImportAssetModal({ open, onOpenChange, projectId, onSuccess }: ImportAssetModalProps) {
+export function ImportAssetModal({ open, onOpenChange, projectId, onSuccess, defaultAnimateMode }: ImportAssetModalProps) {
     const { user } = useAuth();
+    const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [assetName, setAssetName] = useState("");
     const [assetType, setAssetType] = useState<"sprite" | "scene">("sprite");
     const [isUploading, setIsUploading] = useState(false);
     const [createProject, setCreateProject] = useState(!projectId); // Default to true unless projectId provided
+
+    // When in animate mode, always create project and force sprite type
+    useEffect(() => {
+        if (defaultAnimateMode) {
+            setCreateProject(true);
+            setAssetType("sprite");
+        }
+    }, [defaultAnimateMode]);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -107,7 +118,10 @@ export function ImportAssetModal({ open, onOpenChange, projectId, onSuccess }: I
                 reset();
                 onOpenChange(false);
 
-                if (result.projectId && onSuccess) {
+                if (defaultAnimateMode && result.projectId) {
+                    // Navigate directly to project with animations tab
+                    router.push(`/projects/${result.projectId}?tab=animations`);
+                } else if (result.projectId && onSuccess) {
                     onSuccess(result.projectId);
                 }
             } else {
@@ -137,7 +151,7 @@ export function ImportAssetModal({ open, onOpenChange, projectId, onSuccess }: I
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Upload className="w-5 h-5 text-primary" />
-                        Import Asset
+                        {defaultAnimateMode ? 'Import & Animate Asset' : 'Import Asset'}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -215,33 +229,35 @@ export function ImportAssetModal({ open, onOpenChange, projectId, onSuccess }: I
                         />
                     </div>
 
-                    {/* Asset Type */}
-                    <div className="space-y-2">
-                        <Label className="text-xs text-text-muted">Asset Type</Label>
-                        <div className="flex gap-2">
-                            <Button
-                                variant={assetType === "sprite" ? "default" : "outline"}
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setAssetType("sprite")}
-                            >
-                                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                                Sprite
-                            </Button>
-                            <Button
-                                variant={assetType === "scene" ? "default" : "outline"}
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setAssetType("scene")}
-                            >
-                                <ImageIcon className="w-3.5 h-3.5 mr-1.5" />
-                                Scene
-                            </Button>
+                    {/* Asset Type - hide in animate mode */}
+                    {!defaultAnimateMode && (
+                        <div className="space-y-2">
+                            <Label className="text-xs text-text-muted">Asset Type</Label>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant={assetType === "sprite" ? "default" : "outline"}
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => setAssetType("sprite")}
+                                >
+                                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                                    Sprite
+                                </Button>
+                                <Button
+                                    variant={assetType === "scene" ? "default" : "outline"}
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => setAssetType("scene")}
+                                >
+                                    <ImageIcon className="w-3.5 h-3.5 mr-1.5" />
+                                    Scene
+                                </Button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Create Project Toggle - Only show if not already in a project */}
-                    {canCreateProject && (
+                    {/* Create Project Toggle - Only show if not already in a project and not animate mode */}
+                    {canCreateProject && !defaultAnimateMode && (
                         <label className="flex items-center justify-between p-3 rounded-lg bg-surface/50 border border-border cursor-pointer hover:bg-surface transition-colors">
                             <span className="text-sm">Create project from this asset</span>
                             <button
@@ -258,6 +274,13 @@ export function ImportAssetModal({ open, onOpenChange, projectId, onSuccess }: I
                         </label>
                     )}
 
+                    {/* Hide asset type selector in animate mode (forced to sprite) */}
+                    {defaultAnimateMode && (
+                        <p className="text-xs text-text-muted bg-surface-highlight/50 rounded-lg p-3 border border-border">
+                            Your asset will be imported into a new project where you can generate animation spritesheets.
+                        </p>
+                    )}
+
                     {/* Submit */}
                     <Button
                         className="w-full"
@@ -267,12 +290,16 @@ export function ImportAssetModal({ open, onOpenChange, projectId, onSuccess }: I
                         {isUploading ? (
                             <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Uploading...
+                                {defaultAnimateMode ? "Importing..." : "Uploading..."}
                             </>
                         ) : (
                             <>
                                 <Upload className="w-4 h-4 mr-2" />
-                                {canCreateProject && createProject ? "Import & Create Project" : "Import Asset"}
+                                {defaultAnimateMode
+                                    ? "Import & Animate"
+                                    : canCreateProject && createProject
+                                        ? "Import & Create Project"
+                                        : "Import Asset"}
                             </>
                         )}
                     </Button>

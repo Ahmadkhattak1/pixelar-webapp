@@ -199,5 +199,33 @@ export const api = {
                 body: JSON.stringify(data),
             });
         }
+    },
+
+    spritesheet: {
+        getPresets: async () => {
+            return fetchWithAuth("/spritesheet/presets");
+        },
+        generate: async (params: {
+            assetId: string;
+            projectId?: string;
+            animationPresetId: string;
+            customPrompt?: string;
+            customWidth?: number;
+            customHeight?: number;
+            apiKey?: string;
+        }) => {
+            return fetchWithAuth("/spritesheet/generate", {
+                method: "POST",
+                body: JSON.stringify(params),
+            });
+        },
+        listByProject: async (projectId: string) => {
+            return fetchWithAuth(`/spritesheet/project/${projectId}`);
+        },
+        delete: async (id: string) => {
+            return fetchWithAuth(`/spritesheet/${id}`, {
+                method: "DELETE",
+            });
+        }
     }
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
     Download,
@@ -33,7 +33,7 @@ type SceneProject = {
     variants: SceneVariant[];
 };
 
-export default function ScenePreviewPage() {
+function ScenePreviewContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const projectId = searchParams.get("projectId");
@@ -330,5 +330,13 @@ export default function ScenePreviewPage() {
                 </div>
             </div>
         </SpritePreviewLayout>
+    );
+}
+
+export default function ScenePreviewPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-slate-400">Loading...</div>}>
+            <ScenePreviewContent />
+        </Suspense>
     );
 }

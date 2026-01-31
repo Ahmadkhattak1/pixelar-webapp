@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -46,7 +46,7 @@ type Style =
     | "pixel_art" // Legacy
     | "2d_flat";  // Legacy
 
-export default function GenerateScenePage() {
+function GenerateSceneContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const projectId = searchParams.get("projectId");
@@ -68,9 +68,11 @@ export default function GenerateScenePage() {
     const [previewImages, setPreviewImages] = useState<string[]>([]);
     const [generatedAssets, setGeneratedAssets] = useState<Asset[]>([]);
     const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
+    const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [showBYOKPrompt, setShowBYOKPrompt] = useState(false);
+    const [generationError, setGenerationError] = useState<string | null>(null);
     const mainRef = useRef<HTMLDivElement>(null);
 
     const handleReferenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,6 +117,8 @@ export default function GenerateScenePage() {
         setPreviewImages([]);
         setGeneratedAssets([]);
         setSelectedPreview(null);
+        setCreatedProjectId(null);
+        setGenerationError(null);
 
         try {
             const result = await api.generation.generateScene({
@@ -127,8 +131,8 @@ export default function GenerateScenePage() {
                 referenceImage: referenceImages[0],
                 projectId: projectId || undefined,
                 apiKey: apiKey || undefined,
-                tileX, // Passing new param
-                tileY  // Passing new param
+                tileX,
+                tileY
             });
 
             if (result.success) {
@@ -144,35 +148,43 @@ export default function GenerateScenePage() {
                 if (result.assets) {
                     setGeneratedAssets(result.assets);
                 }
+
+                // Capture auto-created project from backend
+                if (result.projectId) {
+                    setCreatedProjectId(result.projectId);
+                }
+
+                // Auto-select if only 1 result
+                if (imagesToShow.length === 1) {
+                    setSelectedPreview(0);
+                }
             } else {
+                setGenerationError(result.error || "Generation failed. Please try again.");
                 console.error("Generation failed:", result.error);
-                // TODO: Show toast
             }
-        } catch (error) {
+        } catch (error: any) {
+            const msg = error?.message || "Scene generation failed. Please try again.";
+            setGenerationError(msg);
             console.error("Scene generation error:", error);
         } finally {
             setIsGenerating(false);
         }
     };
 
-    const handleCreateProject = async () => {
+    const handleOpenProject = async () => {
         if (selectedPreview === null) return;
 
         try {
-            let targetProjectId = projectId;
+            // Use backend-created project, or the projectId from URL, or create one
+            let targetProjectId = projectId || createdProjectId;
 
-            // 1. Create project if needed
             if (!targetProjectId) {
-                const title = "Untitled";
-
+                // Fallback: create project manually if backend didn't
                 const projectRes = await api.projects.create({
-                    title,
+                    title: prompt.slice(0, 50) || "Untitled Scene",
                     type: 'scene',
                     description: prompt,
-                    settings: {
-                        style,
-                        dimension: dimensions
-                    }
+                    settings: { style, dimension: dimensions, tileX, tileY }
                 });
 
                 if (projectRes.success && projectRes.project) {
@@ -183,19 +195,19 @@ export default function GenerateScenePage() {
                 }
             }
 
-            // 2. Link Asset to Project
+            // Link the selected asset to project if not already linked
             if (targetProjectId && generatedAssets[selectedPreview]) {
-                const assetId = generatedAssets[selectedPreview].id;
-                await api.assets.update(assetId, {
-                    project_id: targetProjectId
-                });
+                const asset = generatedAssets[selectedPreview];
+                if (!asset.project_id || asset.project_id !== targetProjectId) {
+                    await api.assets.update(asset.id, {
+                        project_id: targetProjectId
+                    });
+                }
             }
 
-            // 3. Navigate
             router.push(`/projects/${targetProjectId}`);
-
         } catch (error) {
-            console.error("Error creating project:", error);
+            console.error("Error opening project:", error);
         }
     };
 
@@ -412,10 +424,23 @@ export default function GenerateScenePage() {
 
                                         {/* Tiling Toggles */}
                                         <div className="space-y-2 pt-2 border-t border-white/[0.05]">
-                                            <Label className="text-[11px] text-text-muted ml-1">Seamless Tiling</Label>
+                                            <div className="flex items-center gap-1.5 ml-1">
+                                                <Label className="text-[11px] text-text-muted">Seamless Tiling</Label>
+                                                <span
+                                                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[8px] font-bold text-text-muted cursor-help hover:text-primary hover:border-primary/40 transition-colors"
+                                                    title="Seamless tiling makes the scene repeat without visible edges, useful for game backgrounds. Horizontal (X) tiles left-to-right for side-scrolling. Vertical (Y) tiles top-to-bottom for parallax or vertical scrolling."
+                                                >
+                                                    ?
+                                                </span>
+                                            </div>
                                             <div className="flex gap-4">
                                                 <div className="flex items-center justify-between flex-1 px-1">
-                                                    <Label className="text-[10px] text-text-dim">Horizontal (X)</Label>
+                                                    <Label
+                                                        className="text-[10px] text-text-dim cursor-help"
+                                                        title="The scene will tile seamlessly left-to-right. Ideal for side-scrolling game backgrounds and platformer levels."
+                                                    >
+                                                        Horizontal (X)
+                                                    </Label>
                                                     <button
                                                         onClick={() => setTileX(!tileX)}
                                                         className={`w-8 h-4 rounded-full transition-colors relative ${tileX ? "bg-primary" : "bg-surface-highlight border border-border"}`}
@@ -424,7 +449,12 @@ export default function GenerateScenePage() {
                                                     </button>
                                                 </div>
                                                 <div className="flex items-center justify-between flex-1 px-1">
-                                                    <Label className="text-[10px] text-text-dim">Vertical (Y)</Label>
+                                                    <Label
+                                                        className="text-[10px] text-text-dim cursor-help"
+                                                        title="The scene will tile seamlessly top-to-bottom. Useful for vertical scrolling, parallax layers, or top-down game maps."
+                                                    >
+                                                        Vertical (Y)
+                                                    </Label>
                                                     <button
                                                         onClick={() => setTileY(!tileY)}
                                                         className={`w-8 h-4 rounded-full transition-colors relative ${tileY ? "bg-primary" : "bg-surface-highlight border border-border"}`}
@@ -567,11 +597,11 @@ export default function GenerateScenePage() {
                     {/* Canvas Area */}
                     <div className="flex-1 overflow-auto flex items-center justify-center relative bg-[url('/grid-pattern.svg')] bg-center">
                         {isGenerating ? (
-                            <div className="grid grid-cols-2 gap-6 p-8 w-full max-w-4xl animate-in fade-in duration-500">
+                            <div className={`grid ${quantity === 1 ? 'grid-cols-1 max-w-lg' : 'grid-cols-2 max-w-4xl'} gap-6 p-8 w-full animate-in fade-in duration-500`}>
                                 {[...Array(quantity)].map((_, index) => (
                                     <div
                                         key={index}
-                                        className="aspect-video min-w-[200px] bg-surface/50 rounded-lg border border-border border-dashed flex flex-col items-center justify-center relative overflow-hidden"
+                                        className="aspect-square min-w-[200px] bg-surface/50 rounded-lg border border-border border-dashed flex flex-col items-center justify-center relative overflow-hidden"
                                     >
                                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" style={{ transform: 'skewX(-20deg) translateX(-150%)' }} />
                                         <div className="flex flex-col items-center gap-3 z-10">
@@ -584,6 +614,24 @@ export default function GenerateScenePage() {
                                     </div>
                                 ))}
                             </div>
+                        ) : generationError ? (
+                            <div className="text-center space-y-4 max-w-sm">
+                                <div className="w-16 h-16 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
+                                    <X className="w-6 h-6 text-red-400" />
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-sm font-medium text-red-400">Generation Failed</p>
+                                    <p className="text-xs text-text-muted">{generationError}</p>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setGenerationError(null)}
+                                    className="text-xs"
+                                >
+                                    Dismiss
+                                </Button>
+                            </div>
                         ) : previewImages.length === 0 ? (
                             <div className="text-center space-y-4 max-w-xs">
                                 <div className="w-16 h-16 rounded-xl bg-surface border border-border flex items-center justify-center mx-auto">
@@ -592,18 +640,18 @@ export default function GenerateScenePage() {
                                 <p className="text-sm text-text-muted">Configure settings and generate to see results</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 gap-6 p-8 max-w-4xl mx-auto">
+                            <div className={`grid ${previewImages.length === 1 ? 'grid-cols-1 max-w-lg' : 'grid-cols-2 max-w-4xl'} gap-6 p-8 mx-auto`}>
                                 {previewImages.map((img, index) => (
                                     <div
                                         key={index}
                                         onClick={() => setSelectedPreview(index)}
-                                        className={`group relative aspect-video bg-surface rounded-lg border transition-colors cursor-pointer ${selectedPreview === index
-                                            ? 'border-primary'
+                                        className={`group relative aspect-square bg-surface rounded-lg border transition-all cursor-pointer ${selectedPreview === index
+                                            ? 'border-primary ring-2 ring-primary/20'
                                             : 'border-border hover:border-primary/50'
                                             }`}
                                     >
-                                        <div className="absolute inset-4 flex items-center justify-center">
-                                            <img src={img} alt="Generated Scene" className="w-full h-full object-cover rounded-md pixelated" />
+                                        <div className="absolute inset-2 flex items-center justify-center">
+                                            <img src={img} alt="Generated Scene" className="w-full h-full object-contain rounded-md pixelated" />
                                         </div>
 
                                         {/* Selection Indicator */}
@@ -632,7 +680,7 @@ export default function GenerateScenePage() {
                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface border border-border rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-3 z-10">
                             <span className="text-sm text-text">Variant {selectedPreview + 1} selected</span>
                             <Button
-                                onClick={handleCreateProject}
+                                onClick={handleOpenProject}
                                 size="sm"
                                 className="h-8 rounded-full px-4"
                             >
@@ -644,7 +692,7 @@ export default function GenerateScenePage() {
                                 ) : (
                                     <>
                                         <FolderPlus className="w-4 h-4" />
-                                        Create Project
+                                        Open Project
                                     </>
                                 )}
                             </Button>
@@ -653,5 +701,13 @@ export default function GenerateScenePage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function GenerateScenePage() {
+    return (
+        <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
+            <GenerateSceneContent />
+        </Suspense>
     );
 }

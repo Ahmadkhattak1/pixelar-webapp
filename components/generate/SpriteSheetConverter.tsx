@@ -5,8 +5,15 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import GIF from "gif.js";
 
+interface FrameHint {
+    frameWidth: number;
+    frameHeight: number;
+    frameCount: number;
+}
+
 interface SpriteSheetConverterProps {
     spriteSheetUrl: string;
+    frameHint?: FrameHint;
     onSave: (gifUrl: string) => void;
 }
 
@@ -631,7 +638,7 @@ const workerBlob = new Blob([`
 
 const workerUrl = URL.createObjectURL(workerBlob);
 
-export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConverterProps) {
+export function SpriteSheetConverter({ spriteSheetUrl, frameHint, onSave }: SpriteSheetConverterProps) {
     // Settings
     const [rows, setRows] = useState(1);
     const [cols, setCols] = useState(1);
@@ -663,22 +670,49 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
     const imageRef = useRef<HTMLImageElement | null>(null);
     const animationRef = useRef<number | undefined>(undefined);
 
-    // Load Image & Auto Detect
+    // Load Image & Auto Detect — fetch as blob to bypass CORS restrictions
     useEffect(() => {
         setImageLoaded(false);
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = spriteSheetUrl;
-        img.onload = () => {
-            imageRef.current = img;
-            autoDetectGrid(img);
-            setImageLoaded(true);
+
+        const loadFromUrl = (url: string) => {
+            const img = new Image();
+            img.src = url;
+            img.onload = () => {
+                imageRef.current = img;
+                // Use frame hint from spritesheet metadata if available
+                if (frameHint && frameHint.frameWidth > 0 && frameHint.frameHeight > 0) {
+                    const detectedCols = Math.max(1, Math.floor(img.naturalWidth / frameHint.frameWidth));
+                    const detectedRows = Math.max(1, Math.floor(img.naturalHeight / frameHint.frameHeight));
+                    setCols(detectedCols);
+                    setRows(detectedRows);
+                    setImageLoaded(true);
+                } else {
+                    autoDetectGrid(img);
+                    setImageLoaded(true);
+                }
+            };
+            img.onerror = (err) => {
+                console.error("Failed to load image:", err);
+            };
         };
-        img.onerror = (err) => {
-            console.error("Failed to load image:", err);
-            // Try loading without CORS as fallback (might fail canvas export but allows viewing) - or just alert
-            alert("Failed to load image. It might be due to CORS restrictions or an invalid URL.");
-        };
+
+        // If it's already a blob/data URL, load directly
+        if (spriteSheetUrl.startsWith('blob:') || spriteSheetUrl.startsWith('data:')) {
+            loadFromUrl(spriteSheetUrl);
+        } else {
+            // Fetch remote URL as blob to avoid CORS canvas tainting
+            fetch(spriteSheetUrl)
+                .then(res => res.blob())
+                .then(blob => {
+                    const objectUrl = URL.createObjectURL(blob);
+                    loadFromUrl(objectUrl);
+                })
+                .catch(err => {
+                    console.error("Failed to fetch image:", err);
+                    // Last resort: try loading directly
+                    loadFromUrl(spriteSheetUrl);
+                });
+        }
     }, [spriteSheetUrl]);
 
     // Auto Detect Grid Logic
@@ -1204,8 +1238,31 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
                 });
             });
 
-            // Send data to worker
-            worker.postMessage({
+            // Create worker and send data
+            const gifWorker = new Worker(workerUrl);
+
+            gifWorker.onmessage = (e: MessageEvent) => {
+                if (e.data.type === 'finished') {
+                    const blob = new Blob([e.data.buffer], { type: 'image/gif' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `animation-${Date.now()}.gif`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    gifWorker.terminate();
+                    setIsExporting(false);
+                }
+            };
+
+            gifWorker.onerror = (err) => {
+                console.error('Worker error:', err);
+                gifWorker.terminate();
+                setIsExporting(false);
+                alert('GIF encoding failed');
+            };
+
+            gifWorker.postMessage({
                 width: frameWidth,
                 height: frameHeight,
                 frames: frameList,
@@ -1214,12 +1271,7 @@ export function SpriteSheetConverter({ spriteSheetUrl, onSave }: SpriteSheetConv
                 transparent: null
             });
 
-            // Only include frames from selected rows
-
-
             console.log('All frames prepared, encoding with worker...');
-
-
 
         } catch (error) {
             console.error('Failed to start GIF rendering:', error);

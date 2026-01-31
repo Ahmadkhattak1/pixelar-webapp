@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -42,7 +42,7 @@ const PoseEditor = dynamic(() => import("@/components/pose-editor/PoseEditor"), 
     loading: () => <div className="flex items-center justify-center h-full text-text-muted">Loading 3D Editor...</div>
 });
 
-type SpriteType = "character" | "object" | "animation";
+type SpriteType = "character" | "object";
 type Viewpoint = "front" | "back" | "side" | "top_down" | "isometric";
 type Style =
     | "default"
@@ -60,7 +60,7 @@ type Style =
     | "pixel_art" // Legacy fallback
     | "2d_flat";  // Legacy fallback
 
-export default function GenerateSpritePage() {
+function GenerateSpriteContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const projectId = searchParams.get("projectId");
@@ -86,7 +86,6 @@ export default function GenerateSpritePage() {
     const [poseImage, setPoseImage] = useState<string | null>(null);
     const [showBYOKPrompt, setShowBYOKPrompt] = useState(false);
     const [generatedAssets, setGeneratedAssets] = useState<Asset[]>([]);
-    const [animationStyle, setAnimationStyle] = useState<"four_angle_walking" | "walking_and_idle" | "small_sprites" | "vfx">("four_angle_walking");
     const [generationError, setGenerationError] = useState<string | null>(null);
     const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
     const mainRef = useRef<HTMLDivElement>(null);
@@ -106,17 +105,6 @@ export default function GenerateSpritePage() {
             reader.readAsDataURL(file);
         });
     };
-
-    // Auto-set dimensions based on animation style
-    useEffect(() => {
-        if (spriteType === 'animation') {
-            if (animationStyle === 'four_angle_walking' || animationStyle === 'walking_and_idle') {
-                setDimensions("48x48");
-            } else if (animationStyle === 'small_sprites') {
-                setDimensions("32x32");
-            }
-        }
-    }, [spriteType, animationStyle]);
 
     const handleRemoveReferenceImage = (index: number) => {
         setReferenceImages(prev => prev.filter((_, i) => i !== index));
@@ -147,39 +135,20 @@ export default function GenerateSpritePage() {
         setCreatedProjectId(null);
 
         try {
-            let result;
-
-            if (spriteType === "animation") {
-                // Direct Animation Generation
-                const [w, h] = dimensions.split('x').map(Number);
-                result = await api.generation.generateDirectAnimation({
-                    prompt,
-                    style: animationStyle,
-                    width: w || 48,
-                    height: h || 48,
-                    quantity,
-                    projectId: projectId || undefined,
-                    apiKey: apiKey || undefined,
-                    return_spritesheet: true,
-                    bypass_prompt_expansion: false
-                });
-            } else {
-                // Standard Sprite Generation
-                result = await api.generation.generateSprite({
-                    prompt,
-                    style,
-                    viewpoint,
-                    colors,
-                    dimensions,
-                    quantity,
-                    referenceImage: referenceImages[0],
-                    poseImage: poseImage || undefined,
-                    projectId: projectId || undefined,
-                    apiKey: apiKey || undefined,
-                    removeBg,
-                    spriteType
-                });
-            }
+            const result = await api.generation.generateSprite({
+                prompt,
+                style,
+                viewpoint,
+                colors,
+                dimensions,
+                quantity,
+                referenceImage: referenceImages[0],
+                poseImage: poseImage || undefined,
+                projectId: projectId || undefined,
+                apiKey: apiKey || undefined,
+                removeBg,
+                spriteType
+            });
 
             console.log("Generation Result:", result); // DEBUG Log
             console.log("Images from result:", result.images);
@@ -282,7 +251,7 @@ export default function GenerateSpritePage() {
                             {/* Sprite Type Selector */}
                             <div className="p-4 rounded-xl bg-surface-highlight/40 space-y-3">
                                 <Label className="studio-field-label">Sprite Type</Label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <button
                                         onClick={() => setSpriteType("character")}
                                         className={`flex flex-col items-center justify-center gap-1.5 h-16 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "character"
@@ -302,16 +271,6 @@ export default function GenerateSpritePage() {
                                     >
                                         <Cube className={`w-5 h-5 ${spriteType === "object" ? "text-primary" : "text-text-muted"}`} weight={spriteType === "object" ? "fill" : "regular"} />
                                         Object
-                                    </button>
-                                    <button
-                                        onClick={() => setSpriteType("animation")}
-                                        className={`flex flex-col items-center justify-center gap-1.5 h-16 px-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${spriteType === "animation"
-                                            ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
-                                            : "bg-surface border-white/[0.08] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.15]"
-                                            }`}
-                                    >
-                                        <PersonSimple className={`w-5 h-5 ${spriteType === "animation" ? "text-primary" : "text-text-muted"}`} weight={spriteType === "animation" ? "fill" : "regular"} />
-                                        Animation
                                     </button>
                                 </div>
                             </div>
@@ -390,75 +349,42 @@ export default function GenerateSpritePage() {
                                                 value={dimensions}
                                                 onChange={(e) => setDimensions(e.target.value)}
                                                 className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
-                                                disabled={spriteType === 'animation' && animationStyle !== 'vfx'}
                                             >
-                                                {spriteType === 'animation' ? (
-                                                    <>
-                                                        <option value="32x32">32x32</option>
-                                                        <option value="48x48">48x48</option>
-                                                        <option value="64x64">64x64</option>
-                                                        <option value="96x96">96x96</option>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <option value="32x32">32x32</option>
-                                                        <option value="64x64">64x64</option>
-                                                        <option value="128x128">128x128</option>
-                                                        <option value="256x256">256x256</option>
-                                                        <option value="384x384">384x384 (Max)</option>
-                                                    </>
-                                                )}
+                                                <option value="32x32">32x32</option>
+                                                <option value="64x64">64x64</option>
+                                                <option value="128x128">128x128</option>
+                                                <option value="256x256">256x256</option>
+                                                <option value="384x384">384x384 (Max)</option>
                                             </select>
                                             <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
                                         </div>
                                     </div>
 
-                                    {spriteType === "animation" ? (
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-1.5 ml-1">
-                                                <Label className="text-[11px] font-medium text-text-muted">Anim Style</Label>
-                                            </div>
-                                            <div className="relative">
-                                                <select
-                                                    value={animationStyle}
-                                                    onChange={(e) => setAnimationStyle(e.target.value as any)}
-                                                    className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
-                                                >
-                                                    <option value="four_angle_walking">4-Angle Walk</option>
-                                                    <option value="walking_and_idle">Walk + Idle</option>
-                                                    <option value="small_sprites">Small Sprites</option>
-                                                    <option value="vfx">VFX</option>
-                                                </select>
-                                                <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-1.5 ml-1">
-                                                <Label className="text-[11px] font-medium text-text-muted">Viewpoint</Label>
-                                                <div className="group relative">
-                                                    <div className="w-3 h-3 rounded-full border border-text-dim flex items-center justify-center cursor-help text-[8px] text-text-dim">?</div>
-                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-popover border border-border rounded-lg shadow-xl text-[10px] text-text-muted leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                                        Perspective angle of the sprite (e.g., Side view for platformers, Top Down for RPGs).
-                                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center gap-1.5 ml-1">
+                                            <Label className="text-[11px] font-medium text-text-muted">Viewpoint</Label>
+                                            <div className="group relative">
+                                                <div className="w-3 h-3 rounded-full border border-text-dim flex items-center justify-center cursor-help text-[8px] text-text-dim">?</div>
+                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-popover border border-border rounded-lg shadow-xl text-[10px] text-text-muted leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                                    Perspective angle of the sprite (e.g., Side view for platformers, Top Down for RPGs).
                                                 </div>
                                             </div>
-                                            <div className="relative">
-                                                <select
-                                                    value={viewpoint}
-                                                    onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
-                                                    className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
-                                                >
-                                                    <option value="front">Front</option>
-                                                    <option value="back">Back</option>
-                                                    <option value="side">Side</option>
-                                                    <option value="top_down">Top Down</option>
-                                                    <option value="isometric">Isometric</option>
-                                                </select>
-                                                <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
-                                            </div>
                                         </div>
-                                    )}
+                                        <div className="relative">
+                                            <select
+                                                value={viewpoint}
+                                                onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
+                                                className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
+                                            >
+                                                <option value="front">Front</option>
+                                                <option value="back">Back</option>
+                                                <option value="side">Side</option>
+                                                <option value="top_down">Top Down</option>
+                                                <option value="isometric">Isometric</option>
+                                            </select>
+                                            <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[11px] font-medium text-text-muted ml-1">Quantity</Label>
@@ -479,7 +405,7 @@ export default function GenerateSpritePage() {
                                 </div>
 
                                 {/* Advanced Options Toggle */}
-                                {spriteType !== "animation" && (
+                                {(
                                     <div className="pt-1">
                                         <button
                                             onClick={() => setShowAdvanced(!showAdvanced)}
@@ -498,7 +424,7 @@ export default function GenerateSpritePage() {
                                 )}
 
                                 {/* Collapsible Content */}
-                                {showAdvanced && spriteType !== "animation" && (
+                                {showAdvanced && (
                                     <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
                                         {/* Style */}
                                         <div className="space-y-2">
@@ -839,5 +765,13 @@ export default function GenerateSpritePage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function GenerateSpritePage() {
+    return (
+        <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
+            <GenerateSpriteContent />
+        </Suspense>
     );
 }

@@ -9,7 +9,11 @@
       "Bash(npm install:*)",
       "Bash(rm:*)",
       "Bash(find:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(dir /s \"C:\\\\Users\\\\Ahdfa\\\\OneDrive\\\\Desktop\\\\Projects\\\\pixelar-webapp\")",
+      "Bash(ls:*)",
+      "Bash(npx next build)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
