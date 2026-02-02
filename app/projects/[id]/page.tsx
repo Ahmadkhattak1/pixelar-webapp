@@ -30,31 +30,36 @@ function SpritesheetPreview({ src, frameWidth, frameHeight, totalFrames, fps = 8
     useEffect(() => {
         setReady(false);
         setCurrentFrame(0);
-        // Fetch image as blob to bypass CORS restrictions for canvas drawing
-        fetch(src)
-            .then(res => res.blob())
+
+        const onLoaded = (img: HTMLImageElement) => {
+            imgRef.current = img;
+            const cols = Math.max(1, Math.floor(img.naturalWidth / frameWidth));
+            setColumns(cols);
+            setReady(true);
+        };
+
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+        // Use backend proxy to bypass CORS for Firebase Storage URLs
+        const proxyUrl = `${API_BASE}/assets/proxy-image?url=${encodeURIComponent(src)}`;
+
+        fetch(proxyUrl)
+            .then(res => {
+                if (!res.ok) throw new Error(`Proxy ${res.status}`);
+                return res.blob();
+            })
             .then(blob => {
                 const objectUrl = URL.createObjectURL(blob);
                 const img = new window.Image();
                 img.src = objectUrl;
-                img.onload = () => {
-                    imgRef.current = img;
-                    const cols = Math.max(1, Math.floor(img.naturalWidth / frameWidth));
-                    setColumns(cols);
-                    setReady(true);
-                };
+                img.onload = () => onLoaded(img);
             })
             .catch(err => {
-                console.error('Failed to load spritesheet for preview:', err);
-                // Fallback: load directly without CORS (canvas will be tainted but drawImage still works)
+                console.warn('Proxy fetch failed, loading directly:', err.message);
+                // Fallback: load directly (works for display, canvas may be tainted)
                 const img = new window.Image();
                 img.src = src;
-                img.onload = () => {
-                    imgRef.current = img;
-                    const cols = Math.max(1, Math.floor(img.naturalWidth / frameWidth));
-                    setColumns(cols);
-                    setReady(true);
-                };
+                img.onload = () => onLoaded(img);
             });
     }, [src, frameWidth]);
 
@@ -119,7 +124,7 @@ export default function ProjectPage() {
     const params = useParams();
     const router = useRouter();
     const projectId = params.id as string;
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
 
     const [project, setProject] = useState<Project | null>(null);
     const [assets, setAssets] = useState<Asset[]>([]);
@@ -143,6 +148,18 @@ export default function ProjectPage() {
     // Fetch project and assets
     useEffect(() => {
         const fetchProjectData = async () => {
+            // Wait for auth to be ready before making API calls
+            if (authLoading) {
+                console.log('[ProjectPage] Waiting for auth to initialize...');
+                return;
+            }
+
+            if (!user) {
+                console.warn('[ProjectPage] No user logged in, skipping data fetch');
+                setIsLoading(false);
+                return;
+            }
+
             setIsLoading(true);
             setError(null);
             try {
@@ -162,8 +179,17 @@ export default function ProjectPage() {
                     if (result.project?.type === 'sprite') {
                         try {
                             const spritesheetResult = await api.spritesheet.listByProject(projectId);
+                            console.log('[ProjectPage] Spritesheet API response:', spritesheetResult);
                             if (spritesheetResult.success) {
-                                setSpritesheets(spritesheetResult.spritesheets || []);
+                                const sheets = spritesheetResult.spritesheets || [];
+                                console.log('[ProjectPage] Loaded spritesheets:', sheets.map((s: any) => ({
+                                    id: s.id,
+                                    name: s.name,
+                                    blob_url: s.blob_url,
+                                    blob_url_length: s.blob_url?.length,
+                                    metadata: s.metadata
+                                })));
+                                setSpritesheets(sheets);
                             }
                         } catch (err) {
                             console.error("Failed to fetch spritesheets:", err);
@@ -183,7 +209,7 @@ export default function ProjectPage() {
         if (projectId) {
             fetchProjectData();
         }
-    }, [projectId]);
+    }, [projectId, user, authLoading]);
 
     const selectedAsset = assets.find(a => a.id === selectedAssetId) || assets[0];
 
@@ -202,8 +228,15 @@ export default function ProjectPage() {
     };
 
     const downloadBlob = async (url: string, filename: string) => {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
         try {
-            const res = await fetch(url);
+            // Use backend proxy to fetch the image (avoids CORS)
+            const proxyUrl = `${API_BASE}/assets/proxy-image?url=${encodeURIComponent(url)}`;
+            const res = await fetch(proxyUrl);
+
+            if (!res.ok) throw new Error(`Proxy fetch failed: ${res.status}`);
+
             const blob = await res.blob();
             const blobUrl = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -214,7 +247,7 @@ export default function ProjectPage() {
             document.body.removeChild(link);
             URL.revokeObjectURL(blobUrl);
         } catch (err) {
-            console.error('Download failed:', err);
+            console.error('Download via proxy failed:', err);
             // Fallback: open direct link to allow manual save
             window.open(url, '_blank');
         }
@@ -673,13 +706,24 @@ export default function ProjectPage() {
                                         const fw = selectedSpritesheet.metadata?.frame_width || selectedSpritesheet.metadata?.frameWidth || '';
                                         const fh = selectedSpritesheet.metadata?.frame_height || selectedSpritesheet.metadata?.frameHeight || '';
                                         const fc = selectedSpritesheet.metadata?.frame_count || selectedSpritesheet.metadata?.frameCount || '';
+
+                                        console.log('[Project] Converting to GIF:', {
+                                            asset: selectedSpritesheet.blob_url,
+                                            fw,
+                                            fh,
+                                            fc
+                                        });
+
                                         const params = new URLSearchParams({
                                             asset: selectedSpritesheet.blob_url,
                                             ...(fw && { fw: String(fw) }),
                                             ...(fh && { fh: String(fh) }),
                                             ...(fc && { fc: String(fc) }),
                                         });
-                                        router.push(`/tools/gif-converter?${params.toString()}`);
+
+                                        const url = `/tools/gif-converter?${params.toString()}`;
+                                        console.log('[Project] Navigating to:', url);
+                                        router.push(url);
                                     }}
                                 >
                                     Convert to GIF

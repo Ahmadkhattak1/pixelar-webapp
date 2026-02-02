@@ -674,46 +674,70 @@ export function SpriteSheetConverter({ spriteSheetUrl, frameHint, onSave }: Spri
     useEffect(() => {
         setImageLoaded(false);
 
-        const loadFromUrl = (url: string) => {
-            const img = new Image();
-            img.src = url;
-            img.onload = () => {
-                imageRef.current = img;
-                // Use frame hint from spritesheet metadata if available
-                if (frameHint && frameHint.frameWidth > 0 && frameHint.frameHeight > 0) {
-                    const detectedCols = Math.max(1, Math.floor(img.naturalWidth / frameHint.frameWidth));
-                    const detectedRows = Math.max(1, Math.floor(img.naturalHeight / frameHint.frameHeight));
-                    setCols(detectedCols);
-                    setRows(detectedRows);
-                    setImageLoaded(true);
-                } else {
-                    autoDetectGrid(img);
-                    setImageLoaded(true);
-                }
-            };
-            img.onerror = (err) => {
-                console.error("Failed to load image:", err);
-            };
+        const onImageReady = (img: HTMLImageElement) => {
+            imageRef.current = img;
+            if (frameHint && frameHint.frameWidth > 0 && frameHint.frameHeight > 0) {
+                const detectedCols = Math.max(1, Math.floor(img.naturalWidth / frameHint.frameWidth));
+                const detectedRows = Math.max(1, Math.floor(img.naturalHeight / frameHint.frameHeight));
+                setCols(detectedCols);
+                setRows(detectedRows);
+                setSelectedRows([]);
+                setStartFrame(1);
+                setEndFrame(detectedRows * detectedCols);
+                setImageLoaded(true);
+                console.log('[SpriteSheetConverter] Loaded with frameHint:', {
+                    cols: detectedCols,
+                    rows: detectedRows,
+                    totalFrames: detectedRows * detectedCols
+                });
+            } else {
+                autoDetectGrid(img);
+                setImageLoaded(true);
+            }
         };
 
-        // If it's already a blob/data URL, load directly
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
         if (spriteSheetUrl.startsWith('blob:') || spriteSheetUrl.startsWith('data:')) {
-            loadFromUrl(spriteSheetUrl);
+            // Local blob/data URL — load directly
+            const img = new Image();
+            img.src = spriteSheetUrl;
+            img.onload = () => onImageReady(img);
+            img.onerror = () => console.error('[SpriteSheetConverter] Failed to load blob/data URL');
         } else {
-            // Fetch remote URL as blob to avoid CORS canvas tainting
-            fetch(spriteSheetUrl)
-                .then(res => res.blob())
-                .then(blob => {
-                    const objectUrl = URL.createObjectURL(blob);
-                    loadFromUrl(objectUrl);
+            // Remote URL (e.g. Firebase signed URL)
+            // Step 1: Try fetching through our backend proxy to avoid CORS entirely
+            console.log('[SpriteSheetConverter] Fetching via backend proxy...');
+
+            const proxyUrl = `${API_BASE}/assets/proxy-image?url=${encodeURIComponent(spriteSheetUrl)}`;
+
+            fetch(proxyUrl)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+                    return res.blob();
                 })
-                .catch(err => {
-                    console.error("Failed to fetch image:", err);
-                    // Last resort: try loading directly
-                    loadFromUrl(spriteSheetUrl);
+                .then(blob => {
+                    console.log('[SpriteSheetConverter] Proxy fetch succeeded, size:', blob.size);
+                    const objectUrl = URL.createObjectURL(blob);
+                    const img = new Image();
+                    img.src = objectUrl;
+                    img.onload = () => onImageReady(img);
+                    img.onerror = () => console.error('[SpriteSheetConverter] Failed to load proxied blob');
+                })
+                .catch(proxyErr => {
+                    console.warn('[SpriteSheetConverter] Proxy failed, falling back to direct load:', proxyErr.message);
+                    // Step 2: Fall back to loading directly without crossOrigin
+                    // Image will display/animate fine, but canvas will be tainted (no GIF export)
+                    const img = new Image();
+                    img.src = spriteSheetUrl;
+                    img.onload = () => onImageReady(img);
+                    img.onerror = () => {
+                        console.error('[SpriteSheetConverter] Direct load also failed');
+                        alert('Failed to load image. Please try uploading the file directly.');
+                    };
                 });
         }
-    }, [spriteSheetUrl]);
+    }, [spriteSheetUrl, frameHint]);
 
     // Auto Detect Grid Logic
     const autoDetectGrid = (img: HTMLImageElement) => {
@@ -1232,10 +1256,18 @@ export function SpriteSheetConverter({ spriteSheetUrl, frameHint, onSave }: Spri
 
                 ctx.clearRect(0, 0, frameWidth, frameHeight);
                 ctx.drawImage(img, sx, sy, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
-                frameList.push({
-                    data: ctx.getImageData(0, 0, frameWidth, frameHeight),
-                    delay: delay
-                });
+
+                try {
+                    // This will throw if canvas is tainted (CORS issue)
+                    const imageData = ctx.getImageData(0, 0, frameWidth, frameHeight);
+                    frameList.push({
+                        data: imageData,
+                        delay: delay
+                    });
+                } catch (err) {
+                    console.error('Failed to read image data (CORS issue):', err);
+                    throw new Error('Cannot export GIF due to CORS restrictions. Please try uploading the image file directly instead.');
+                }
             });
 
             // Create worker and send data
@@ -1243,15 +1275,19 @@ export function SpriteSheetConverter({ spriteSheetUrl, frameHint, onSave }: Spri
 
             gifWorker.onmessage = (e: MessageEvent) => {
                 if (e.data.type === 'finished') {
-                    const blob = new Blob([e.data.buffer], { type: 'image/gif' });
+                    console.log('[SpriteSheetConverter] GIF encoding complete, downloading...');
+                    const blob = new Blob([e.data.data], { type: 'image/gif' });
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
                     link.download = `animation-${Date.now()}.gif`;
+                    document.body.appendChild(link);
                     link.click();
+                    document.body.removeChild(link);
                     URL.revokeObjectURL(url);
                     gifWorker.terminate();
                     setIsExporting(false);
+                    console.log('[SpriteSheetConverter] GIF download triggered successfully');
                 }
             };
 
@@ -1274,9 +1310,10 @@ export function SpriteSheetConverter({ spriteSheetUrl, frameHint, onSave }: Spri
             console.log('All frames prepared, encoding with worker...');
 
         } catch (error) {
-            console.error('Failed to start GIF rendering:', error);
+            console.error('Failed to export GIF:', error);
             setIsExporting(false);
-            alert('Failed to start GIF rendering: ' + (error instanceof Error ? error.message : 'Unknown error'));
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            alert('Failed to export GIF: ' + errorMessage);
         }
     };
 

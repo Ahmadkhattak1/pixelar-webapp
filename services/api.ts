@@ -49,6 +49,17 @@ export interface GenerationParams {
     spriteType?: string;
 }
 
+export interface AnimationParams {
+    characterImage: string; // base64
+    viewType?: 'side' | 'isometric' | 'top_down';
+    direction?: string;
+    animationType?: string;
+    frameDescriptions: string[];
+    projectId?: string;
+    apiKey?: string;
+    provider?: 'replicate' | 'gemini';
+}
+
 export interface DirectAnimationParams {
     prompt: string;
     style?: 'four_angle_walking' | 'walking_and_idle' | 'small_sprites' | 'vfx';
@@ -83,13 +94,18 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
         ...(options.headers as Record<string, string>),
     };
 
+    console.log(`[API] User logged in:`, !!user, user?.email);
+
     if (user) {
         try {
             const token = await user.getIdToken();
             headers["Authorization"] = `Bearer ${token}`;
+            console.log(`[API] Auth token added:`, token.substring(0, 20) + '...');
         } catch (e) {
             console.error("Error getting auth token", e);
         }
+    } else {
+        console.warn(`[API] ⚠️ No user logged in - request will fail with 401`);
     }
 
     console.log(`[API] ${options.method || 'GET'} ${endpoint}`);
@@ -156,6 +172,12 @@ export const api = {
         getHistory: async (params?: { projectId?: string; limit?: number }) => {
             const query = new URLSearchParams(params as any).toString();
             return fetchWithAuth(`/generate/history?${query}`);
+        },
+        generateAnimation: async (params: AnimationParams): Promise<GenerationResult> => {
+            return fetchWithAuth("/generate/animation", {
+                method: "POST",
+                body: JSON.stringify(params),
+            });
         },
         generateDirectAnimation: async (params: DirectAnimationParams): Promise<GenerationResult> => {
             return fetchWithAuth("/generate/direct-animation", {

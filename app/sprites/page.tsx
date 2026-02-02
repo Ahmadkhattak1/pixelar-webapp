@@ -35,6 +35,7 @@ import { ProfileModal } from "@/components/profile-modal";
 import { BYOKButton } from "@/components/home/BYOKButton";
 import { useAuth } from "@/hooks/useAuth";
 import { api, Asset } from "@/services/api";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Dynamically import PoseEditor to avoid SSR issues with Canvas
 const PoseEditor = dynamic(() => import("@/components/pose-editor/PoseEditor"), {
@@ -770,8 +771,10 @@ function GenerateSpriteContent() {
 
 export default function GenerateSpritePage() {
     return (
-        <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
-            <GenerateSpriteContent />
-        </Suspense>
+        <ProtectedRoute>
+            <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
+                <GenerateSpriteContent />
+            </Suspense>
+        </ProtectedRoute>
     );
 }

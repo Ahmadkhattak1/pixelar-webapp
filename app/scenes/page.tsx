@@ -30,6 +30,7 @@ import { ProfileModal } from "@/components/profile-modal";
 import { BYOKButton } from "@/components/home/BYOKButton";
 import { useAuth } from "@/hooks/useAuth";
 import { api, Asset } from "@/services/api";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 type SceneType = "indoor" | "outdoor";
 type Viewpoint = "front" | "back" | "side" | "top_down" | "isometric";
@@ -706,8 +707,10 @@ function GenerateSceneContent() {
 
 export default function GenerateScenePage() {
     return (
-        <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
-            <GenerateSceneContent />
-        </Suspense>
+        <ProtectedRoute>
+            <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}>
+                <GenerateSceneContent />
+            </Suspense>
+        </ProtectedRoute>
     );
 }

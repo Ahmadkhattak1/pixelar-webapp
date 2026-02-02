@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/navigation/Sidebar";
 import { ExpandableHorizon } from "@/components/home/ExpandableHorizon";
 import { useAuth } from "@/hooks/useAuth";
 import { api, Project } from "@/services/api";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // --- Enhanced Global Styles & Keyframes ---
 const customStyles = `
@@ -246,7 +247,7 @@ function TemplateCard({ title, type, colorClass, delay }: { title: string, type:
     );
 }
 
-export default function HomePage() {
+function HomePageContent() {
     const router = useRouter();
     const { user } = useAuth();
     const [recentProjects, setRecentProjects] = useState<Project[]>([]);
@@ -417,5 +418,13 @@ export default function HomePage() {
                 </div>
             </main>
         </div>
+    );
+}
+
+export default function HomePage() {
+    return (
+        <ProtectedRoute>
+            <HomePageContent />
+        </ProtectedRoute>
     );
 }

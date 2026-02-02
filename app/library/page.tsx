@@ -18,8 +18,9 @@ import { Button } from "@/components/ui/button";
 import { ProfileModal } from "@/components/profile-modal";
 import { useAuth } from "@/hooks/useAuth";
 import { api, Asset } from "@/services/api";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
-export default function LibraryPage() {
+function LibraryPageContent() {
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
 
@@ -292,5 +293,13 @@ export default function LibraryPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function LibraryPage() {
+    return (
+        <ProtectedRoute>
+            <LibraryPageContent />
+        </ProtectedRoute>
     );
 }

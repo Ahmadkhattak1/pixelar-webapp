@@ -19,6 +19,7 @@ import { api, Project } from "@/services/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { Image as ImageIcon, Map, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 const projectColors = [
   "bg-blue-500/10 border-blue-500/20 text-blue-500",
@@ -29,7 +30,7 @@ const projectColors = [
   "bg-cyan-500/10 border-cyan-500/20 text-cyan-500",
 ];
 
-export default function ProjectsPage() {
+function ProjectsPageContent() {
   const router = useRouter();
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -514,5 +515,13 @@ export default function ProjectsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <ProtectedRoute>
+      <ProjectsPageContent />
+    </ProtectedRoute>
   );
 }

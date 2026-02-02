@@ -27,8 +27,10 @@ function GifConverterContent() {
     // Auto-load asset from query param
     useEffect(() => {
         const assetUrl = searchParams.get('asset');
+        console.log('[GIF Converter] Asset URL from params:', assetUrl);
         if (assetUrl) {
-            setSelectedFile(decodeURIComponent(assetUrl));
+            // URLSearchParams.get() already decodes the value, no need to decode again
+            setSelectedFile(assetUrl);
         }
     }, [searchParams]);
 
