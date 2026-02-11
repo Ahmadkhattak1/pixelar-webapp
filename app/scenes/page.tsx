@@ -29,7 +29,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { api, Asset } from "@/services/api";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
-type Viewpoint = "front" | "back" | "side" | "top_down" | "isometric";
 type Style =
     | "default"
     | "retro"
@@ -73,6 +72,24 @@ const SCENE_STYLE_OPTIONS: Array<{ value: Style; label: string }> = [
     { value: "skill_icon", label: "Skill Icon" },
 ];
 
+function pickAssetImageUrl(asset: any): string | null {
+    const candidates = [
+        asset?.blob_url,
+        asset?.blobUrl,
+        asset?.url,
+        asset?.image_url,
+        asset?.imageUrl,
+        asset?.metadata?.blob_url,
+        asset?.metadata?.blobUrl,
+        asset?.metadata?.url,
+        asset?.metadata?.image_url,
+        asset?.metadata?.imageUrl,
+    ];
+
+    const url = candidates.find((value) => typeof value === "string" && value.trim().length > 0);
+    return url ? String(url) : null;
+}
+
 function GenerateSceneContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -84,7 +101,6 @@ function GenerateSceneContent() {
     const [referenceImages, setReferenceImages] = useState<string[]>([]);
     const [colors, setColors] = useState<string[]>([]);
     const [customColor, setCustomColor] = useState("");
-    const [viewpoint, setViewpoint] = useState<Viewpoint>("isometric");
     const [style, setStyle] = useState<Style>("environment");
     const [dimensions, setDimensions] = useState("256x256");
     const [quantity, setQuantity] = useState(1);
@@ -150,7 +166,6 @@ function GenerateSceneContent() {
             const result = await api.generation.generateScene({
                 prompt: prompt.trim(),
                 style,
-                viewpoint,
                 colors,
                 dimensions,
                 quantity,
@@ -162,14 +177,18 @@ function GenerateSceneContent() {
             });
 
             if (result.success) {
-                let imagesToShow = result.images || [];
+                const imagesFromResult = (result.images || []).filter((img: string) => typeof img === "string" && img.trim() !== "");
+                const imagesFromAssets = (result.assets || [])
+                    .map((asset: any) => pickAssetImageUrl(asset))
+                    .filter((url: string | null): url is string => Boolean(url));
+                const imagesToShow = Array.from(new Set([...imagesFromResult, ...imagesFromAssets]));
 
-                // Fallback to assets if images array is empty but assets exist
-                if (imagesToShow.length === 0 && result.assets && result.assets.length > 0) {
-                    imagesToShow = result.assets.map((a: any) => a.blob_url);
+                if (imagesToShow.length > 0) {
+                    setPreviewImages(imagesToShow);
+                    setSelectedPreview(0);
+                } else {
+                    setGenerationError("Scene generated, but no preview URL was returned.");
                 }
-
-                setPreviewImages(imagesToShow);
 
                 if (result.assets) {
                     setGeneratedAssets(result.assets);
@@ -180,10 +199,6 @@ function GenerateSceneContent() {
                     setCreatedProjectId(result.projectId);
                 }
 
-                // Auto-select if only 1 result
-                if (imagesToShow.length === 1) {
-                    setSelectedPreview(0);
-                }
             } else {
                 setGenerationError(result.error || "Generation failed. Please try again.");
                 console.error("Generation failed:", result.error);
@@ -344,18 +359,16 @@ function GenerateSceneContent() {
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <Label className="text-[11px] font-medium text-text-muted ml-1">Viewpoint</Label>
+                                        <Label className="text-[11px] font-medium text-text-muted ml-1">Style</Label>
                                         <div className="relative">
                                             <select
-                                                value={viewpoint}
-                                                onChange={(e) => setViewpoint(e.target.value as Viewpoint)}
+                                                value={style}
+                                                onChange={(e) => setStyle(e.target.value as Style)}
                                                 className="w-full h-9 px-3 bg-background/50 border border-white/[0.05] rounded-lg text-xs text-text focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer"
                                             >
-                                                <option value="front">Front</option>
-                                                <option value="back">Back</option>
-                                                <option value="side">Side</option>
-                                                <option value="top_down">Top Down</option>
-                                                <option value="isometric">Isometric</option>
+                                                {SCENE_STYLE_OPTIONS.map(({ value, label }) => (
+                                                    <option key={value} value={value}>{label}</option>
+                                                ))}
                                             </select>
                                             <CaretDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
                                         </div>
@@ -400,29 +413,8 @@ function GenerateSceneContent() {
                                 {/* Collapsible Content */}
                                 {showAdvanced && (
                                     <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                                        {/* Style */}
-                                        <div className="space-y-2">
-                                            <Label className="text-[11px] text-text-muted ml-1">Style</Label>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                                                    {SCENE_STYLE_OPTIONS.map(({ value, label }) => (
-                                                        <button
-                                                            key={value}
-                                                            onClick={() => setStyle(value)}
-                                                            className={`flex items-center justify-center gap-2 h-8 px-2 rounded-lg text-[10px] font-semibold transition-all duration-200 border ${style === value
-                                                                ? "bg-primary/10 border-primary/50 text-primary shadow-sm"
-                                                                : "bg-background/40 border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text"
-                                                                }`}
-                                                        >
-                                                            {label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-
                                         {/* Tiling Toggles */}
-                                        <div className="space-y-2 pt-2 border-t border-white/[0.05]">
+                                        <div className="space-y-2">
                                             <div className="flex items-center gap-1.5 ml-1">
                                                 <Label className="text-[11px] text-text-muted">Seamless Tiling</Label>
                                                 <span
@@ -639,18 +631,50 @@ function GenerateSceneContent() {
                                 <p className="text-sm text-text-muted">Configure settings and generate to see results</p>
                             </div>
                         ) : (
-                            <div className={`grid ${previewImages.length === 1 ? 'grid-cols-1 max-w-lg' : 'grid-cols-2 max-w-4xl'} gap-6 p-8 mx-auto`}>
+                            <div className={`p-8 mx-auto ${previewImages.length === 1
+                                ? 'flex items-center justify-center'
+                                : 'grid grid-cols-2 gap-6 max-w-4xl'
+                                }`}>
                                 {previewImages.map((img, index) => (
                                     <div
                                         key={index}
                                         onClick={() => setSelectedPreview(index)}
-                                        className={`group relative aspect-square bg-surface rounded-lg border transition-all cursor-pointer ${selectedPreview === index
-                                            ? 'border-primary ring-2 ring-primary/20'
+                                        className={`group relative aspect-square bg-surface rounded-lg border transition-all cursor-pointer ${previewImages.length === 1 ? 'w-80 h-80' : 'min-w-[220px] w-full'
+                                            } ${selectedPreview === index
+                                                ? 'border-primary ring-2 ring-primary/20'
                                             : 'border-border hover:border-primary/50'
                                             }`}
                                     >
-                                        <div className="absolute inset-2 flex items-center justify-center">
-                                            <img src={img} alt="Generated Scene" className="w-full h-full object-contain rounded-md pixelated" />
+                                        <div className="absolute inset-3 flex items-center justify-center">
+                                            <div className="absolute inset-0 flex items-center justify-center bg-surface/50 image-loading-placeholder">
+                                                <Loader2 className="w-5 h-5 text-text-muted animate-spin" />
+                                            </div>
+                                            <img
+                                                src={img}
+                                                alt={`Generated Scene ${index + 1}`}
+                                                className="w-full h-full object-contain rounded-md pixelated relative z-10"
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement;
+                                                    const parent = target.parentElement;
+                                                    if (parent) {
+                                                        const placeholder = parent.querySelector('.image-loading-placeholder');
+                                                        if (placeholder) {
+                                                            placeholder.innerHTML = '<span class="text-xs text-red-400">Failed to load</span>';
+                                                        }
+                                                    }
+                                                    target.style.display = 'none';
+                                                }}
+                                                onLoad={(e) => {
+                                                    const target = e.target as HTMLImageElement;
+                                                    const parent = target.parentElement;
+                                                    if (parent) {
+                                                        const placeholder = parent.querySelector('.image-loading-placeholder');
+                                                        if (placeholder) {
+                                                            (placeholder as HTMLElement).style.display = 'none';
+                                                        }
+                                                    }
+                                                }}
+                                            />
                                         </div>
 
                                         {/* Selection Indicator */}
@@ -664,7 +688,21 @@ function GenerateSceneContent() {
                                             <Button variant="ghost" size="icon" className="w-7 h-7">
                                                 <MagnifyingGlassPlus className="w-4 h-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="w-7 h-7">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="w-7 h-7"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const link = document.createElement('a');
+                                                    link.href = img;
+                                                    link.download = `scene_${index + 1}.png`;
+                                                    link.target = '_blank';
+                                                    document.body.appendChild(link);
+                                                    link.click();
+                                                    document.body.removeChild(link);
+                                                }}
+                                            >
                                                 <Download className="w-4 h-4" />
                                             </Button>
                                         </div>
