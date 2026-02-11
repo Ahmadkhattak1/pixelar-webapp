@@ -8,6 +8,12 @@ import { ImportAssetModal } from "@/components/import/ImportAssetModal";
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 
+const navItems = [
+    { href: "/home", label: "Home", icon: House },
+    { href: "/projects", label: "Projects", icon: FolderOpen },
+    { href: "/library", label: "Library", icon: Images },
+];
+
 export function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
@@ -19,19 +25,6 @@ export function Sidebar() {
     useEffect(() => {
         setIsMobileMenuOpen(false);
     }, [pathname]);
-
-    const navItems = [
-        { href: "/home", label: "Home", icon: House },
-        { href: "/projects", label: "Projects", icon: FolderOpen },
-        { href: "/library", label: "Library", icon: Images },
-    ];
-
-    // Prefetch all nav routes on mount for instant navigation
-    useEffect(() => {
-        navItems.forEach((item) => {
-            router.prefetch(item.href);
-        });
-    }, [router]);
 
     return (
         <>
@@ -85,7 +78,9 @@ export function Sidebar() {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                prefetch={true}
+                                prefetch={false}
+                                onMouseEnter={() => router.prefetch(item.href)}
+                                onFocus={() => router.prefetch(item.href)}
                                 className={`
                                     relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
                                     ${isActive

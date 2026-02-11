@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Sparkle, FilmStrip, ArrowRight, Mountains, Lightning, UploadSimple } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
@@ -359,11 +360,138 @@ interface PanelProps {
     glowColor: string;
     isActive: boolean;
     onHover: (id: string | null) => void;
+    useTargetCursor?: boolean;
     onClick?: () => void;
     children: React.ReactNode;
 }
 
-function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, onHover, onClick, children }: PanelProps) {
+interface HorizonTargetCursorProps {
+    containerRef: React.RefObject<HTMLDivElement | null>;
+}
+
+function HorizonTargetCursor({ containerRef }: HorizonTargetCursorProps) {
+    const pointerX = useMotionValue(0);
+    const pointerY = useMotionValue(0);
+    const ringXTarget = useMotionValue(0);
+    const ringYTarget = useMotionValue(0);
+    const ringWidthTarget = useMotionValue(42);
+    const ringHeightTarget = useMotionValue(42);
+    const reticleXTarget = useMotionValue(0);
+    const reticleYTarget = useMotionValue(0);
+
+    const dotX = useSpring(pointerX, { stiffness: 900, damping: 55, mass: 0.15 });
+    const dotY = useSpring(pointerY, { stiffness: 900, damping: 55, mass: 0.15 });
+    const ringX = useSpring(ringXTarget, { stiffness: 520, damping: 38, mass: 0.5 });
+    const ringY = useSpring(ringYTarget, { stiffness: 520, damping: 38, mass: 0.5 });
+    const ringWidth = useSpring(ringWidthTarget, { stiffness: 420, damping: 34, mass: 0.6 });
+    const ringHeight = useSpring(ringHeightTarget, { stiffness: 420, damping: 34, mass: 0.6 });
+    const reticleX = useSpring(reticleXTarget, { stiffness: 700, damping: 45, mass: 0.25 });
+    const reticleY = useSpring(reticleYTarget, { stiffness: 700, damping: 45, mass: 0.25 });
+
+    const [isVisible, setIsVisible] = useState(false);
+    const [isLocked, setIsLocked] = useState(false);
+
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const freeSize = 42;
+        const lockPadding = 10;
+
+        const updateCursor = (event: MouseEvent) => {
+            const containerRect = container.getBoundingClientRect();
+            const x = event.clientX - containerRect.left;
+            const y = event.clientY - containerRect.top;
+
+            pointerX.set(x);
+            pointerY.set(y);
+            setIsVisible(true);
+
+            const target = (event.target as HTMLElement | null)?.closest?.("[data-target-cursor='panel']") as HTMLElement | null;
+
+            if (target && container.contains(target)) {
+                const targetRect = target.getBoundingClientRect();
+                ringXTarget.set(targetRect.left - containerRect.left - lockPadding);
+                ringYTarget.set(targetRect.top - containerRect.top - lockPadding);
+                ringWidthTarget.set(targetRect.width + lockPadding * 2);
+                ringHeightTarget.set(targetRect.height + lockPadding * 2);
+                reticleXTarget.set(targetRect.left - containerRect.left + targetRect.width / 2);
+                reticleYTarget.set(targetRect.top - containerRect.top + targetRect.height / 2);
+                setIsLocked(true);
+                return;
+            }
+
+            ringXTarget.set(x - freeSize / 2);
+            ringYTarget.set(y - freeSize / 2);
+            ringWidthTarget.set(freeSize);
+            ringHeightTarget.set(freeSize);
+            reticleXTarget.set(x);
+            reticleYTarget.set(y);
+            setIsLocked(false);
+        };
+
+        const handleMouseEnter = (event: MouseEvent) => {
+            updateCursor(event);
+            setIsVisible(true);
+        };
+
+        const handleMouseLeave = () => {
+            setIsVisible(false);
+            setIsLocked(false);
+        };
+
+        container.addEventListener("mousemove", updateCursor);
+        container.addEventListener("mouseenter", handleMouseEnter);
+        container.addEventListener("mouseleave", handleMouseLeave);
+
+        return () => {
+            container.removeEventListener("mousemove", updateCursor);
+            container.removeEventListener("mouseenter", handleMouseEnter);
+            container.removeEventListener("mouseleave", handleMouseLeave);
+        };
+    }, [containerRef, pointerX, pointerY, reticleXTarget, reticleYTarget, ringHeightTarget, ringWidthTarget, ringXTarget, ringYTarget]);
+
+    return (
+        <div className="pointer-events-none absolute inset-0 z-40">
+            <motion.div
+                className="absolute top-0 left-0 border border-primary/65 bg-primary/10 shadow-[0_0_26px_rgba(159,222,90,0.25)]"
+                style={{
+                    x: ringX,
+                    y: ringY,
+                    width: ringWidth,
+                    height: ringHeight,
+                    borderRadius: isLocked ? 22 : 999,
+                }}
+                animate={{ opacity: isVisible ? 1 : 0, scale: isVisible ? 1 : 0.88 }}
+                transition={{ duration: 0.16, ease: "easeOut" }}
+            />
+
+            <motion.div
+                className="absolute top-0 left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_14px_rgba(159,222,90,0.9)]"
+                style={{ x: dotX, y: dotY }}
+                animate={{ opacity: isVisible ? 1 : 0 }}
+                transition={{ duration: 0.1 }}
+            />
+
+            <motion.div
+                className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2"
+                style={{ x: reticleX, y: reticleY }}
+                animate={{
+                    opacity: isVisible ? 1 : 0,
+                    scale: isVisible ? (isLocked ? 1 : 0.84) : 0.6,
+                }}
+                transition={{ duration: 0.14 }}
+            >
+                <span className="absolute left-1/2 top-1/2 h-px w-8 -translate-x-1/2 -translate-y-1/2 bg-primary/70" />
+                <span className="absolute left-1/2 top-1/2 w-px h-8 -translate-x-1/2 -translate-y-1/2 bg-primary/70" />
+                <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/80" />
+            </motion.div>
+        </div>
+    );
+}
+
+function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, onHover, useTargetCursor = false, onClick, children }: PanelProps) {
+    const router = useRouter();
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [isHovering, setIsHovering] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
@@ -377,6 +505,10 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
     const handleMouseEnter = () => {
         setIsHovering(true);
         onHover(id);
+
+        if (!onClick) {
+            router.prefetch(href);
+        }
     };
 
     const handleMouseLeave = () => {
@@ -387,49 +519,35 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
     const Wrapper = onClick ? 'div' : Link;
     const wrapperProps = onClick
         ? { className: "contents", onClick: (e: React.MouseEvent) => { e.preventDefault(); onClick(); } }
-        : { href, className: "contents" };
+        : { href, prefetch: false, className: "contents" };
 
     return (
         <Wrapper {...wrapperProps as any}>
             <motion.div
                 ref={cardRef}
-                layout
+                data-target-cursor="panel"
                 className={cn(
-                    "relative h-[400px] md:h-[500px] rounded-3xl cursor-pointer group",
-                    isActive ? "md:grow-[2]" : "md:grow-[1]",
-                    !isActive && "md:hover:grow-[1.2]"
+                    "relative flex-1 h-[400px] md:h-[500px] rounded-3xl group",
+                    useTargetCursor ? "cursor-none" : "cursor-pointer"
                 )}
                 onMouseMove={handleMouseMove}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
                 initial={false}
                 animate={{
-                    flexGrow: isActive ? 2.5 : 1,
                     y: isActive ? -4 : 0,
-                    scale: isActive ? 1.01 : 1
+                    scale: isActive ? 1.006 : 1
                 }}
                 transition={{
-                    flexGrow: {
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30,
-                        mass: 0.8
-                    },
-                    layout: {
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30,
-                        mass: 0.8
-                    },
                     y: {
                         type: "spring",
-                        stiffness: 400,
-                        damping: 25
+                        stiffness: 360,
+                        damping: 30
                     },
                     scale: {
                         type: "spring",
-                        stiffness: 400,
-                        damping: 25
+                        stiffness: 360,
+                        damping: 30
                     }
                 }}
             >
@@ -448,13 +566,13 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
                     }}
                 />
 
-                {/* Glass Card - FROSTED GLASS */}
+                {/* Card shell */}
                 <div
                     className={cn(
-                        "absolute inset-[1px] rounded-[23px] overflow-hidden backdrop-blur-2xl border z-10 transition-all duration-500",
+                        "absolute inset-[1px] rounded-[23px] overflow-hidden border z-10 transition-all duration-500",
                         isActive
-                            ? "bg-white/[0.06] border-white/[0.2] shadow-2xl"
-                            : "bg-white/[0.03] border-white/[0.12] shadow-lg group-hover:bg-white/[0.05] group-hover:border-white/[0.18] group-hover:shadow-xl"
+                            ? "bg-[#101726] border-primary/35 shadow-2xl"
+                            : "bg-[#0c1322] border-white/[0.14] shadow-lg group-hover:bg-[#101726] group-hover:border-primary/25 group-hover:shadow-xl"
                     )}
                     style={{
                         boxShadow: isActive
@@ -462,8 +580,17 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
                             : `0 10px 40px -10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)`
                     }}
                 >
-                    {/* Frosted overlay */}
-                    <div className="absolute inset-0 bg-[#0a0d12]/50" />
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,#121a2d_0%,#0a111f_100%)]" />
+                    <div
+                        className="absolute inset-x-0 top-0 h-36"
+                        style={{
+                            background: `radial-gradient(70% 120% at 50% -10%, ${accentColor}2b 0%, transparent 68%)`,
+                        }}
+                    />
+                    <div className={cn(
+                        "absolute inset-0 transition-opacity duration-300",
+                        isActive ? "bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_44%)] opacity-100" : "opacity-0"
+                    )} />
 
                     {/* Inner depth - top highlight */}
                     <div className="absolute inset-x-0 top-0 h-px bg-white/25" />
@@ -558,10 +685,26 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
 }
 
 export function ExpandableHorizon() {
+    const horizonRef = useRef<HTMLDivElement>(null);
     const [focusedPanel, setFocusedPanel] = useState<string | null>(null);
+    const [enableTargetCursor, setEnableTargetCursor] = useState(false);
+
+    useEffect(() => {
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+        const lowCpu = navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4;
+        setEnableTargetCursor(!prefersReducedMotion && !coarsePointer && !lowCpu);
+    }, []);
 
     return (
-        <div className="w-full h-full flex flex-col md:flex-row gap-4 min-h-[500px]">
+        <div
+            ref={horizonRef}
+            className={cn(
+                "w-full h-full flex flex-col md:flex-row gap-4 min-h-[500px] relative",
+                enableTargetCursor && "cursor-none"
+            )}
+        >
+            {enableTargetCursor && <HorizonTargetCursor containerRef={horizonRef} />}
             <Panel
                 id="sprite"
                 title="New Sprite"
@@ -571,6 +714,7 @@ export function ExpandableHorizon() {
                 glowColor="#9FDE5A80"
                 isActive={focusedPanel === "sprite"}
                 onHover={setFocusedPanel}
+                useTargetCursor={enableTargetCursor}
             >
                 <SpriteAnimation isHovered={focusedPanel === "sprite"} />
             </Panel>
@@ -584,6 +728,7 @@ export function ExpandableHorizon() {
                 glowColor="#14b8a680"
                 isActive={focusedPanel === "scene"}
                 onHover={setFocusedPanel}
+                useTargetCursor={enableTargetCursor}
             >
                 <SceneAnimation isHovered={focusedPanel === "scene"} />
             </Panel>
@@ -597,6 +742,7 @@ export function ExpandableHorizon() {
                 glowColor="#8b5cf680"
                 isActive={focusedPanel === "animate"}
                 onHover={setFocusedPanel}
+                useTargetCursor={enableTargetCursor}
             >
                 <AnimateAssetAnimation isHovered={focusedPanel === "animate"} />
             </Panel>

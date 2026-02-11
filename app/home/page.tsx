@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkle, Image as ImageIcon, FilmStrip, Plus, Square, Clock, FolderOpen } from "@phosphor-icons/react";
+import { Image as ImageIcon, Clock, FolderOpen } from "@phosphor-icons/react";
 import { Map } from "lucide-react";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { ExpandableHorizon } from "@/components/home/ExpandableHorizon";
+import BackgroundBeams from "@/components/ui/background-beams";
 import { useAuth } from "@/hooks/useAuth";
 import { api, Project } from "@/services/api";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -182,67 +183,22 @@ const dustParticles = Array.from({ length: 50 }, (_, i) => {
     };
 });
 
+const homeEagerPrefetchRoutes = [
+    "/projects",
+    "/library",
+    "/sprites",
+    "/scenes",
+    "/tools/gif-converter",
+];
+
 // --- Floating Pixel Dust Background ---
 function RetroBackground() {
     return (
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-            {/* Base dark background */}
-            <div className="absolute inset-0 bg-[#0a0d11]" />
-
-            {/* Solid dark background */}
-            <div className="absolute inset-0 bg-[#0a0a0a]" />
-
-            {/* Floating Pixel Dust Particles */}
-            <div className="absolute inset-0">
-                {dustParticles.map((particle) => (
-                    <div
-                        key={particle.id}
-                        className="pixel-dust"
-                        style={{
-                            left: particle.left,
-                            bottom: particle.bottom,
-                            width: `${particle.size}px`,
-                            height: `${particle.size}px`,
-                            backgroundColor: particle.color.replace('VAR_OPACITY', particle.opacity.toString()),
-                            boxShadow: `0 0 ${particle.size * 2}px ${particle.color.replace('VAR_OPACITY', (particle.opacity * 0.5).toString())}`,
-                            '--dust-duration': `${particle.duration}s`,
-                            '--dust-delay': `${particle.delay}s`,
-                            '--dust-drift': `${particle.drift}px`,
-                            '--dust-opacity': particle.opacity,
-                            '--twinkle-duration': `${particle.twinkleDuration}s`,
-                        } as React.CSSProperties}
-                    />
-                ))}
-            </div>
-
-            {/* Soft vignette */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,#0a0d11_100%)] opacity-60" />
-        </div>
-    );
-}
-
-
-
-function TemplateCard({ title, type, colorClass, delay }: { title: string, type: string, colorClass: string, delay: string }) {
-    return (
-        <div
-            className="group relative h-40 rounded-2xl overflow-hidden cursor-pointer bg-[#0f111a]/80 backdrop-blur-md border border-white/[0.05] hover:border-white/[0.2] transition-all duration-300 hover:-translate-y-1 animate-enter-4"
-            style={{ animationDelay: delay }}
-        >
-            <div className={`absolute inset-0 ${colorClass.replace('from-', 'bg-').split(' ')[0]} opacity-10 group-hover:opacity-25 transition-opacity duration-500`} />
-            <div className="absolute inset-0 p-5 flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-white bg-white/10 border border-white/10 group-hover:bg-white/15 transition-colors">
-                        {type}
-                    </span>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0 duration-300">
-                        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-                            <Plus className="w-3 h-3 text-white" />
-                        </div>
-                    </div>
-                </div>
-                <h3 className="text-lg font-bold text-white transition-colors">{title}</h3>
-            </div>
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+            <div className="absolute inset-0 bg-[#06090f]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_125%_80%_at_6%_-8%,rgba(159,222,90,0.14)_0%,transparent_58%),radial-gradient(ellipse_95%_70%_at_100%_0%,rgba(77,217,255,0.16)_0%,transparent_54%),linear-gradient(180deg,#070b13_0%,#05070d_100%)]" />
+            <BackgroundBeams className="opacity-[0.84]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,7,12,0.16)_0%,rgba(5,7,12,0.58)_60%,rgba(5,7,12,0.88)_100%)]" />
         </div>
     );
 }
@@ -252,6 +208,43 @@ function HomePageContent() {
     const { user } = useAuth();
     const [recentProjects, setRecentProjects] = useState<Project[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(true);
+
+    const queueIdlePrefetch = (callback: () => void) => {
+        const ric = (window as Window & {
+            requestIdleCallback?: (cb: IdleRequestCallback, options?: IdleRequestOptions) => number;
+            cancelIdleCallback?: (id: number) => void;
+        }).requestIdleCallback;
+        const cic = (window as Window & {
+            cancelIdleCallback?: (id: number) => void;
+        }).cancelIdleCallback;
+
+        if (ric) {
+            const id = ric(() => callback(), { timeout: 2000 });
+            return () => cic?.(id);
+        }
+
+        const timeoutId = window.setTimeout(callback, 1000);
+        return () => window.clearTimeout(timeoutId);
+    };
+
+    const formatProjectDate = (value?: string) => {
+        if (!value) return "No date";
+        return new Date(value).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        });
+    };
+
+    useEffect(() => {
+        if (process.env.NODE_ENV !== "production") return;
+
+        return queueIdlePrefetch(() => {
+            homeEagerPrefetchRoutes.forEach((route) => {
+                router.prefetch(route);
+            });
+        });
+    }, [router]);
 
     useEffect(() => {
         if (user) {
@@ -272,6 +265,17 @@ function HomePageContent() {
             setLoadingProjects(false);
         }
     }, [user]);
+
+    useEffect(() => {
+        if (process.env.NODE_ENV !== "production") return;
+        if (recentProjects.length === 0) return;
+
+        return queueIdlePrefetch(() => {
+            recentProjects.slice(0, 3).forEach((project) => {
+                router.prefetch(`/projects/${project.id}`);
+            });
+        });
+    }, [recentProjects, router]);
 
     return (
         <div className="min-h-screen w-full flex bg-background selection:bg-primary/30 overflow-hidden relative">
@@ -306,11 +310,11 @@ function HomePageContent() {
                                 </div>
 
                                 {loadingProjects ? (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
                                         {[...Array(6)].map((_, i) => (
                                             <div
                                                 key={i}
-                                                className="h-32 rounded-xl bg-white/[0.02] border border-white/[0.05] animate-pulse"
+                                                className="h-52 rounded-2xl bg-[#0d1320] border border-white/[0.08] animate-pulse"
                                             />
                                         ))}
                                     </div>
@@ -328,91 +332,67 @@ function HomePageContent() {
                                         </Link>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
                                         {recentProjects.map((project) => (
                                             <div
                                                 key={project.id}
                                                 onClick={() => router.push(`/projects/${project.id}`)}
-                                                className="group relative h-32 rounded-xl overflow-hidden cursor-pointer bg-[#0f111a]/80 backdrop-blur-md border border-white/[0.05] hover:border-white/[0.2] transition-all duration-300 hover:-translate-y-1"
+                                                onMouseEnter={() => router.prefetch(`/projects/${project.id}`)}
+                                                className="group relative h-52 overflow-hidden rounded-2xl cursor-pointer border border-white/[0.1] bg-[#0b111c] shadow-[0_16px_36px_-24px_rgba(0,0,0,0.95)] transition-all duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_24px_44px_-20px_rgba(159,222,90,0.28)]"
                                             >
                                                 {project.thumbnail_url ? (
-                                                    <>
-                                                        <img
-                                                            src={project.thumbnail_url}
-                                                            alt={project.title}
-                                                            className="absolute inset-0 w-full h-full object-cover pixelated opacity-60 group-hover:opacity-80 transition-opacity duration-300"
-                                                        />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                                                    </>
+                                                    <img
+                                                        src={project.thumbnail_url}
+                                                        alt={project.title}
+                                                        className="absolute inset-0 h-full w-full object-cover pixelated opacity-90 group-hover:scale-[1.04] transition-transform duration-700"
+                                                    />
                                                 ) : (
-                                                    <div className={`absolute inset-0 ${project.color?.split(' ')[0] || 'bg-primary/10'} opacity-30 group-hover:opacity-50 transition-opacity duration-300`} />
+                                                    <div className="absolute inset-0 bg-[linear-gradient(135deg,#101a2b_0%,#0a1322_62%,#0a111c_100%)]" />
                                                 )}
-                                                <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                                                    <div className="flex justify-between items-start">
-                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-bold text-white bg-white/10 border border-white/10">
-                                                            {project.type}
-                                                        </span>
-                                                        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-                                                            {project.type === "sprite" ? (
-                                                                <ImageIcon className="w-3 h-3 text-white/70" />
-                                                            ) : (
-                                                                <Map className="w-3 h-3 text-white/70" />
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-sm font-semibold text-white truncate">{project.title}</h3>
-                                                        <p className="text-[10px] text-white/50 mt-0.5">
-                                                            {new Date(project.updated_at || project.created_at).toLocaleDateString()}
-                                                        </p>
+
+                                                {!project.thumbnail_url && (
+                                                    <>
+                                                        <div className={`absolute inset-0 ${project.color?.split(' ')[0] || "bg-primary/20"} opacity-45`} />
+                                                        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_15%_15%,rgba(255,255,255,0.22)_0%,transparent_58%)]" />
+                                                    </>
+                                                )}
+
+                                                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,10,16,0.1)_0%,rgba(6,10,16,0.45)_44%,rgba(6,10,16,0.92)_100%)]" />
+
+                                                <div className="absolute left-3 right-3 top-3 z-10 flex items-center justify-between">
+                                                    <span className="inline-flex items-center rounded-full border border-white/20 bg-[#090f19]/92 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/90">
+                                                        {project.type}
+                                                    </span>
+                                                    <div className="h-7 w-7 rounded-full border border-white/15 bg-[#0a101b]/95 flex items-center justify-center shadow-sm">
+                                                        {project.type === "sprite" ? (
+                                                            <ImageIcon className="h-3.5 w-3.5 text-white/80" />
+                                                        ) : (
+                                                            <Map className="h-3.5 w-3.5 text-white/80" />
+                                                        )}
                                                     </div>
                                                 </div>
+
+                                                <div className="absolute inset-x-4 bottom-4 z-10">
+                                                    <h3 className="text-[15px] leading-tight font-semibold tracking-tight text-white truncate">
+                                                        {project.title}
+                                                    </h3>
+                                                    <div className="mt-2 flex items-center justify-between text-xs">
+                                                        <span className="text-text-muted truncate">
+                                                            Updated {formatProjectDate(project.updated_at || project.created_at)}
+                                                        </span>
+                                                        <span className="font-semibold text-primary transition-transform duration-200 group-hover:translate-x-0.5">
+                                                            Open
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
                         )}
-
-                        {/* Templates Section */}
-                        <div className="animate-enter-4">
-                            <div className="flex items-center justify-between mb-8">
-                                <div className="flex items-center gap-3">
-                                    <Square weight="fill" className="w-6 h-6 text-text-muted" />
-                                    <h2 className="text-xl font-bold text-white tracking-tight">Start with a Template</h2>
-                                </div>
-                                <button className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">
-                                    View all
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <TemplateCard
-                                    title="Cyberpunk Street"
-                                    type="Scene"
-                                    colorClass="from-fuchsia-600 to-fuchsia-900"
-                                    delay="0.4s"
-                                />
-                                <TemplateCard
-                                    title="Retro Warrior"
-                                    type="Sprite"
-                                    colorClass="from-orange-500 to-red-700"
-                                    delay="0.45s"
-                                />
-                                <TemplateCard
-                                    title="Mystic Forest"
-                                    type="Scene"
-                                    colorClass="from-lime-400 to-green-700"
-                                    delay="0.5s"
-                                />
-                                <TemplateCard
-                                    title="Space Ship"
-                                    type="Sprite"
-                                    colorClass="from-blue-500 to-indigo-800"
-                                    delay="0.55s"
-                                />
-                            </div>
-                        </div>
 
                     </div>
                 </div>

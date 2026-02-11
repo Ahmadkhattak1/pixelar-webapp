@@ -30,6 +30,8 @@ const projectColors = [
   "bg-cyan-500/10 border-cyan-500/20 text-cyan-500",
 ];
 
+const projectsEagerPrefetchRoutes = ["/home", "/projects", "/library", "/sprites", "/scenes"];
+
 function ProjectsPageContent() {
   const router = useRouter();
   const { user } = useAuth();
@@ -59,6 +61,18 @@ function ProjectsPageContent() {
       fetchProjects();
     }
   }, [user]);
+
+  useEffect(() => {
+    projectsEagerPrefetchRoutes.forEach((route) => {
+      router.prefetch(route);
+    });
+  }, [router]);
+
+  useEffect(() => {
+    projects.forEach((project) => {
+      router.prefetch(`/projects/${project.id}`);
+    });
+  }, [projects, router]);
 
   const fetchProjects = async () => {
     try {
@@ -301,6 +315,7 @@ function ProjectsPageContent() {
                   <Card
                     key={project.id}
                     className="group cursor-pointer hover:shadow-md transition-all overflow-hidden"
+                    onMouseEnter={() => router.prefetch(`/projects/${project.id}`)}
                     onClick={() => router.push(`/projects/${project.id}`)}
                   >
                     <div className={`h-40 ${project.thumbnail_url ? 'bg-background' : project.color || 'bg-gray-500'} grid-pattern relative overflow-hidden`}>
