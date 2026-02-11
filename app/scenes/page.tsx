@@ -1,19 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import {
     CaretLeft,
-    Upload,
     X,
     Check,
     Sparkle,
     MagicWand,
     MagnifyingGlassPlus,
-    Stack,
     Download,
     Command,
     Plus,
@@ -21,7 +19,6 @@ import {
     CaretDown,
     CaretRight,
     Sidebar,
-    Tree,
     Image as ImageIcon,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -32,20 +29,49 @@ import { useAuth } from "@/hooks/useAuth";
 import { api, Asset } from "@/services/api";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
-type SceneType = "indoor" | "outdoor";
 type Viewpoint = "front" | "back" | "side" | "top_down" | "isometric";
 type Style =
+    | "default"
+    | "retro"
+    | "watercolor"
+    | "textured"
+    | "cartoon"
+    | "ui_element"
+    | "item_sheet"
+    | "character_turnaround"
     | "environment"
     | "isometric"
+    | "isometric_asset"
     | "topdown_map"
-    | "textured"
-    | "watercolor"
+    | "topdown_asset"
+    | "classic"
+    | "topdown_item"
     | "low_res"
+    | "mc_item"
     | "mc_texture"
-    | "retro"
-    | "default"
-    | "pixel_art" // Legacy
-    | "2d_flat";  // Legacy
+    | "skill_icon";
+
+const SCENE_STYLE_OPTIONS: Array<{ value: Style; label: string }> = [
+    { value: "default", label: "Default" },
+    { value: "retro", label: "Retro" },
+    { value: "watercolor", label: "Watercolor" },
+    { value: "textured", label: "Textured" },
+    { value: "cartoon", label: "Cartoon" },
+    { value: "ui_element", label: "UI Element" },
+    { value: "item_sheet", label: "Item Sheet" },
+    { value: "character_turnaround", label: "Character Turnaround" },
+    { value: "environment", label: "Environment" },
+    { value: "isometric", label: "Isometric" },
+    { value: "isometric_asset", label: "Isometric Asset" },
+    { value: "topdown_map", label: "Topdown Map" },
+    { value: "topdown_asset", label: "Topdown Asset" },
+    { value: "classic", label: "Classic" },
+    { value: "topdown_item", label: "Topdown Item" },
+    { value: "low_res", label: "Low Res" },
+    { value: "mc_item", label: "MC Item" },
+    { value: "mc_texture", label: "MC Texture" },
+    { value: "skill_icon", label: "Skill Icon" },
+];
 
 function GenerateSceneContent() {
     const router = useRouter();
@@ -54,7 +80,6 @@ function GenerateSceneContent() {
     const { user } = useAuth();
 
     // State
-    const [sceneType, setSceneType] = useState<SceneType>("outdoor");
     const [prompt, setPrompt] = useState("");
     const [referenceImages, setReferenceImages] = useState<string[]>([]);
     const [colors, setColors] = useState<string[]>([]);
@@ -123,7 +148,7 @@ function GenerateSceneContent() {
 
         try {
             const result = await api.generation.generateScene({
-                prompt,
+                prompt: prompt.trim(),
                 style,
                 viewpoint,
                 colors,
@@ -132,8 +157,8 @@ function GenerateSceneContent() {
                 referenceImage: referenceImages[0],
                 projectId: projectId || undefined,
                 apiKey: apiKey || undefined,
-                tileX,
-                tileY
+                tileX: Boolean(tileX),
+                tileY: Boolean(tileY)
             });
 
             if (result.success) {
@@ -182,9 +207,9 @@ function GenerateSceneContent() {
             if (!targetProjectId) {
                 // Fallback: create project manually if backend didn't
                 const projectRes = await api.projects.create({
-                    title: prompt.slice(0, 50) || "Untitled Scene",
+                    title: prompt.trim().slice(0, 50) || "Untitled Scene",
                     type: 'scene',
-                    description: prompt,
+                    description: prompt.trim(),
                     settings: { style, dimension: dimensions, tileX, tileY }
                 });
 
@@ -245,40 +270,13 @@ function GenerateSceneContent() {
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
                         <div className="p-4 space-y-6">
 
-                            {/* Scene Type Selector */}
-                            <div className="p-4 rounded-xl bg-surface-highlight/40 space-y-3">
-                                <Label className="studio-field-label">Scene Type</Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        onClick={() => setSceneType("outdoor")}
-                                        className={`flex flex-col items-center justify-center gap-1.5 h-16 px-4 rounded-xl text-xs font-semibold transition-all duration-200 border ${sceneType === "outdoor"
-                                            ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
-                                            : "bg-surface border-white/[0.08] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.15]"
-                                            }`}
-                                    >
-                                        <Tree className={`w-5 h-5 ${sceneType === "outdoor" ? "text-primary" : "text-text-muted"}`} weight={sceneType === "outdoor" ? "fill" : "regular"} />
-                                        Outdoor
-                                    </button>
-                                    <button
-                                        onClick={() => setSceneType("indoor")}
-                                        className={`flex flex-col items-center justify-center gap-1.5 h-16 px-4 rounded-xl text-xs font-semibold transition-all duration-200 border ${sceneType === "indoor"
-                                            ? "bg-primary/10 border-primary/50 text-primary shadow-[0_0_20px_-5px_theme('colors.primary.DEFAULT/0.2')]"
-                                            : "bg-surface border-white/[0.08] text-text-muted hover:bg-surface-highlight hover:text-text hover:border-white/[0.15]"
-                                            }`}
-                                    >
-                                        <ImageIcon className={`w-5 h-5 ${sceneType === "indoor" ? "text-primary" : "text-text-muted"}`} weight={sceneType === "indoor" ? "fill" : "regular"} />
-                                        Indoor
-                                    </button>
-                                </div>
-                            </div>
-
                             {/* Prompt Section */}
                             <div className="p-4 rounded-xl bg-surface-highlight/40 space-y-3">
                                 <div className="relative">
                                     <textarea
                                         value={prompt}
                                         onChange={(e) => setPrompt(e.target.value)}
-                                        placeholder={sceneType === "outdoor" ? "e.g. A mystical forest with ancient trees and glowing mushrooms..." : "e.g. A cozy tavern with wooden tables and a warm fireplace..."}
+                                        placeholder="e.g. Indoor tavern with warm fireplace, wooden beams, cozy lighting, isometric perspective, seamless tile"
                                         className="w-full h-64 px-4 py-3 text-sm bg-background/50 border border-white/[0.08] rounded-xl resize-none focus:border-primary/50 focus:outline-none transition-all placeholder:text-text-dim pb-14"
                                     />
 
@@ -305,6 +303,9 @@ function GenerateSceneContent() {
                                         </div>
                                     </div>
                                 </div>
+                                <p className="text-[11px] text-text-dim px-1">
+                                    Include context like <span className="text-text-muted">indoor</span> or <span className="text-text-muted">outdoor</span> directly in your prompt.
+                                </p>
 
                                 {/* Multiple Reference Display */}
                                 {referenceImages.length > 0 && (
@@ -404,13 +405,10 @@ function GenerateSceneContent() {
                                             <Label className="text-[11px] text-text-muted ml-1">Style</Label>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                                                    {[
-                                                        { value: "pixel_art", label: "Pixel Art" },
-                                                        { value: "2d_flat", label: "2D Flat" },
-                                                    ].map(({ value, label }) => (
+                                                    {SCENE_STYLE_OPTIONS.map(({ value, label }) => (
                                                         <button
                                                             key={value}
-                                                            onClick={() => setStyle(value as Style)}
+                                                            onClick={() => setStyle(value)}
                                                             className={`flex items-center justify-center gap-2 h-8 px-2 rounded-lg text-[10px] font-semibold transition-all duration-200 border ${style === value
                                                                 ? "bg-primary/10 border-primary/50 text-primary shadow-sm"
                                                                 : "bg-background/40 border-white/[0.05] text-text-muted hover:bg-surface-highlight hover:text-text"
