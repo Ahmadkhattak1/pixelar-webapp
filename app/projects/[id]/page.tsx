@@ -120,6 +120,13 @@ function SpritesheetPreview({ src, frameWidth, frameHeight, totalFrames, fps = 8
     );
 }
 
+function formatMetadataLabel(value?: string | null) {
+    if (!value) return 'N/A';
+    return value
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export default function ProjectPage() {
     const params = useParams();
     const router = useRouter();
@@ -214,6 +221,16 @@ export default function ProjectPage() {
     const selectedAsset = assets.find(a => a.id === selectedAssetId) || assets[0];
 
     const isScene = project?.type === 'scene';
+    const selectedAssetStyle =
+        selectedAsset?.metadata?.style === 'environment' && selectedAsset?.metadata?.viewpoint === 'isometric'
+            ? 'isometric'
+            : selectedAsset?.metadata?.style;
+    const selectedAssetDimensions =
+        selectedAsset?.metadata?.dimensions ||
+        project?.settings?.dimensions ||
+        (selectedAsset?.metadata?.generation_params?.model_width && selectedAsset?.metadata?.generation_params?.model_height
+            ? `${selectedAsset.metadata.generation_params.model_width}x${selectedAsset.metadata.generation_params.model_height}`
+            : undefined);
 
     const handleGenerate = () => {
         if (isScene) {
@@ -747,12 +764,18 @@ export default function ProjectPage() {
                                             </div>
                                             <div className="flex justify-between text-xs">
                                                 <span className="text-text-muted">Dimensions</span>
-                                                <span className="text-text">{selectedAsset.metadata?.dimensions || 'N/A'}</span>
+                                                <span className="text-text">{selectedAssetDimensions || 'N/A'}</span>
                                             </div>
                                             <div className="flex justify-between text-xs">
                                                 <span className="text-text-muted">Style</span>
-                                                <span className="text-text capitalize">{selectedAsset.metadata?.style || 'N/A'}</span>
+                                                <span className="text-text">{formatMetadataLabel(selectedAssetStyle)}</span>
                                             </div>
+                                            {selectedAsset.metadata?.viewpoint && (
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-text-muted">Viewpoint</span>
+                                                    <span className="text-text">{formatMetadataLabel(selectedAsset.metadata.viewpoint)}</span>
+                                                </div>
+                                            )}
                                             <div className="flex justify-between text-xs">
                                                 <span className="text-text-muted">Created</span>
                                                 <span className="text-text">
