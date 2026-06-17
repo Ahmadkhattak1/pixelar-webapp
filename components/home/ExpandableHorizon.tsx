@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -390,6 +390,20 @@ function HorizonTargetCursor({ containerRef }: HorizonTargetCursorProps) {
 
     const [isVisible, setIsVisible] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
+    const visibleRef = useRef(false);
+    const lockedRef = useRef(false);
+
+    const setVisibleState = useCallback((nextValue: boolean) => {
+        if (visibleRef.current === nextValue) return;
+        visibleRef.current = nextValue;
+        setIsVisible(nextValue);
+    }, []);
+
+    const setLockedState = useCallback((nextValue: boolean) => {
+        if (lockedRef.current === nextValue) return;
+        lockedRef.current = nextValue;
+        setIsLocked(nextValue);
+    }, []);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -405,7 +419,7 @@ function HorizonTargetCursor({ containerRef }: HorizonTargetCursorProps) {
 
             pointerX.set(x);
             pointerY.set(y);
-            setIsVisible(true);
+            setVisibleState(true);
 
             const target = (event.target as HTMLElement | null)?.closest?.("[data-target-cursor='panel']") as HTMLElement | null;
 
@@ -417,7 +431,7 @@ function HorizonTargetCursor({ containerRef }: HorizonTargetCursorProps) {
                 ringHeightTarget.set(targetRect.height + lockPadding * 2);
                 reticleXTarget.set(targetRect.left - containerRect.left + targetRect.width / 2);
                 reticleYTarget.set(targetRect.top - containerRect.top + targetRect.height / 2);
-                setIsLocked(true);
+                setLockedState(true);
                 return;
             }
 
@@ -427,17 +441,17 @@ function HorizonTargetCursor({ containerRef }: HorizonTargetCursorProps) {
             ringHeightTarget.set(freeSize);
             reticleXTarget.set(x);
             reticleYTarget.set(y);
-            setIsLocked(false);
+            setLockedState(false);
         };
 
         const handleMouseEnter = (event: MouseEvent) => {
             updateCursor(event);
-            setIsVisible(true);
+            setVisibleState(true);
         };
 
         const handleMouseLeave = () => {
-            setIsVisible(false);
-            setIsLocked(false);
+            setVisibleState(false);
+            setLockedState(false);
         };
 
         container.addEventListener("mousemove", updateCursor);
@@ -449,7 +463,7 @@ function HorizonTargetCursor({ containerRef }: HorizonTargetCursorProps) {
             container.removeEventListener("mouseenter", handleMouseEnter);
             container.removeEventListener("mouseleave", handleMouseLeave);
         };
-    }, [containerRef, pointerX, pointerY, reticleXTarget, reticleYTarget, ringHeightTarget, ringWidthTarget, ringXTarget, ringYTarget]);
+    }, [containerRef, pointerX, pointerY, reticleXTarget, reticleYTarget, ringHeightTarget, ringWidthTarget, ringXTarget, ringYTarget, setLockedState, setVisibleState]);
 
     return (
         <div className="pointer-events-none absolute inset-0 z-40">
@@ -492,17 +506,38 @@ function HorizonTargetCursor({ containerRef }: HorizonTargetCursorProps) {
 
 function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, onHover, useTargetCursor = false, onClick, children }: PanelProps) {
     const router = useRouter();
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [isHovering, setIsHovering] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
+    const glowRef = useRef<HTMLDivElement>(null);
+    const glowFrameRef = useRef<number | null>(null);
+    const latestGlowPointRef = useRef({ x: 0, y: 0 });
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const flushGlowPosition = useCallback(() => {
+        const glow = glowRef.current;
+        if (glow) {
+            const { x, y } = latestGlowPointRef.current;
+            glow.style.setProperty("--glow-x", `${x}px`);
+            glow.style.setProperty("--glow-y", `${y}px`);
+        }
+
+        glowFrameRef.current = null;
+    }, []);
+
+    const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         if (!cardRef.current) return;
         const rect = cardRef.current.getBoundingClientRect();
-        setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    };
+        latestGlowPointRef.current = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+        };
 
-    const handleMouseEnter = () => {
+        if (glowFrameRef.current === null) {
+            glowFrameRef.current = window.requestAnimationFrame(flushGlowPosition);
+        }
+    }, [flushGlowPosition]);
+
+    const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+        handleMouseMove(e);
         setIsHovering(true);
         onHover(id);
 
@@ -515,6 +550,14 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
         setIsHovering(false);
         onHover(null);
     };
+
+    useEffect(() => {
+        return () => {
+            if (glowFrameRef.current !== null) {
+                window.cancelAnimationFrame(glowFrameRef.current);
+            }
+        };
+    }, []);
 
     const Wrapper = onClick ? 'div' : Link;
     const wrapperProps = onClick
@@ -553,10 +596,11 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
             >
                 {/* BORDER GLOW - only visible on the border edge */}
                 <div
+                    ref={glowRef}
                     className="absolute inset-0 rounded-3xl transition-opacity duration-300 pointer-events-none"
                     style={{
                         opacity: isHovering ? 1 : 0,
-                        background: `radial-gradient(300px circle at ${mousePos.x}px ${mousePos.y}px, ${accentColor}, ${glowColor} 30%, transparent 60%)`,
+                        background: `radial-gradient(300px circle at var(--glow-x, 50%) var(--glow-y, 50%), ${accentColor}, ${glowColor} 30%, transparent 60%)`,
                         WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                         WebkitMaskComposite: 'xor',
                         mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',

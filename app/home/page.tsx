@@ -107,29 +107,6 @@ const customStyles = `
   100% { transform: translateX(0); opacity: 0.2; }
 }
 
-/* Floating Pixel Dust Animation */
-@keyframes float-dust {
-  0% {
-    transform: translateY(0) translateX(0);
-    opacity: 0;
-  }
-  10% {
-    opacity: var(--dust-opacity);
-  }
-  90% {
-    opacity: var(--dust-opacity);
-  }
-  100% {
-    transform: translateY(-100vh) translateX(var(--dust-drift));
-    opacity: 0;
-  }
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: var(--dust-opacity); }
-  50% { opacity: calc(var(--dust-opacity) * 0.3); }
-}
-
 .animate-enter-1 { animation: enter-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.1s; }
 .animate-enter-2 { animation: enter-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.2s; }
 .animate-enter-3 { animation: enter-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.3s; }
@@ -145,43 +122,7 @@ const customStyles = `
     animation: scroll-bg linear infinite;
     background-repeat: repeat-x;
 }
-
-/* Pixel Dust Particle */
-.pixel-dust {
-    position: absolute;
-    image-rendering: pixelated;
-    animation: float-dust var(--dust-duration) linear infinite, twinkle var(--twinkle-duration) ease-in-out infinite;
-    animation-delay: var(--dust-delay);
-}
 `;
-
-// Dust particle configuration - generates deterministic positions
-const dustParticles = Array.from({ length: 50 }, (_, i) => {
-    // Use index to create pseudo-random but consistent values
-    const seed = (i * 7919) % 100; // Prime number for distribution
-    const seed2 = (i * 6997) % 100;
-    const seed3 = (i * 5449) % 100;
-
-    return {
-        id: i,
-        left: `${seed}%`,
-        bottom: `${-5 - (seed2 % 20)}%`, // Start below viewport
-        size: 2 + (seed3 % 3), // 2-4px pixelated squares
-        duration: 15 + (seed % 20), // 15-35 seconds to float up
-        delay: (seed2 / 100) * 20, // 0-20s staggered start
-        drift: ((seed3 % 40) - 20), // -20px to +20px horizontal drift
-        opacity: 0.12 + (seed % 25) / 100, // 0.12-0.37 opacity (slightly more subtle)
-        twinkleDuration: 2 + (seed % 4), // 2-6 seconds twinkle cycle
-        // Grey-ish color palette for better harmony
-        color: seed % 4 === 0
-            ? 'rgba(148, 163, 184, VAR_OPACITY)' // Slate-400 (cool grey)
-            : seed % 4 === 1
-                ? 'rgba(203, 213, 225, VAR_OPACITY)' // Slate-300 (light grey)
-                : seed % 4 === 2
-                    ? 'rgba(100, 116, 139, VAR_OPACITY)' // Slate-500 (medium grey)
-                    : 'rgba(226, 232, 240, VAR_OPACITY)', // Slate-200 (bright grey)
-    };
-});
 
 const homeEagerPrefetchRoutes = [
     "/projects",

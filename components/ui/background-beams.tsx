@@ -44,7 +44,7 @@ const beamPalettes = [
 
 export const BackgroundBeams = React.memo(({ className }: BackgroundBeamsProps) => {
     const gradientPrefix = React.useId().replace(/:/g, "");
-    const [reducedFx, setReducedFx] = React.useState(false);
+    const [reducedFx, setReducedFx] = React.useState(true);
 
     React.useEffect(() => {
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -53,6 +53,11 @@ export const BackgroundBeams = React.memo(({ className }: BackgroundBeamsProps) 
         const lowMemory = deviceMemory <= 4;
         setReducedFx(prefersReducedMotion || lowCpu || lowMemory);
     }, []);
+
+    const animatedPathIndexes = React.useMemo(
+        () => reducedFx ? [0, 8, 16] : [0, 4, 8, 12, 16],
+        [reducedFx]
+    );
 
     return (
         <div className={cn("pointer-events-none absolute inset-0 h-full w-full overflow-hidden", className)}>
@@ -69,13 +74,11 @@ export const BackgroundBeams = React.memo(({ className }: BackgroundBeamsProps) 
                     ))}
                 </g>
 
-                {pathData
-                    .filter((_, i) => (reducedFx ? i % 4 === 0 : i % 2 === 0))
-                    .map((d, i) => (
+                {animatedPathIndexes.map((pathIndex) => (
                     <motion.path
-                        key={`beam-${d}`}
-                        d={d}
-                        stroke={`url(#${gradientPrefix}-gradient-${i})`}
+                        key={`beam-${pathIndex}`}
+                        d={pathData[pathIndex]}
+                        stroke={`url(#${gradientPrefix}-gradient-${pathIndex})`}
                         strokeWidth={reducedFx ? "0.9" : "1"}
                         strokeLinecap="round"
                         initial={{ pathLength: 0, opacity: 0 }}
@@ -84,8 +87,8 @@ export const BackgroundBeams = React.memo(({ className }: BackgroundBeamsProps) 
                             opacity: reducedFx ? [0, 0.25, 0.35, 0] : [0, 0.45, 0.72, 0],
                         }}
                         transition={{
-                            duration: animations[i].duration + (reducedFx ? 0.8 : 0),
-                            delay: animations[i].delay,
+                            duration: animations[pathIndex].duration + (reducedFx ? 0.8 : 0),
+                            delay: animations[pathIndex].delay,
                             repeat: Number.POSITIVE_INFINITY,
                             repeatDelay: reducedFx ? 0.25 : 0,
                             ease: "easeInOut",

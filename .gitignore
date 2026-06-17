@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/output/playwright/
 
 # next.js
 /.next/
@@ -22,6 +25,7 @@
 
 # misc
 .DS_Store
+/nul
 *.pem
 
 # debug
