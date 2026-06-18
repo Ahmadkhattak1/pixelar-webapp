@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Sparkle, FilmStrip, ArrowRight, Mountains, Lightning, UploadSimple } from "@phosphor-icons/react";
@@ -360,151 +360,11 @@ interface PanelProps {
     glowColor: string;
     isActive: boolean;
     onHover: (id: string | null) => void;
-    useTargetCursor?: boolean;
     onClick?: () => void;
     children: React.ReactNode;
 }
 
-interface HorizonTargetCursorProps {
-    containerRef: React.RefObject<HTMLDivElement | null>;
-}
-
-function HorizonTargetCursor({ containerRef }: HorizonTargetCursorProps) {
-    const pointerX = useMotionValue(0);
-    const pointerY = useMotionValue(0);
-    const ringXTarget = useMotionValue(0);
-    const ringYTarget = useMotionValue(0);
-    const ringWidthTarget = useMotionValue(42);
-    const ringHeightTarget = useMotionValue(42);
-    const reticleXTarget = useMotionValue(0);
-    const reticleYTarget = useMotionValue(0);
-
-    const dotX = useSpring(pointerX, { stiffness: 900, damping: 55, mass: 0.15 });
-    const dotY = useSpring(pointerY, { stiffness: 900, damping: 55, mass: 0.15 });
-    const ringX = useSpring(ringXTarget, { stiffness: 520, damping: 38, mass: 0.5 });
-    const ringY = useSpring(ringYTarget, { stiffness: 520, damping: 38, mass: 0.5 });
-    const ringWidth = useSpring(ringWidthTarget, { stiffness: 420, damping: 34, mass: 0.6 });
-    const ringHeight = useSpring(ringHeightTarget, { stiffness: 420, damping: 34, mass: 0.6 });
-    const reticleX = useSpring(reticleXTarget, { stiffness: 700, damping: 45, mass: 0.25 });
-    const reticleY = useSpring(reticleYTarget, { stiffness: 700, damping: 45, mass: 0.25 });
-
-    const [isVisible, setIsVisible] = useState(false);
-    const [isLocked, setIsLocked] = useState(false);
-    const visibleRef = useRef(false);
-    const lockedRef = useRef(false);
-
-    const setVisibleState = useCallback((nextValue: boolean) => {
-        if (visibleRef.current === nextValue) return;
-        visibleRef.current = nextValue;
-        setIsVisible(nextValue);
-    }, []);
-
-    const setLockedState = useCallback((nextValue: boolean) => {
-        if (lockedRef.current === nextValue) return;
-        lockedRef.current = nextValue;
-        setIsLocked(nextValue);
-    }, []);
-
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const freeSize = 42;
-        const lockPadding = 10;
-
-        const updateCursor = (event: MouseEvent) => {
-            const containerRect = container.getBoundingClientRect();
-            const x = event.clientX - containerRect.left;
-            const y = event.clientY - containerRect.top;
-
-            pointerX.set(x);
-            pointerY.set(y);
-            setVisibleState(true);
-
-            const target = (event.target as HTMLElement | null)?.closest?.("[data-target-cursor='panel']") as HTMLElement | null;
-
-            if (target && container.contains(target)) {
-                const targetRect = target.getBoundingClientRect();
-                ringXTarget.set(targetRect.left - containerRect.left - lockPadding);
-                ringYTarget.set(targetRect.top - containerRect.top - lockPadding);
-                ringWidthTarget.set(targetRect.width + lockPadding * 2);
-                ringHeightTarget.set(targetRect.height + lockPadding * 2);
-                reticleXTarget.set(targetRect.left - containerRect.left + targetRect.width / 2);
-                reticleYTarget.set(targetRect.top - containerRect.top + targetRect.height / 2);
-                setLockedState(true);
-                return;
-            }
-
-            ringXTarget.set(x - freeSize / 2);
-            ringYTarget.set(y - freeSize / 2);
-            ringWidthTarget.set(freeSize);
-            ringHeightTarget.set(freeSize);
-            reticleXTarget.set(x);
-            reticleYTarget.set(y);
-            setLockedState(false);
-        };
-
-        const handleMouseEnter = (event: MouseEvent) => {
-            updateCursor(event);
-            setVisibleState(true);
-        };
-
-        const handleMouseLeave = () => {
-            setVisibleState(false);
-            setLockedState(false);
-        };
-
-        container.addEventListener("mousemove", updateCursor);
-        container.addEventListener("mouseenter", handleMouseEnter);
-        container.addEventListener("mouseleave", handleMouseLeave);
-
-        return () => {
-            container.removeEventListener("mousemove", updateCursor);
-            container.removeEventListener("mouseenter", handleMouseEnter);
-            container.removeEventListener("mouseleave", handleMouseLeave);
-        };
-    }, [containerRef, pointerX, pointerY, reticleXTarget, reticleYTarget, ringHeightTarget, ringWidthTarget, ringXTarget, ringYTarget, setLockedState, setVisibleState]);
-
-    return (
-        <div className="pointer-events-none absolute inset-0 z-40">
-            <motion.div
-                className="absolute top-0 left-0 border border-primary/65 bg-primary/10 shadow-[0_0_26px_rgba(159,222,90,0.25)]"
-                style={{
-                    x: ringX,
-                    y: ringY,
-                    width: ringWidth,
-                    height: ringHeight,
-                    borderRadius: isLocked ? 22 : 999,
-                }}
-                animate={{ opacity: isVisible ? 1 : 0, scale: isVisible ? 1 : 0.88 }}
-                transition={{ duration: 0.16, ease: "easeOut" }}
-            />
-
-            <motion.div
-                className="absolute top-0 left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_14px_rgba(159,222,90,0.9)]"
-                style={{ x: dotX, y: dotY }}
-                animate={{ opacity: isVisible ? 1 : 0 }}
-                transition={{ duration: 0.1 }}
-            />
-
-            <motion.div
-                className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2"
-                style={{ x: reticleX, y: reticleY }}
-                animate={{
-                    opacity: isVisible ? 1 : 0,
-                    scale: isVisible ? (isLocked ? 1 : 0.84) : 0.6,
-                }}
-                transition={{ duration: 0.14 }}
-            >
-                <span className="absolute left-1/2 top-1/2 h-px w-8 -translate-x-1/2 -translate-y-1/2 bg-primary/70" />
-                <span className="absolute left-1/2 top-1/2 w-px h-8 -translate-x-1/2 -translate-y-1/2 bg-primary/70" />
-                <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/80" />
-            </motion.div>
-        </div>
-    );
-}
-
-function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, onHover, useTargetCursor = false, onClick, children }: PanelProps) {
+function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, onHover, onClick, children }: PanelProps) {
     const router = useRouter();
     const [isHovering, setIsHovering] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
@@ -568,11 +428,7 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
         <Wrapper {...wrapperProps as any}>
             <motion.div
                 ref={cardRef}
-                data-target-cursor="panel"
-                className={cn(
-                    "relative flex-1 h-[400px] md:h-[500px] rounded-3xl group",
-                    useTargetCursor ? "cursor-none" : "cursor-pointer"
-                )}
+                className="relative flex-1 h-[400px] md:h-[500px] rounded-3xl group cursor-pointer"
                 onMouseMove={handleMouseMove}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
@@ -609,6 +465,24 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
                         borderRadius: '24px',
                     }}
                 />
+
+                <motion.div
+                    className="pointer-events-none absolute -inset-2 z-20 rounded-[30px] border border-primary/65 bg-primary/[0.025] shadow-[0_0_28px_rgba(159,222,90,0.24)]"
+                    initial={false}
+                    animate={{
+                        opacity: isActive ? 1 : 0,
+                        scale: isActive ? 1 : 0.985,
+                    }}
+                    transition={{ duration: 0.16, ease: "easeOut" }}
+                >
+                    <span className="absolute -left-px -top-px h-8 w-8 rounded-tl-[30px] border-l-2 border-t-2 border-primary" />
+                    <span className="absolute -right-px -top-px h-8 w-8 rounded-tr-[30px] border-r-2 border-t-2 border-primary" />
+                    <span className="absolute -bottom-px -left-px h-8 w-8 rounded-bl-[30px] border-b-2 border-l-2 border-primary" />
+                    <span className="absolute -bottom-px -right-px h-8 w-8 rounded-br-[30px] border-b-2 border-r-2 border-primary" />
+                    <span className="absolute left-1/2 top-1/2 h-px w-10 -translate-x-1/2 -translate-y-1/2 bg-primary/55" />
+                    <span className="absolute left-1/2 top-1/2 h-10 w-px -translate-x-1/2 -translate-y-1/2 bg-primary/55" />
+                    <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_14px_rgba(159,222,90,0.85)]" />
+                </motion.div>
 
                 {/* Card shell */}
                 <div
@@ -729,26 +603,10 @@ function Panel({ id, title, href, icon: Icon, accentColor, glowColor, isActive, 
 }
 
 export function ExpandableHorizon() {
-    const horizonRef = useRef<HTMLDivElement>(null);
     const [focusedPanel, setFocusedPanel] = useState<string | null>(null);
-    const [enableTargetCursor, setEnableTargetCursor] = useState(false);
-
-    useEffect(() => {
-        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
-        const lowCpu = navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4;
-        setEnableTargetCursor(!prefersReducedMotion && !coarsePointer && !lowCpu);
-    }, []);
 
     return (
-        <div
-            ref={horizonRef}
-            className={cn(
-                "w-full h-full flex flex-col md:flex-row gap-4 min-h-[500px] relative",
-                enableTargetCursor && "cursor-none"
-            )}
-        >
-            {enableTargetCursor && <HorizonTargetCursor containerRef={horizonRef} />}
+        <div className="w-full h-full flex flex-col md:flex-row gap-4 min-h-[500px] relative">
             <Panel
                 id="sprite"
                 title="New Sprite"
@@ -758,7 +616,6 @@ export function ExpandableHorizon() {
                 glowColor="#9FDE5A80"
                 isActive={focusedPanel === "sprite"}
                 onHover={setFocusedPanel}
-                useTargetCursor={enableTargetCursor}
             >
                 <SpriteAnimation isHovered={focusedPanel === "sprite"} />
             </Panel>
@@ -772,7 +629,6 @@ export function ExpandableHorizon() {
                 glowColor="#14b8a680"
                 isActive={focusedPanel === "scene"}
                 onHover={setFocusedPanel}
-                useTargetCursor={enableTargetCursor}
             >
                 <SceneAnimation isHovered={focusedPanel === "scene"} />
             </Panel>
@@ -786,7 +642,6 @@ export function ExpandableHorizon() {
                 glowColor="#8b5cf680"
                 isActive={focusedPanel === "animate"}
                 onHover={setFocusedPanel}
-                useTargetCursor={enableTargetCursor}
             >
                 <AnimateAssetAnimation isHovered={focusedPanel === "animate"} />
             </Panel>
